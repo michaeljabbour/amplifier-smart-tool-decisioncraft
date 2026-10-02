@@ -56,6 +56,10 @@ def build_server():
     server = FastMCP(
         "Decisioncraft",
         instructions=(
+            "To show how something works and what is missing, call decisioncraft_map with a repo or "
+            "folder path, a file, or a topic (it reads the target, then asks this host's model to "
+            "draw today's way, the planned way, gaps with user stories and 'done when' checks, and a "
+            "note from each role; dry_run shows what it would read). "
             "When someone is weighing options (even without saying 'decision'), call "
             "decisioncraft_triage with their words. Follow its mode: none means just answer; "
             "quick means decisioncraft_quick in the conversation, no files; guided and team mean "
@@ -259,6 +263,49 @@ def build_server():
         return {"asked": asked, "replies_added": added, "review": out}
 
 
+
+    @server.tool(structured_output=True)
+    async def decisioncraft_map(
+        target: str,
+        ctx: Context,
+        directory: str = "",
+        question: str = "",
+        roles: list[str] | None = None,
+        answers: dict | None = None,
+        page_text: str = "",
+        dry_run: bool = False,
+    ) -> dict[str, Any]:
+        """Point it at anything: a repo or folder path, a notes file, a web page's text, or a topic.
+
+        Reads the target, then asks this host's model (MCP sampling) to draw how it works today
+        with evidence by file and line, a planned way, gaps with user stories and 'done when'
+        checks, and a note from each role. Writes model.json and canvas.html to `directory` and
+        returns their paths. dry_run returns what would be read and asked, with no model call.
+        For a web address pass the page's text in page_text; for a topic pass answers
+        {how_today, pain, goal} if you have them.
+        """
+        if dry_run:
+            return {"plan": lib.plan_map(target, roles=roles, answers=answers)}
+        if not _can_sample(ctx):
+            raise ValueError(NO_SAMPLING.replace(
+                "write the model JSON, then call decisioncraft_validate",
+                "call decisioncraft_map with dry_run to see the material, write the model JSON "
+                "(today and planned boxes, gaps with stories, a note per role), then call "
+                "decisioncraft_validate and decisioncraft_render"))
+        loop = asyncio.get_running_loop()
+        result = await asyncio.to_thread(
+            lib.map_target, target, roles=roles, question=question, answers=answers, page_text=page_text,
+            complete=_sampling_complete(ctx, loop))
+        model = result["model"]
+        folder = Path(directory).expanduser() if directory else Path(tempfile.mkdtemp(prefix="decisioncraft-map-"))
+        folder.mkdir(parents=True, exist_ok=True)
+        import json as _json
+
+        (folder / "model.json").write_text(_json.dumps(model, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        (folder / "canvas.html").write_text(lib.render(model), encoding="utf-8")
+        return {"model_path": str((folder / "model.json").resolve()), "canvas_path": str((folder / "canvas.html").resolve()),
+                "summary": summary(model), "plan": result["plan"]}
+
     # ------------------------------------------------------------ modes
 
     @server.tool(structured_output=True)
@@ -301,6 +348,17 @@ def build_server():
         return lib.interview_step(directory, answer, question=question, kind=kind, reset=reset)
 
     # ------------------------------------------------------------ prompts
+
+    @server.prompt()
+    def map_this(target: str = "") -> str:
+        """Show how something works today, what could be better, and what each role thinks."""
+        return (
+            f"Show me how {target or '(ask me what: a repo or folder path, some notes, a page or a topic)'} "
+            "works today and what is missing.\n\nCall decisioncraft_map with dry_run first and tell me in "
+            "two lines what it will read. Then call decisioncraft_map to draw it. Tell me where the "
+            "canvas is, summarise the as-is and to-be in three sentences each, list the gaps with "
+            "their user stories, and ask me the two most urgent questions from the role notes."
+        )
 
     @server.prompt()
     def decide(situation: str = "") -> str:

@@ -46,7 +46,7 @@ def test_mode_tools(tmp_path):
 def test_prompts_and_resources():
     async def check(client):
         prompts = {p.name for p in (await client.list_prompts()).prompts}
-        assert prompts == {"decide", "compare_options", "what_could_go_wrong", "regret_test", "review_canvas"}
+        assert prompts == {"map_this", "decide", "compare_options", "what_could_go_wrong", "regret_test", "review_canvas"}
         p = await client.get_prompt("decide", {"situation": "renew or buy my car"})
         text = p.messages[0].content.text
         assert "decisioncraft_triage" in text and "renew or buy my car" in text

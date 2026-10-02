@@ -15,6 +15,38 @@ NAME = "decisioncraft"
 VERSION = "0.1.0"
 
 CAPABILITIES: dict[str, dict] = {
+    "map": {
+        "kind": "model-backed",
+        "summary": "Point it at anything: a repo, notes, a page or a topic. Get an as-is / to-be map.",
+        "when": "When someone wants to see how something works and what is missing: 'map this "
+        "codebase', 'show me how X works', 'as-is and to-be', 'where are the gaps', 'turn these notes "
+        "into a process map'. It reads the target (deterministic), then a model draws today's way with "
+        "evidence by file and line, proposes the planned way, turns differences into gaps with user "
+        "stories and 'done when' checks, and adds a note from each role. --dry-run shows what it would "
+        "read, with no model call.",
+        "args": [
+            ("target", "A code repository or folder, a notes folder or file (md, txt, html, pdf if pypdf "
+             "is installed), a web address, or a topic in quotes."),
+            ("--dry-run", "Show what would be read and asked; no model call."),
+            ("--question", "The question the map answers (default: how it works today and what is missing)."),
+            ("--roles", "Comma-separated role ids (default: designer, architect, analyst, engineer, owner, "
+             "security, voice, agent)."),
+            ("--answers", "For a topic: a JSON file answering how_today, pain and goal."),
+            ("--page", "For a web address: a text file with the page's text, fetched by your host."),
+            ("--allow-network", "For a web address: let Decisioncraft fetch that one page itself."),
+            ("--budget", "Most characters to read (default 120000)."),
+            ("--dir", "Folder for model.json and canvas.html (default: ./decisioncraft-map-NAME)."),
+            ("--open", "Open the canvas when it is ready."),
+            ("--provider / --model / --complete-cmd", "Which model draws (one is required unless --dry-run)."),
+        ],
+        "example": "decisioncraft map ./your-repo --complete-cmd 'my-host complete' --open",
+        "result": "A folder with model.json and canvas.html (notes on the map, What changes view). "
+        "With --json: {directory, model_path, canvas_path, summary, plan}; with --dry-run: the plan "
+        "{kind, read[], skipped[], chars, roles[], needs, model_calls}.",
+        "fails": "No model named (exit 2); a web address with no --page and no --allow-network, or a "
+        "folder with nothing readable (exit 1); a provider with no key (exit 3); a model reply that "
+        "stays invalid after one repair (exit 4).",
+    },
     "example": {
         "kind": "deterministic",
         "summary": "Copy a worked example into a folder and draw it.",
@@ -359,13 +391,16 @@ CAPABILITIES: dict[str, dict] = {
 }
 
 DESCRIPTION = (
-    'Helps someone weigh a choice at the right depth: a quick side-by-side in the cha'
-    't, a short interview that ends in a map to open, or a full map a whole team revi'
-    'ews with notes from every point of view. Use when a person is weighing options, '
-    'even if they never say \'decision\': "should I...", "torn between", "pros and cons'
-    '", "which is better", "renew or buy", "keep or replace", "help me think this thr'
-    'ough", comparing job offers, plans, quotes or vendors, or a team changing how so'
-    'mething works. Not for factual questions or trivial picks.'
+    'Point it at anything (a codebase, a folder of notes, a page or a topic) and get '
+    "a map of how it works today, how it could work, the gaps as user stories with 'd"
+    "one when' checks, and notes from every role. It also helps someone weigh a choic"
+    'e at the right depth, from a quick side-by-side in the chat to a full team revie'
+    'w. Use for "map this codebase", "show me how X works", "as-is and to-be", "where'
+    ' are the gaps", "turn these notes into a process map", "review this process", an'
+    'd whenever someone is weighing options, even without saying \'decision\': "should '
+    'I...", "torn between", "pros and cons", "which is better", "renew or buy", "keep'
+    ' or replace", "help me think this through", comparing offers, quotes or vendors.'
+    ' Not for factual questions or trivial picks.'
 )
 
 REQUIRES = [

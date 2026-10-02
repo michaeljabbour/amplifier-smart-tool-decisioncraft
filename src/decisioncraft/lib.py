@@ -3,7 +3,7 @@
 Deterministic: manifest, templates, roles, new, starter, example, example_names, doctor,
 summary, validate, render, words, questions, merge, diff, session, discover, handoff,
 modes, triage, quick (with scores), interview_step, interview_questions.
-Model-backed: draft, perspectives, review_notes; quick and triage read free text with a
+Model-backed: map (point it at a repo, notes, a page or a topic), draft, perspectives, review_notes; quick and triage read free text with a
 model only when one is passed.
 
 To chain capabilities, call these functions from Python rather than piping CLI output:
@@ -25,12 +25,14 @@ from .starter import starter
 from .stats import summary
 from .modes import MODES, quick, triage
 from . import interview as _interview
+from .mapper import gather, map_target, plan_map
 
 __all__ = [
     "manifest", "templates", "roles", "new", "validate", "render", "words", "questions",
     "merge", "diff", "draft", "perspectives", "review_notes", "notes_to_ask", "session", "discover", "handoff",
     "starter", "example", "example_names", "doctor", "summary",
     "modes", "triage", "quick", "interview_step", "interview_questions",
+    "map_target", "plan_map", "gather",
 ]
 
 

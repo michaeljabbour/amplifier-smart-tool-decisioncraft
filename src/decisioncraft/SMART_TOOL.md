@@ -3,14 +3,18 @@ smart_tool_format: 1
 name: decisioncraft
 version: 0.1.0
 description: >-
-  Helps someone weigh a choice at the right depth: a quick side-by-side in the chat, a
-  short interview that ends in a map to open, or a full map a whole team reviews with
-  notes from every point of view. Use when a person is weighing options, even if they
-  never say 'decision': "should I...", "torn between", "pros and cons", "which is
-  better", "renew or buy", "keep or replace", "help me think this through", comparing
-  job offers, plans, quotes or vendors, or a team changing how something works. Not for
-  factual questions or trivial picks.
+  Point it at anything (a codebase, a folder of notes, a page or a topic) and get a map
+  of how it works today, how it could work, the gaps as user stories with 'done when'
+  checks, and notes from every role. It also helps someone weigh a choice at the right
+  depth, from a quick side-by-side in the chat to a full team review. Use for "map this
+  codebase", "show me how X works", "as-is and to-be", "where are the gaps", "turn these
+  notes into a process map", "review this process", and whenever someone is weighing
+  options, even without saying 'decision': "should I...", "torn between", "pros and
+  cons", "which is better", "renew or buy", "keep or replace", "help me think this
+  through", comparing offers, quotes or vendors. Not for factual questions or trivial
+  picks.
 use_cases:
+  - Point it at a codebase, a folder of notes or a topic and see how it works today, how it could work, and the gaps as user stories
   - Talk a personal choice through, like renewing a lease or buying a car, a job offer or a school, and see the options side by side
   - Settle a small choice in the chat with a scored table, a lean and the one thing to check first
   - Draft a decision map from meeting notes, interviews, documents or data
@@ -37,6 +41,10 @@ requires:
 ---
 # decisioncraft
 
+**Point it at anything:** `decisioncraft map ./your-repo --open` reads a codebase, a folder
+of notes, a page or a topic and draws how it works today, how it could work, the gaps as
+user stories with "done when" checks, and notes from every role.
+
 Decisioncraft helps people make a choice well, at the depth the choice deserves. A small
 one gets a scored table in the conversation. A bigger one gets a few questions and a map
 to open. One that affects several groups gets the full canvas: how the problem works today
@@ -50,6 +58,9 @@ dicts, lists and strings, so there is no output to parse.
 
 ## When to reach for it
 
+- Someone wants to see how something works and what is missing: "map this codebase",
+  "show me how onboarding works", "as-is and to-be", "where are the gaps", "turn these
+  notes into a process map", "review this process". Use `map` (below).
 - Someone is weighing options, whether or not they say "decision": should I renew or
   buy, which offer, keep or replace, pros and cons, torn between two things. Start with
   `triage` (below); it may well say "just answer".
@@ -134,7 +145,8 @@ the whole interview with prompts.
 
 For one person or a household (a car, a lease, a job offer, a move, a school), the
 personal questions are: the decision, the options including doing nothing, must-haves and
-deal-breakers, what matters most first, the deadline, how easy it is to undo, the budget,
+deal-breakers, what matters most first, the deadline, how easy it is to undo, the budget
+(only for purchases),
 who else is affected, what is known and unsure, and what could change the picture. The
 answers land in the model's `comparison` (options and what matters) and `personal`
 (options, criteria with weights, budget, what-ifs). Use `quick` for a lean in the chat, or
@@ -155,6 +167,7 @@ calls a model, and prints exactly what to fix.
 
 ```
 decisioncraft                                  # start screen
+decisioncraft map ./your-repo --dry-run        # what map would read; add a model to draw it
 decisioncraft example medical --open           # a finished example in the browser
 decisioncraft new                              # asks a few questions, makes a folder
 decisioncraft render model.json --open         # draw your model
@@ -166,7 +179,8 @@ process; not medical advice, no patient data).
 
 ## Deterministic and model-backed
 
-Everything runs with no model and no credentials except `draft` and `perspectives`.
+Everything runs with no model and no credentials except `map`, `draft` and `perspectives`
+(`map --dry-run` needs none).
 `triage` and `quick` also accept `--text` (the person's own words); `triage` reads it with
 plain word rules, and both use a model only if you name one (`--complete-cmd` or
 `--provider`).
@@ -174,8 +188,8 @@ plain word rules, and both use a model only if you name one (`--complete-cmd` or
 - Deterministic: `triage`, `quick` (with scores), `interview`, `example`, `new`, `render`,
   `doctor`, `session`, `questions`, `merge`, `diff`, `words`, `validate`, `handoff`,
   `discover`, `templates`, `roles`, `manifest`, `mcp`.
-- Model-backed: `draft` (material to a full model) and `perspectives` (add notes from
-  each role). They cost tokens, differ run to run, check the reply and repair it once,
+- Model-backed: `map` (point it at a repo, notes, a page or a topic), `draft` (material to
+  a full model) and `perspectives` (add notes from each role). They cost tokens, differ run to run, check the reply and repair it once,
   and still need a person to read the result.
 
 ## Which model answers
@@ -229,6 +243,26 @@ falls back to a lesser answer. If you are an agent, choose the first that fits:
 - The full contract, with every error code: `contracts/cli.v1.md` in the repository.
 
 ## Recipes
+
+**Point it at anything.** Someone asks "can you show me how this repo works and what's
+missing?"
+
+```
+decisioncraft map ./the-repo --dry-run --json      # what it will read; no model call
+decisioncraft map ./the-repo --complete-cmd 'python3 my_adapter.py' --dir repo-map --open
+```
+
+It reads the README, docs, manifests, schemas, routes and entry points first (respecting
+`.gitignore`, within `--budget` characters), numbers every line so claims cite
+`path:line`, and stamps the commit it read. The model draws today's way, proposes the
+planned way (each replacing box marked), turns the differences into gaps with user stories
+and "done when" checks, and adds a note from each of eight roles (UX designer, Architect,
+Business analyst, Lead engineer, Product manager, Security and privacy, Customer voice,
+AI agent teammate; change with `--roles`). The canvas opens on What changes with the notes
+on the map. Other targets: a notes folder or file, `--page FILE` with a web page's text (or
+`--allow-network`), or a topic in quotes with `--answers` (how_today, pain, goal; without
+answers the map is marked as unchecked). Over MCP: `decisioncraft_map`, and the `map_this`
+prompt.
 
 **Talk a choice through, at the right depth.** Someone says "my lease is up in March,
 renew it or just buy the car?"

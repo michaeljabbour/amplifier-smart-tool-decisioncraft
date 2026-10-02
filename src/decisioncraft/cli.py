@@ -25,9 +25,9 @@ from .stats import describe, summary
 from .term import Term, interactive
 
 WIDTH = 80
-MODEL_BACKED = {"draft", "perspectives"}  # quick and triage call a model only when one is named
+MODEL_BACKED = {"draft", "perspectives", "map"}  # quick and triage call a model only when one is named
 GROUPS = [
-    ("Start here", ["example", "new", "render", "doctor"]),
+    ("Start here", ["map", "example", "new", "render", "doctor"]),
     ("Talk a choice through", ["triage", "quick", "interview"]),
     ("Review and compare", ["session", "questions", "merge", "diff", "words", "validate", "handoff"]),
     ("Draft with a model (costs tokens)", ["draft", "perspectives"]),
@@ -130,6 +130,7 @@ def root_help() -> str:
 
 def start_screen() -> str:
     rows = [
+        ("decisioncraft map ./your-repo --open", "point it at anything: as-is, to-be, gaps"),
         ("decisioncraft example medical --open", "open a worked example"),
         ("decisioncraft new", "start your own decision, step by step"),
         ('decisioncraft triage --text "..."', "how much help does this choice need?"),
@@ -143,6 +144,7 @@ def start_screen() -> str:
         "Start here:",
     ]
     out += [f"  {cmd:<41}{what}" for cmd, what in rows]
+    out += ["", "  (map also takes a notes folder, a file, a web address or a topic in quotes)"]
     out += [
         "",
         "Try: decisioncraft example medical --open",
@@ -195,6 +197,22 @@ def build() -> SkillParser:
         return sp
 
     # Start here
+    c = cmd("map", ("decisioncraft map ./notes --dry-run",
+                    'decisioncraft map "how our customer onboarding works" --answers answers.json --complete-cmd "my-host complete"'))
+    g = c.add_argument_group("What to map")
+    g.add_argument("target", help="A repo or folder, a notes file, a web address, or a topic in quotes.")
+    g.add_argument("--question", default="", help="The question the map answers.")
+    g.add_argument("--roles", help="Comma-separated role ids (default: the eight map roles).")
+    g.add_argument("--answers", metavar="FILE", help="For a topic: JSON answering how_today, pain, goal.")
+    g.add_argument("--page", metavar="FILE", help="For a web address: the page's text, fetched by your host.")
+    g.add_argument("--allow-network", action="store_true", help="For a web address: fetch that one page.")
+    g.add_argument("--budget", type=int, default=120_000, help="Most characters to read (default 120000).")
+    g.add_argument("--dry-run", action="store_true", help="Show what would be read; no model call.")
+    g = c.add_argument_group("Where it goes")
+    g.add_argument("--dir", help="Folder for model.json and canvas.html (default: ./decisioncraft-map-NAME).")
+    g.add_argument("--open", action="store_true", help="Open the canvas in your browser.")
+    _model_flags(c, name_flag="--model")
+
     c = cmd("example", ("decisioncraft example business --out ~/bakery --json",))
     g = c.add_argument_group("What to copy")
     g.add_argument("name", choices=["business", "technical", "engineering", "medical"],
@@ -1157,6 +1175,69 @@ def do_interview(run: Run) -> Out:
     return Out(data=r, text=text, files=files, next=r.get("next", []))
 
 
+def do_map(run: Run) -> Out:
+    a = run.args
+    from .mapper import detect, map_roles
+    from .starter import slug
+
+    roles = [r.strip() for r in a.roles.split(",") if r.strip()] if a.roles else None
+    try:
+        map_roles(roles)
+    except ValueError as e:
+        raise ToolError("invalid_input", str(e), field="--roles", exit_code=E.USAGE,
+                        hint="See the role ids with: decisioncraft roles") from None
+    answers = run.load(a.answers) if a.answers else None
+    if a.dry_run:
+        plan = lib.plan_map(a.target, roles=roles, budget=a.budget, answers=answers)
+        text = None
+        if run.pretty:
+            lines = [run.term.paint(f"map {a.target}", "bold") + f"  ({plan['kind']})", f"Question: {plan['question']}"]
+            if plan["read"]:
+                lines.append(f"Would read {len(plan['read'])} files, {_size(plan['chars'])}:")
+                lines += [f"  {r['path']}" + (" (first part)" if r["cut"] else "") for r in plan["read"][:40]]
+                if len(plan["read"]) > 40:
+                    lines.append(f"  ... and {len(plan['read']) - 40} more")
+            if plan["needs"]:
+                n = plan["needs"]
+                lines.append(n.get("message") or "Would ask: " + " / ".join(q["ask"] for q in n["questions"]))
+            lines.append(f"Roles: {', '.join(plan['roles'])}.")
+            lines.append(f"Model calls: {plan['model_calls']} (none now: this was a dry run).")
+            text = "\n".join(lines) + "\n"
+        return Out(data=plan, text=text)
+    kind = detect(a.target)
+    if kind == "url" and not a.page and not a.allow_network:
+        raise ToolError("invalid_input", "Decisioncraft does not fetch web pages unless you allow it.",
+                        hint="Save the page's text to a file and pass --page FILE, or add --allow-network.",
+                        field="--page", exit_code=E.INPUT)
+    if kind in ("repo", "folder"):
+        plan = lib.plan_map(a.target, roles=roles, budget=a.budget)
+        if not plan["read"]:
+            raise ToolError("invalid_input", f"Found nothing readable in {a.target}.", file=a.target,
+                            hint="Point it at a folder with Markdown, text or code files.")
+    kwargs, who = _complete_kwargs(run, name_attr="model")
+    page = Path(a.page).expanduser().read_text(encoding="utf-8") if a.page else ""
+    run.term.say(f"Reading {a.target} ({kind}), then drafting with {who}. This can take a few minutes.")
+    result = lib.map_target(a.target, roles=roles, question=a.question, answers=answers, page_text=page,
+                            budget=a.budget, allow_network=a.allow_network, **kwargs)
+    model = result["model"]
+    name = Path(a.target).expanduser().resolve().name if kind not in ("topic", "url") else slug(a.target)
+    folder = Path(a.dir).expanduser() if a.dir else Path(f"decisioncraft-map-{slug(name)}")
+    files = [run.write(folder / "model.json", json.dumps(model, indent=2, ensure_ascii=False), "model")]
+    html = lib.render(model)
+    canvas = folder / "canvas.html"
+    files.append(run.write(canvas, html, "canvas"))
+    s = summary(model)
+    run.term.say(f"Wrote {_q(canvas)} ({describe(model)}; {_size(len(html.encode('utf-8')))}).")
+    nxt = [f"decisioncraft render {_q(folder / 'model.json')} --open"]
+    if a.open:
+        run.open(canvas)
+    elif not run.json:
+        run.term.say(f"Open it with --open, or: open {_q(canvas)}")
+    return Out(data={"directory": str(folder.resolve()), "model_path": str((folder / "model.json").resolve()),
+                     "canvas_path": str(canvas.resolve()), "summary": s, "plan": result["plan"]},
+               files=files, next=nxt, text="")
+
+
 def do_mcp(run: Run) -> None:
     import importlib.util
 
@@ -1176,7 +1257,7 @@ HANDLERS = {
     "diff": do_diff, "validate": do_validate, "handoff": do_handoff, "draft": do_draft,
     "perspectives": do_perspectives, "discover": do_simple, "templates": do_simple,
     "roles": do_simple, "manifest": do_simple, "mcp": do_mcp,
-    "triage": do_triage, "quick": do_quick, "interview": do_interview,
+    "triage": do_triage, "quick": do_quick, "interview": do_interview, "map": do_map,
 }
 
 

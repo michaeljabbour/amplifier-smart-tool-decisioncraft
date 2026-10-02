@@ -256,7 +256,7 @@ def test_no_color_and_non_tty_output_is_plain(tmp_path):
 
 def test_help_lists_modes():
     r = cli("-h")
-    assert "Talk a choice through:" in r.stdout and "triage" in r.stdout
+    assert "Talk a choice through:" in r.stdout and "triage" in r.stdout and "  map " in r.stdout
     full = cli("triage", "--help")
     assert full.stdout.startswith('<skill_content name="decisioncraft triage">')
     for line in cli("interview", "-h").stdout.splitlines():
@@ -265,7 +265,9 @@ def test_help_lists_modes():
 
 def test_skill_description_triggers_on_natural_talk():
     text = (ROOT / "skills" / "decisioncraft" / "SKILL.md").read_text()
-    head = text.split("---")[1]
-    for phrase in ("should I", "torn between", "pros and cons", "renew or buy", "keep or replace", "Not for factual"):
+    front = text.split("---")[1]
+    head = " ".join(front.split("description:", 1)[1].replace(">-", "", 1).split())
+    for phrase in ("should I", "torn between", "pros and cons", "renew or buy", "keep or replace", "Not for factual",
+                   "map this codebase", "as-is and to-be", "where are the gaps"):
         assert phrase in head
-    assert dc.manifest()["description"].startswith("Helps someone weigh a choice")
+    assert dc.manifest()["description"].startswith("Point it at anything")

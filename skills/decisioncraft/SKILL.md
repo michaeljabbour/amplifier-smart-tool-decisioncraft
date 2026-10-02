@@ -1,6 +1,15 @@
 ---
 name: decisioncraft
-description: Helps someone weigh a choice at the right depth, from a quick side-by-side in the chat to a short interview and a map to open, or a full map a team reviews with notes from every point of view. Use when a person is weighing options, even without saying "decision" - "should I...", "torn between", "pros and cons", "which is better", "renew or buy", "keep or replace", "help me think this through", comparing job offers, quotes, plans or vendors, or a team changing how something works. Not for factual questions or trivial picks.
+description: >-
+  Point it at anything - a codebase, a folder of notes, a page or a topic - and get a map
+  of how it works today, how it could work, the gaps as user stories with 'done when'
+  checks, and notes from every role. It also helps someone weigh a choice at the right
+  depth, from a quick side-by-side in the chat to a full team review. Use for "map this
+  codebase", "show me how X works", "as-is and to-be", "where are the gaps", "turn these
+  notes into a process map", "review this process", and whenever someone is weighing
+  options, even without saying 'decision': "should I...", "torn between", "pros and cons",
+  "which is better", "renew or buy", "keep or replace", "help me think this through",
+  comparing offers, quotes or vendors. Not for factual questions or trivial picks.
 ---
 
 # Decisioncraft
@@ -15,7 +24,12 @@ decisioncraft doctor
 Then run `decisioncraft --help` and follow it. It is the full guide and stays correct
 when the tool changes. Each command has its own: `decisioncraft <command> --help`.
 
-**Start with triage.** When someone seems to be weighing options, run
+**To show how something works:** `decisioncraft map <repo, folder, file or "topic"> --dry-run
+--json` shows what it will read; then add `--complete-cmd 'your-command'` (or `--provider`)
+and `--open` to draw today's way, the planned way, gaps with user stories and "done when"
+checks, and a note from each role.
+
+**To help with a choice, start with triage.** When someone seems to be weighing options, run
 `decisioncraft triage --text "<their words>" --json` and follow its `mode`:
 
 - `none`: just answer. Build nothing.
@@ -32,6 +46,6 @@ the conversation as usual.
 
 Add `--json` to any command for one JSON result (errors included). It never prompts when
 stdin is not a terminal. Over MCP (`decisioncraft mcp`) the same steps are
-`decisioncraft_triage`, `decisioncraft_quick` and `decisioncraft_interview_next`, plus the
-prompts `decide`, `compare_options`, `what_could_go_wrong`, `regret_test` and
+`decisioncraft_map`, `decisioncraft_triage`, `decisioncraft_quick` and
+`decisioncraft_interview_next`, plus the prompts `map_this`, `decide`, `compare_options`, `what_could_go_wrong`, `regret_test` and
 `review_canvas`. See `docs/HOSTS.md` in the repository for MCP setup.

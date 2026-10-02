@@ -1,5 +1,9 @@
 # Decisioncraft
 
+**Point it at anything:** `decisioncraft map ./your-repo --open`. It reads a codebase, a
+folder of notes, a page or a topic, and draws how it works today, how it could work, the
+gaps as user stories with "done when" checks, and notes from every role.
+
 Decisioncraft helps people make a choice well, at the depth it deserves: a scored table in
 the chat for a small one, a few questions and a map for a bigger one, and for a decision
 that affects several groups, a full map. It maps how a problem works today and what is

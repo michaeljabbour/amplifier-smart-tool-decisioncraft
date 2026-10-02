@@ -77,12 +77,12 @@ On failure:
 | Code | Exit | When |
 |---|---|---|
 | `usage` | 2 | Unknown command or flag, or a required argument is missing. |
-| `missing_argument` | 2 | `new` can't ask for `--question`; a model-backed command has neither `--provider` nor `--complete-cmd`. |
+| `missing_argument` | 2 | `new` can't ask for `--question`; a model-backed command (`draft`, `perspectives`, `map`) has neither `--provider` nor `--complete-cmd`; `quick` has no options. |
 | `file_not_found` | 1 | A file named on the command line does not exist. |
 | `not_a_file` | 1 | A folder was given where a file was expected. |
 | `bad_json`, `not_text` | 1 | The file is not valid JSON, or not text. |
 | `invalid_model` | 1 | The model has errors; `problems` lists them, `field` is the first path. |
-| `invalid_input` | 1 | Another input problem: an unknown template or role, a review for another model. |
+| `invalid_input` | 1 | Another input problem: an unknown template or role, a review for another model, a bad `--score`, a web address for `map` with no `--page` or `--allow-network`, a folder with nothing readable. |
 | `folder_not_empty`, `already_exists` | 1 | `example` or `new` would overwrite files. |
 | `file_error` | 1 | The file could not be read for another reason. |
 | `provider_not_configured` | 3 | A provider key, model name or SDK is missing. |
@@ -110,6 +110,7 @@ On failure:
 | `diff` | `{added, removed, changed}` |
 | `handoff` | the handoff (see workflow.v1.md) |
 | `draft`, `perspectives` | the model |
+| `map` | `{directory, model_path, canvas_path, summary, plan}`; with `--dry-run`, the plan: `{format: "decisioncraft-map-plan/1", kind: repo/folder/file/url/topic, target, question, read: [{path, label, chars, cut}], skipped: [{path, why}], digest, chars, checked: {date, note}, roles: [label], needs: null or {kind: answers/page_text, ...}, model_calls, template}` |
 | `triage` | `{format: "decisioncraft-triage/1", mode: none/quick/guided/team, is_choice, label, does, why: [text], alternative: mode or null, stakes: {cost 0-3, reversible 0-2, people 0-3, deadline_days, score}, read_from_text, missing: [{id, question}], offer, next: [command]}` |
 | `quick` | `{format: "decisioncraft-quick/1", question, options: [{id, title, total, percent, fails_must: [label], unknown: [label]}] (ranked; options failing a must-have last), criteria: [{id, label, importance: must/important/nice, weight}], scores: {option: {criterion: {score, why}}}, table (Markdown), lean: {option, title, reason, close_call} or null, check_first: {text, why} or null, ask: [text], note, offer_next}` |
 | `interview` | Not finished: `{format: "decisioncraft-interview/1", done: false, set: personal/team/system, question: {id, ask, why, kind: text/list/choice, choices?, suggested?, hint?}, progress: {asked, remaining, of}, mode_so_far, known}`. Finished: `{done: true, set, mode, why, model_path (null when mode is none), files, answers, next}`. `files` in the envelope lists model.json and material/README.txt when written. |

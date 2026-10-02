@@ -464,7 +464,10 @@ def quick(options=None, criteria=None, scores=None, *, question: str = "", text:
     if len(opts) < 2:
         raise ValueError("A comparison needs at least two options (doing nothing can be one).")
     grid = _norm_scores(scores, opts, crit) if crit else {o["id"]: {} for o in opts}
-    max_total = sum(c["weight"] * 5 for c in crit) or 1
+    # Percent of what was scored for anyone: a criterion nobody has scored yet (say an
+    # unchecked must-have) would only drag every option down by the same amount.
+    scored = {cid for o in opts for cid in grid[o["id"]]}
+    max_total = sum(c["weight"] * 5 for c in crit if c["id"] in scored) or 1
     ranked = []
     for o in opts:
         row = grid[o["id"]]
@@ -499,13 +502,21 @@ def quick(options=None, criteria=None, scores=None, *, question: str = "", text:
         # thing where the runner-up wins (it could flip the lean), else the weightiest thing.
         unknown = [(c, o) for c in sorted(crit, key=lambda c: -c["weight"]) for o in (top, second)
                    if c["label"] in o["unknown"]]
+        # Only a criterion that could flip the lean: the runner-up wins it, and moving its
+        # score by one point would close the gap. A nice-to-have rarely qualifies.
+        gap = top["total"] - second["total"]
         flips = [c for c in sorted(crit, key=lambda c: -c["weight"])
                  if grid[second["id"]].get(c["id"]) and grid[top["id"]].get(c["id"])
-                 and grid[second["id"]][c["id"]]["score"] > grid[top["id"]][c["id"]]["score"]]
+                 and grid[second["id"]][c["id"]]["score"] > grid[top["id"]][c["id"]]["score"]
+                 and c["weight"] * 2 >= gap and c["importance"] != "nice"]
         if unknown:
             c, o = unknown[0]
-            check = {"text": f"Find out how {o['title']} does on {c['label']}.",
-                     "why": "It is not scored yet and it matters to the result."}
+            if c["importance"] == "must":
+                check = {"text": f"Check that {o['title']} meets the must-have: {c['label']}.",
+                         "why": "If it fails a must-have it drops out, whatever its other scores."}
+            else:
+                check = {"text": f"Find out how {o['title']} does on {c['label']}.",
+                         "why": "It is not scored yet and it matters to the result."}
         elif flips:
             c = flips[0]
             check = {"text": f"Check {c['label']} again for {top['title']} and {second['title']}.",

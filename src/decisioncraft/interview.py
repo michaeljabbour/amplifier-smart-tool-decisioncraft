@@ -57,7 +57,9 @@ QUESTIONS = [
      "why": "Hard-to-undo choices deserve more care before, easy ones can be tried.",
      "kind": "choice", "choices": UNDO_CHOICES, "sets": ["personal", "team", "system"], "core": True},
     {"id": "budget", "ask": "Is there a budget or a cost limit?",
-     "why": "Money is usually a must-have in disguise.", "kind": "text", "sets": ["personal"], "min_score": 2},
+     "why": "Money is usually a must-have in disguise.", "kind": "text", "sets": ["personal"], "min_score": 2,
+     "only_if": r"buy|buying|purchase|lease|rent|price|cost|afford|car|van|house|home|flat|apartment|"
+                r"laptop|phone|kitchen|renovat|holiday|trip|wedding|tuition|school fees|subscription"},
     {"id": "people", "ask": "Who else is affected, or gets a say?",
      "why": "People who are affected but not asked tend to undo the choice later.",
      "kind": "choice", "choices": PEOPLE_CHOICES, "sets": ["personal"], "core": True},
@@ -171,9 +173,11 @@ def _record(state: dict, qid: str, text: str) -> None:
     text = (text or "").strip()
     suggested = (state.get("suggested") or {}).get(qid)
     if q["kind"] == "list" and suggested:
+        adding = re.match(r"\s*(yes|yeah|also|and|plus|add)\b", text, re.I)
         extra = [] if re.fullmatch(r"\s*(|no|none|nope|that'?s (it|all)|those|both|yes|correct)\s*\.?", text, re.I) \
-            else parse_list(re.sub(r"^\s*(yes|yeah|also|and|plus)[,:]?\s*", "", text, flags=re.I))
-        value = list(dict.fromkeys(suggested + extra))
+            else parse_list(re.sub(r"^\s*(yes|yeah|also|and|plus|add)[,:]?\s*", "", text, flags=re.I))
+        # A full list of two or more replaces the suggestion; "also ..." or a single item adds to it.
+        value = extra if len(extra) >= 2 and not adding else list(dict.fromkeys(suggested + extra))
     elif q["kind"] == "list":
         value = parse_list(text)
     elif q["kind"] == "choice":
@@ -193,7 +197,7 @@ def _record(state: dict, qid: str, text: str) -> None:
         if re.search(r"\b(just me|only me|only affects me)\b", text, re.I) and state["set"] == "personal":
             state["answers"]["people"] = "Just me"
             state["inferred"].append("people")
-        opts = re.findall(r"\b(?:whether to|whether|should i|should we)\s+(.+?)\s+or\s+(.+?)[?.!]?$", text.strip(), re.I)
+        opts = re.findall(r"\b(?:whether to|whether|should i|should we|i should|we should)\s+(?:just\s+)?(.+?)\s+or\s+(.+?)[?.!]?$", text.strip(), re.I)
         if not opts and len(text) <= 90 and len(re.findall(r"\bor\b", text, re.I)) == 1:
             m = re.match(r"\s*(.+?)\s+or\s+(.+?)\s*[?.!]?\s*$", text, re.I)
             opts = [m.groups()] if m else []
@@ -209,6 +213,8 @@ def _next_q(state: dict) -> dict | None:
     low = stakes["mode"] in ("none", "quick")
     for q in QUESTIONS:
         if state["set"] not in q["sets"] or q["id"] in state["answers"]:
+            continue
+        if q.get("only_if") and not re.search(rf"\b(?:{q['only_if']})", state["answers"].get("decision", ""), re.I):
             continue
         if q["id"] == "decision" or q.get("core"):
             # Low stakes: once options and what matters are known, stop.
@@ -374,7 +380,7 @@ def finish(directory, state: dict | None = None) -> dict:
     state = state or load(directory)
     if state is None:
         raise ValueError("No interview in this folder. Start one with: decisioncraft interview --dir FOLDER")
-    folder = Path(directory).expanduser()
+    folder = Path(directory).expanduser().resolve()
     model = build_model(state)
     problems = [p for p in validate(model) if p.get("level") == "error"]
     if problems:
