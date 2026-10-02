@@ -45,33 +45,49 @@ def main():
         page.locator("[data-connection-to=finish]").click()
         assert "Finish the review" in page.inner_text("#ptitle")
         page.locator("#pclose").click()
-        page.get_by_role("button", name="All connections", exact=True).click()
+        page.locator("#top").get_by_role("button", name="View ▾").click()
+        page.get_by_role("menuitemcheckbox", name="All connections", exact=True).click()
         assert page.locator(".connection.feedback").is_visible()
-        page.get_by_role("button", name="Explore the map", exact=True).click()
         page.locator("[data-map='1']").click()
-        current = page.get_by_role("button", name="Current: Download a file", exact=True)
-        proposed = page.get_by_role("button", name="Proposed: Answers reach the agent", exact=True)
-        assert current.bounding_box()["x"] < proposed.bounding_box()["x"]
-        page.locator("#view-version").select_option("today")
+        top = page.locator("#top")
+        # What changes: one map, each box says what the plan does to it.
+        gone = page.get_by_role("button", name="Goes away: Download a file", exact=True)
+        new = page.get_by_role("button", name="New: Answers reach the agent", exact=True)
+        assert gone.is_visible() and new.is_visible()
+        bar = page.inner_text(".modebar").lower()
+        assert "1 new" in bar and "1 goes away" in bar, bar
+        top.get_by_role("button", name="Today", exact=True).click()
         assert page.get_by_role("button", name="Download a file", exact=True).is_visible()
         assert not page.get_by_role("button", name="Answers reach the agent", exact=True).count()
-        page.locator("#view-version").select_option("planned")
+        top.get_by_role("button", name="Planned", exact=True).click()
         assert page.get_by_role("button", name="Answers reach the agent", exact=True).is_visible()
         assert not page.get_by_role("button", name="Download a file", exact=True).count()
+        top.get_by_role("button", name="Side by side", exact=True).click()
+        assert page.locator("#viewport2").is_visible()
+        top.get_by_role("button", name="Side by side", exact=True).click()
+        top.get_by_role("button", name="Planned", exact=True).click()
         page.set_viewport_size({"width":1024,"height":768})
         page.get_by_role("button", name="Answers reach the agent", exact=True).click()
         assert not page.locator("#story").is_visible()
-        navigation = page.get_by_role("button", name="Left navigation", exact=True)
-        assert navigation.get_attribute("aria-pressed") == "false"
-        navigation.click()
+
+        def nav_state():
+            top.get_by_role("button", name="View ▾").click()
+            it = page.get_by_role("menuitemcheckbox", name="List on the left", exact=True)
+            v = it.get_attribute("aria-checked")
+            return it, v
+
+        it, v = nav_state()
+        assert v == "false"
+        it.click()
         assert page.locator("#story").is_visible()
-        navigation.click()
+        it, v = nav_state()
+        it.click()
         assert not page.locator("#story").is_visible()
         rect = page.get_by_role("button", name="Answers reach the agent", exact=True).bounding_box()
         assert rect["x"] + rect["width"] <= page.locator("#panel").bounding_box()["x"] + 1
         assert not errors, errors
         browser.close()
-    print("ok distinct timeline and comparison, named feedback, focus and panel space")
+    print("ok distinct timeline, What changes with Today, Planned and Side by side, named feedback, focus and panel space")
 
 
 if __name__ == "__main__":

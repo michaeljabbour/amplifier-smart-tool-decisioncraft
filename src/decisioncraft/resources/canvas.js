@@ -1,7 +1,9 @@
 /* Decisioncraft canvas engine. Reads a decision model from #dc-model and draws it.
    No outside requests. Plain DOM, no libraries.
    The page: one quiet top bar; a numbered story list on the left; the map in the middle;
-   a detail panel on the right; zoom buttons bottom right; a walk-through card. */
+   a detail panel on the right; zoom buttons bottom right; a walk-through card.
+   Maps that hold a plan can be read three ways: Today, Planned, and What changes (one map
+   where each box says whether it is new, changed or goes away), plus Side by side. */
 (function () {
 "use strict";
 
@@ -26,7 +28,7 @@ const DEFAULT_ROLES = [
 const KIND = {"system-journeys":"journeys","customer-journey":"journeys","service-blueprint":"journeys",
   "decision-chain":"chain","opportunity-tree":"tree"};
 const TREE_LEVELS = ["What we want","What needs attention","Possible next step","How we will check"];
-const MIN_Z = 0.15, MAX_Z = 2.2;
+const MIN_Z = 0.25, MAX_Z = 2.2;
 const STORY_W = 320, PANEL_W = 480, TOP_H = 52;
 
 const ROLES = (MODEL.roles && MODEL.roles.length ? MODEL.roles : DEFAULT_ROLES);
@@ -49,13 +51,14 @@ let saved = {}, storageOK = true;
 try { saved = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { saved = {}; storageOK = false; }
 const seed = SESSION ? {answers:SESSION.review.answers || {}, votes:SESSION.review.dots || {},
   decisions:SESSION.review.decisions || {}, reviewer:SESSION.review.reviewer || ""} : {};
-const S = Object.assign({map:0, mode:MODEL.maps[0].when === "planned" ? "planned" : "compare", journey:-1, tech:false, notesOnMap:false, lines:false, dots:true, story:true,
+const S = Object.assign({map:0, mode:"changes", sbs:false, journey:-1, tech:false, notesOnMap:false, lines:false, dots:true, story:true,
   hintSeen:false, roles:Object.fromEntries(ROLES.map(r => [r.id, true])),
   answers:{}, votes:{}, decisions:{}, reviewer:""}, seed, saved);
 if (SESSION && saved.syncedVersion !== SESSION.version) Object.assign(S, seed);
 if (SESSION) { S.syncedVersion = SESSION.version; S.sessionFinished = SESSION.state === "finished"; }
 ROLES.forEach(r => { if (!(r.id in S.roles)) S.roles[r.id] = true; });
 if (S.map >= MODEL.maps.length) S.map = 0;
+if (S.mode === "compare" || S.mode === "both") S.mode = "changes";
 let completedHandoff = SESSION && SESSION.handoff || null;
 let syncVersion = SESSION ? SESSION.version : 0, syncPromise = null, syncTimer = null;
 let syncState = SESSION ? "saved" : "", syncError = "", finishing = false;
@@ -164,13 +167,79 @@ MODEL.maps.forEach((m, mi) => {
 });
 GAPS.forEach(g => BOX[g.id] = {box:g, mi:-1, kind:"gap"});
 const notesOn = id => NOTES.filter(n => n.anchor === id && S.roles[n.role] !== false);
+
+/* ---------- today, planned and what changes ---------- */
+const MODES = {today:"Today", planned:"Planned", changes:"What changes"};
+const CHANGE_WORD = {new:"New", changed:"Changed", gone:"Goes away"};
+const groupsOf = m => [...(m.journeys || []).map(j => j.steps || []), ...(m.stages || []).map(st => st.items || [])];
+const hasChanges = m => groupsOf(m).some(g => g.some(b => b.when === "today" || b.when === "planned"));
+const modeOf = m => hasChanges(m) ? (MODES[S.mode] ? S.mode : "changes") : "all";
+const sbsOn = () => !!S.sbs && modeOf(MODEL.maps[S.map]) === "changes" && innerWidth >= 1000;
+/* One journey's steps or one stage's items, as slots for the mode. In What changes every
+   thing gets one slot in the plan's order: a planned box that replaces a today box is one
+   "changed" slot that carries both versions. */
+function arrange(boxes, mode) {
+  const byId = Object.fromEntries(boxes.map(b => [b.id, b]));
+  const replaced = new Set(boxes.filter(b => b.replaces && b.when === "planned").map(b => b.replaces));
+  const out = [];
+  boxes.forEach(b => {
+    const when = b.when || "both";
+    if (mode === "all") out.push({box:b, change:""});
+    else if (mode === "today") { if (when !== "planned") out.push({box:b, change:""}); }
+    else if (mode === "planned") { if (when !== "today") out.push({box:b, change:""}); }
+    else if (when === "today") { if (!replaced.has(b.id)) out.push({box:b, change:"gone"}); }
+    else if (when === "planned") { const before = b.replaces ? byId[b.replaces] : null; out.push({box:b, change:before ? "changed" : "new", before}); }
+    else out.push({box:b, change:"same"});
+  });
+  return out;
+}
+const changeList = m => groupsOf(m).flatMap(g => arrange(g, "changes").filter(s => s.change !== "same"));
+const CHANGE_INFO = {};
+MODEL.maps.forEach(m => changeList(m).forEach(s => {
+  CHANGE_INFO[s.box.id] = s;
+  if (s.before) CHANGE_INFO[s.before.id] = {change:"replaced", box:s.before, by:s.box};
+}));
+function changeCounts(list) {
+  const n = k => list.filter(s => s.change === k).length;
+  return [["new", n("new"), "new"], ["changed", n("changed"), "changed"], ["gone", n("gone"), n("gone") === 1 ? "goes away" : "go away"]].filter(c => c[1]);
+}
+const countsText = list => changeCounts(list).map(([, n, w]) => `${n} ${w}`).join(" · ");
+const countsHtml = list => changeCounts(list).map(([k, n, w]) => `<span class="ribbon ${k}">${n} ${w}</span>`).join("");
+/* A changed box carries both versions in one grid cell, so it is as tall as the taller one
+   and rows line up in Side by side. */
+const RIBBON = s => s.change && s.change !== "same"
+  ? `<span class="ribbon ${s.change}">${CHANGE_WORD[s.change]}</span>${s.change === "new" ? "" : `<span class="ribbon-today ${s.change}">${s.change === "changed" ? "Will change" : "Goes away"}</span>`}` : "";
+const GHOST = s => s.change === "new" ? `<span class="ghostlabel">Not there today</span>` : s.change === "gone" ? `<span class="ghostlabel">Goes away</span>` : "";
+function slotHtml(s, inner) {
+  const now = inner(s.box);
+  return RIBBON(s) + (s.before ? `<div class="vwrap"><div class="v-now">${now}</div><div class="v-before">${inner(s.before)}</div></div>` : now) + GHOST(s);
+}
+const slotLabel = (s, text) => (s.change && s.change !== "same" ? CHANGE_WORD[s.change] + ": " : "") + text;
+
+/* Word-level differences between two short texts, for the Before and After view. */
+function wordDiff(a, b) {
+  const A = String(a || "").split(/(\s+)/).filter(Boolean), B = String(b || "").split(/(\s+)/).filter(Boolean);
+  const n = A.length, m = B.length;
+  const dp = Array.from({length:n + 1}, () => new Uint16Array(m + 1));
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) dp[i][j] = A[i] === B[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+  const mark = (t, tag) => /^\s+$/.test(t) ? esc(t) : `<${tag}>${esc(t)}</${tag}>`;
+  let i = 0, j = 0, oa = "", ob = "";
+  while (i < n && j < m) {
+    if (A[i] === B[j]) { oa += esc(A[i]); ob += esc(B[j]); i++; j++; }
+    else if (dp[i + 1][j] >= dp[i][j + 1]) oa += mark(A[i++], "del");
+    else ob += mark(B[j++], "ins");
+  }
+  while (i < n) oa += mark(A[i++], "del");
+  while (j < m) ob += mark(B[j++], "ins");
+  return [oa, ob];
+}
 const mapOfAnchor = a => BOX[a] ? (BOX[a].mi >= 0 ? BOX[a].mi : mapOfAnchor((BOX[a].box.anchors || [])[0])) : -1;
 const titleOf = b => b.title || b.label || b.text || b.id;
 
 function badges(b) {
   const out = [];
-  if (sinceAdded.has(b.id)) out.push(`<span class="chip new">New</span>`);
-  else if (sinceChanged[b.id]) out.push(`<span class="chip changed">Changed</span>`);
+  if (sinceAdded.has(b.id)) out.push(`<span class="chip since">New since last review</span>`);
+  else if (sinceChanged[b.id]) out.push(`<span class="chip since">Changed since last review</span>`);
   const ref = (MODEL.checked || {}).date;
   if (b.checked && ref && days(ref, b.checked) > FRESH_DAYS) out.push(`<span class="chip stale" title="Checked ${esc(b.checked)}">May be out of date</span>`);
   if (b.moment) out.push(`<span class="chip moment">Moment that matters</span>`);
@@ -179,20 +248,23 @@ function badges(b) {
   const ev = (b.evidence || []).length;
   if (ev) out.push(`<span class="chip">Evidence: ${ev}</span>`);
   const notes = notesOn(b.id);
-  if (notes.length) out.push(`<span class="notebadge${notes.some(n => n.urgency === "must") ? " must" : ""}">${plural(notes.length, "note")}</span>`);
+  if (notes.length) {
+    const colours = [...new Set(notes.map(n => (ROLE[n.role] || {}).color || "#888"))].slice(0, 3);
+    out.push(`<span class="notebadge${notes.some(n => n.urgency === "must") ? " must" : ""}"><span class="stack" aria-hidden="true">${colours.map(c => `<i style="background:${tint(c)};border-color:${c}"></i>`).join("")}</span>${plural(notes.length, "note")}</span>`);
+  }
   return out.join("");
 }
 const tech = b => S.tech && b.detail ? `<span class="techname">${esc(b.detail)}</span>` : "";
 
 /* ---------- DOM helpers ---------- */
 const world = $("#world"), viewport = $("#viewport");
-let nodes = {}, rows = [], svg;
+let nodes = {}, rows = [], svg, K = 0;
 function place(cls, x, y, w, html, data, label) {
   const d = document.createElement("div");
   d.className = cls; d.style.left = x + "px"; d.style.top = y + "px";
   if (w) d.style.width = w + "px";
   d.innerHTML = html;
-  if (data) { d.tabIndex = 0; d.setAttribute("role", "button"); d.setAttribute("aria-label", label || ""); d._data = data; }
+  if (data) { d.tabIndex = 0; d.setAttribute("role", "button"); d.setAttribute("aria-label", label || ""); d._data = data; d.dataset.k = ++K; }
   world.appendChild(d);
   return d;
 }
@@ -204,7 +276,8 @@ function link(x1, y1, x2, y2, cls, label) {
   svg.appendChild(p);
   if (label) {
     const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    t.setAttribute("x", (x1 + x2) / 2 + 10); t.setAttribute("y", my + 5); t.textContent = label;
+    t.setAttribute("x", (x1 + x2) / 2 + 16); t.setAttribute("y", my + 5); t.textContent = label;
+    t.setAttribute("class", "verb");
     svg.appendChild(t);
   }
   return p;
@@ -233,12 +306,13 @@ function notePile(anchors, x, y, max, rowKey) {
     const c = colH[0] <= colH[1] ? 0 : 1;
     const r = ROLE[n.role] || {label:n.role, color:"#888"};
     const el = place(`notecard ${n.urgency || "info"} inj`, x + c * (NOTE_W + NOTE_GAP), y + colH[c], NOTE_W,
-      `<div><span class="who">${esc(r.label)}</span><span class="urg">${URG[n.urgency || "info"]}</span></div>
+      `<div class="notehead"><span class="who"><i style="background:${r.color}"></i>${esc(r.label)}</span><span class="urg">${URG[n.urgency || "info"]}</span></div>
        <h5>${esc(n.title)}</h5><div class="q">${esc(n.question || n.body || "")}</div>`,
       {type:"note", n}, `${r.label} note: ${n.title}`);
     el.style.background = tint(r.color);
-    el.style.setProperty("--note-tilt", [-0.7, 0.5, -0.3, 0.6][i % 4] + "deg");
-    el.dataset.row = rowKey;
+    el.style.setProperty("--note-tilt", [-1.1, 0.8, -0.5, 1][i % 4] + "deg");
+    el.style.setProperty("--role", r.color);
+    el.dataset.row = rowKey; el.dataset.anchor = n.anchor;
     colH[c] += el.offsetHeight + NOTE_GAP;
   });
   let h = Math.max(colH[0], colH[1]);
@@ -256,46 +330,74 @@ function header(m, width) {
   place("stamp", 0, 6, 0, (MODEL.checked && MODEL.checked.date) ? `Checked against the sources on ${esc(MODEL.checked.date)}` : "Not yet checked against sources");
   const t = place("maptitle", 0, 40, Math.max(width, 600), esc(m.title || MODEL.title));
   const q = place("mapintro", 0, 40 + t.offsetHeight + 8, Math.min(Math.max(width, 600), 900), gl(m.intro || ""));
-  return 40 + t.offsetHeight + 8 + q.offsetHeight + 40;
+  let y = 40 + t.offsetHeight + 8 + q.offsetHeight;
+  const mode = modeOf(m);
+  if (mode !== "all") {
+    const list = changeList(m);
+    const text = mode === "today" ? "<b>Today.</b> What exists now, before any change." :
+      mode === "planned" ? "<b>Planned.</b> How it works once the plan is done." :
+      `<b>What changes.</b> The plan, with every change marked. ${countsHtml(list)}`;
+    const lg = place("modebar", 0, y + 14, 0, `${text}${mode === "changes" ? `<span class="hint-sbs">${sbsOn() ? "Left: today. Right: the plan. Rows line up." : "Faded boxes go away. Open a box to compare before and after."}</span>` : ""}`);
+    y += 14 + lg.offsetHeight;
+  }
+  return y + 40;
 }
 
 /* ---------- journeys ---------- */
-const J = {laneW:260, laneGap:22, stepW:236, stepH:84, rowGap:16, headW:330, headGap:40, bandGap:70};
+/* Each lane keeps one colour, so a step's edge says which part of the system it runs in. */
+const LANE_COLORS = ["#4f7fd8", "#8a5cd6", "#d99a1e", "#2f9e6a", "#d1543f", "#1f9aa6", "#b5568c", "#7a7a72"];
+const laneColor = i => LANE_COLORS[i % LANE_COLORS.length];
+const J = {laneW:262, laneGap:20, stepW:238, stepH:86, rowGap:18, headW:330, headGap:44, bandGap:76};
+function stepInner(n) {
+  return b => `<div class="row1"><span class="n">${n}</span><div class="t">${gl(b.text)}</div></div>${tech(b)}
+    <div class="meta">${pill(b.status)}${badges(b)}</div>`;
+}
+function journeyHead(m, j, ji, slots, mode) {
+  const changed = mode === "changes" ? slots.filter(s => s.change && s.change !== "same") : [];
+  return `<h3><span class="n">${ji + 1}</span>${gl(j.title)}</h3><p>${gl(j.summary || "")}</p>
+    ${(j.creates || []).length ? `<div class="creates"><b>What gets created</b><ul>${j.creates.map(c => `<li>${esc(c)}</li>`).join("")}</ul></div>` : ""}
+    ${changed.length ? `<div class="creates changes"><b>What changes</b><p>${countsHtml(changed)}</p></div>` : ""}
+    ${tech(j)}<div class="meta">${badges(j)}<span class="chip">${plural(slots.length, "step")}</span></div>`;
+}
 function renderJourneys(m) {
   const lanes = m.lanes || [];
+  const mode = modeOf(m);
   const LI = Object.fromEntries(lanes.map((l, i) => [l.id, i]));
   const laneX = i => J.headW + J.headGap + i * (J.laneW + J.laneGap);
   const lanesRight = laneX(lanes.length - 1) + J.laneW;
-  const notesX = lanesRight + 48;
+  const notesX = lanesRight + 56;
   const W = lanesRight + notesWidth();
   let y = header(m, W);
-  lanes.forEach((l, i) => place("lanehead", laneX(i), y, J.laneW, `${esc(l.label)}<small>${esc(l.sub || "")}</small>`));
+  lanes.forEach((l, i) => {
+    const h = place("lanehead", laneX(i), y, J.laneW, `<i style="background:${laneColor(i)}"></i>${esc(l.label)}<small>${esc(l.sub || "")}</small>`);
+    h.style.setProperty("--lane", laneColor(i));
+  });
   if (S.notesOnMap) place("label", notesX, y + 4, 0, "Notes from each role");
-  y += 60;
-  const laneTop = y - 70;
+  y += 66;
+  const laneTop = y - 78;
   (m.journeys || []).forEach((j, ji) => {
     const y0 = y;
-    const hd = place("box jhead inj", 0, y0, J.headW,
-      `<h3><span class="n">${ji + 1}</span>${gl(j.title)}</h3><p>${gl(j.summary || "")}</p>
-       ${(j.creates || []).length ? `<p class="sub small"><b>What it leaves behind:</b> ${j.creates.map(esc).join(", ")}</p>` : ""}
-       ${tech(j)}<div class="meta">${badges(j)}<span class="chip">${plural((j.steps || []).length, "step")}</span></div>`,
+    const slots = arrange(j.steps || [], mode);
+    const hd = place("box jhead inj", 0, y0, J.headW, journeyHead(m, j, ji, slots, mode),
       {type:"box", id:j.id}, `Journey ${ji + 1}: ${j.title}`);
     hd.dataset.row = "j" + ji;
     nodes[j.id] = hd;
     let sy = y0, prev = null;
-    (j.steps || []).forEach((s, k) => {
-      const x = laneX(LI[s.lane] || 0) + (J.laneW - J.stepW) / 2;
-      const el = place("box step inj", x, sy, J.stepW,
-        `<div class="row1"><span class="n">${k + 1}</span><div class="t">${gl(s.text)}</div></div>${tech(s)}
-         <div class="meta">${pill(s.status)}${badges(s)}</div>`,
-        {type:"box", id:s.id}, `Step ${k + 1} of journey ${ji + 1}: ${s.text}`);
+    slots.forEach((slot, k) => {
+      const s = slot.box;
+      const li = LI[s.lane] || 0;
+      const x = laneX(li) + (J.laneW - J.stepW) / 2;
+      const el = place(`box step inj${slot.change ? " chg-" + slot.change : ""}`, x, sy, J.stepW,
+        slotHtml(slot, stepInner(k + 1)),
+        {type:"box", id:s.id}, slotLabel(slot, `Step ${k + 1} of journey ${ji + 1}: ${s.text}`));
       el.style.minHeight = J.stepH + "px";
+      el.style.setProperty("--lane", laneColor(li));
       el.dataset.row = "j" + ji;
       nodes[s.id] = el;
       const h = el.offsetHeight;
       if (prev) {
-        const p = link(prev.x + J.stepW / 2, prev.y + prev.h, x + J.stepW / 2, sy - 2, "inj");
-        p.dataset.row = "j" + ji; arrowHead(x + J.stepW / 2, sy - 2);
+        const p = link(prev.x + J.stepW / 2, prev.y + prev.h, x + J.stepW / 2, sy - 3, "inj flow");
+        p.dataset.row = "j" + ji; arrowHead(x + J.stepW / 2, sy - 3);
       }
       prev = {x, y:sy, h};
       sy += h + J.rowGap;
@@ -307,7 +409,8 @@ function renderJourneys(m) {
   });
   lanes.forEach((l, i) => {
     const bg = document.createElement("div"); bg.className = "lanebg";
-    Object.assign(bg.style, {left:(laneX(i) - 8) + "px", top:laneTop + "px", width:(J.laneW + 16) + "px", height:(y - laneTop) + "px"});
+    Object.assign(bg.style, {left:(laneX(i) - 9) + "px", top:laneTop + "px", width:(J.laneW + 18) + "px", height:(y - laneTop - J.bandGap + 24) + "px"});
+    bg.style.setProperty("--lane", laneColor(i));
     world.prepend(bg);
   });
   return {x:0, y:0, w:W, h:y};
@@ -315,34 +418,41 @@ function renderJourneys(m) {
 
 /* A customer's actions run left to right, in the supplied order. */
 function renderCustomerJourney(m) {
-  const cardW = 250, gap = 64;
-  const count = Math.max(1, ...(m.journeys || []).map(j => (j.steps || []).length));
+  const cardW = 252, gap = 62;
+  const mode = modeOf(m);
+  const all = (m.journeys || []).map(j => arrange(j.steps || [], mode));
+  const count = Math.max(1, ...all.map(s => s.length));
   const timelineW = count * (cardW + gap) - gap;
-  const notesX = timelineW + 48;
+  const notesX = timelineW + 56;
   const W = timelineW + notesWidth();
+  const LI = Object.fromEntries((m.lanes || []).map((l, i) => [l.id, i]));
   let y = header(m, W);
   (m.journeys || []).forEach((j, ji) => {
     const start = y;
-    const hd = place("box timeline-title inj", 0, y, Math.min(600, timelineW),
-      `<h3>${gl(j.title)}</h3><p>${gl(j.summary || "")}</p>${tech(j)}<div class="meta">${badges(j)}</div>`,
-      {type:"box", id:j.id}, j.title);
+    const slots = all[ji];
+    const hd = place("box timeline-title inj", 0, y, Math.min(640, timelineW),
+      journeyHead(m, j, ji, slots, mode), {type:"box", id:j.id}, j.title);
     nodes[j.id] = hd; hd.dataset.row = "j" + ji;
-    y += hd.offsetHeight + 48;
+    y += hd.offsetHeight + 52;
     let maxH = 0, prev = null;
-    (j.steps || []).forEach((step, i) => {
+    slots.forEach((slot, i) => {
+      const step = slot.box;
       const x = i * (cardW + gap);
-      const lane = (m.lanes || []).find(l => l.id === step.lane);
-      place("label", x, y - 26, cardW, `${i + 1}. ${esc(lane ? lane.label : "Next step")}`);
-      const card = place("box customer-step inj", x, y, cardW,
-        `<h4>${gl(step.text)}</h4>${tech(step)}<div class="meta">${pill(step.status)}${badges(step)}</div>`,
-        {type:"box", id:step.id}, `Step ${i + 1}: ${step.text}`);
+      const li = LI[step.lane];
+      const lane = (m.lanes || [])[li];
+      const lb = place("steplabel", x, y - 28, cardW, `<i style="background:${laneColor(li || 0)}"></i>${i + 1}. ${esc(lane ? lane.label : "Next step")}`);
+      lb.dataset.row = "j" + ji;
+      const card = place(`box customer-step inj${slot.change ? " chg-" + slot.change : ""}`, x, y, cardW,
+        slotHtml(slot, b => `<h4>${gl(b.text)}</h4>${tech(b)}<div class="meta">${pill(b.status)}${badges(b)}</div>`),
+        {type:"box", id:step.id}, slotLabel(slot, `Step ${i + 1}: ${step.text}`));
+      card.style.setProperty("--lane", laneColor(li || 0));
       card.dataset.row = "j" + ji; nodes[step.id] = card;
       maxH = Math.max(maxH, card.offsetHeight);
       if (prev !== null) {
-        const line = link(prev + cardW, y + 30, x - 8, y + 30, "inj customer-flow");
+        const line = link(prev + cardW + 6, y + 32, x - 10, y + 32, "inj customer-flow");
         line.dataset.row = "j" + ji;
         const arrow = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        arrow.setAttribute("d", `M${x - 16},${y + 24} L${x - 8},${y + 30} L${x - 16},${y + 36}`);
+        arrow.setAttribute("d", `M${x - 18},${y + 26} L${x - 10},${y + 32} L${x - 18},${y + 38}`);
         arrow.setAttribute("class", "customer-flow"); svg.appendChild(arrow);
       }
       prev = x;
@@ -350,59 +460,56 @@ function renderCustomerJourney(m) {
     const nh = notePile([j.id, ...(j.steps || []).map(step => step.id)], notesX, start, 4, "j" + ji);
     const h = Math.max(y - start + maxH, nh);
     rows.push({key:"j" + ji, y:start, h, x:0, w:W});
-    y = start + h + 64;
+    y = start + h + 70;
   });
   return {x:0, y:0, w:W, h:y};
 }
 
 /* ---------- chain ---------- */
-const C = {stageW:300, stageH:96, itemW:250, itemGap:14, perRow:3, gap:64};
+const C = {stageW:300, stageH:104, itemW:262, itemGap:16, perRow:3, gap:70};
+const itemInner = b => `<h4>${gl(b.title)}</h4><p class="t">${gl(b.text || "")}</p>${tech(b)}<div class="meta">${pill(b.status)}${badges(b)}</div>`;
 function renderChain(m) {
-  const compare = S.mode === "compare";
-  const itemsX = C.stageW + 50;
-  const perRow = compare ? 2 : C.perRow;
-  const columnW = perRow * (C.itemW + C.itemGap) - C.itemGap;
-  const versions = compare ? ["today", "planned"] : [S.mode];
-  const notesX = itemsX + versions.length * (columnW + 44) + 34;
-  const W = notesX - 34 + notesWidth();
+  const mode = modeOf(m);
+  const itemsX = C.stageW + 64;
+  const columnW = C.perRow * (C.itemW + C.itemGap) - C.itemGap;
+  const notesX = itemsX + columnW + 56;
+  const W = notesX - 56 + notesWidth();
   let y = header(m, W);
-  place("label", 0, y, 0, "Stage");
-  versions.forEach((version, i) => place("label", itemsX + i * (columnW + 44), y, columnW,
-    version === "today" ? "Current" : "Proposed · dashed boxes are new"));
+  place("label", 0, y, 0, "The chain");
+  place("label", itemsX, y, columnW, {today:"What exists today", planned:"What the plan puts in place", changes:"The plan, with every change marked", all:"What is here"}[mode]);
   if (S.notesOnMap) place("label", notesX, y, 0, "Notes from each role");
-  y += 30;
+  y += 34;
   let prevStage = null;
   (m.stages || []).forEach((st, si) => {
     const y0 = y;
     const stEl = place(`box stage inj${si === 0 ? " first-stage" : ""}`, 0, y0, C.stageW,
-      `<h3>${gl(st.label)}</h3><p>${gl(st.sub || "")}</p>${tech(st)}<div class="meta">${badges(st)}</div>`,
+      `<span class="stagenum">${si + 1}</span><h3>${gl(st.label)}</h3><p>${gl(st.sub || "")}</p>${tech(st)}<div class="meta">${badges(st)}</div>`,
       {type:"box", id:st.id}, `Stage ${si + 1}: ${st.label}`);
     stEl.style.minHeight = C.stageH + "px";
     stEl.dataset.row = "s" + si; nodes[st.id] = stEl;
-    let ih = 0;
-    versions.forEach((version, vi) => {
-      const items = (st.items || []).filter(it => (it.when || "both") === "both" || it.when === version);
-      const columnX = itemsX + vi * (columnW + 44);
-      let rowMax = 0, iy = y0, col = 0;
-      items.forEach(it => {
-        const el = place(`box item inj${it.when === "planned" ? " planned-new" : ""}`,
-          columnX + col * (C.itemW + C.itemGap), iy, C.itemW,
-          `<h4>${gl(it.title)}</h4><p class="t">${gl(it.text || "")}</p>${tech(it)}<div class="meta">${pill(it.status)}${badges(it)}${compare && (it.when || "both") === "both" ? '<span class="chip">Unchanged</span>' : ""}</div>`,
-          {type:"box", id:it.id}, `${compare ? version === "today" ? "Current: " : "Proposed: " : ""}${it.title}`);
-        el.dataset.row = "s" + si;
-        if (!nodes[it.id]) nodes[it.id] = el;
-        rowMax = Math.max(rowMax, el.offsetHeight);
-        if (++col === perRow) { col = 0; iy += rowMax + C.itemGap; rowMax = 0; }
-      });
-      ih = Math.max(ih, iy - y0 + rowMax);
-      if (!items.length) { place("label", columnX, y0 + 10, columnW, version === "planned" ? "Nothing proposed here" : "Nothing here today"); ih = Math.max(ih, 40); }
+    const slots = arrange(st.items || [], mode);
+    let rowMax = 0, iy = y0, col = 0;
+    slots.forEach(slot => {
+      const it = slot.box;
+      const el = place(`box item inj${slot.change ? " chg-" + slot.change : ""}`,
+        itemsX + col * (C.itemW + C.itemGap), iy, C.itemW, slotHtml(slot, itemInner),
+        {type:"box", id:it.id}, slotLabel(slot, it.title));
+      el.dataset.row = "s" + si;
+      nodes[it.id] = el;
+      rowMax = Math.max(rowMax, el.offsetHeight);
+      if (++col === C.perRow) { col = 0; iy += rowMax + C.itemGap; rowMax = 0; }
     });
+    let ih = iy - y0 + rowMax;
+    if (!slots.length) {
+      const e = place("emptyslot", itemsX, y0, C.itemW, mode === "today" ? "Nothing here today" : mode === "planned" ? "Nothing planned here" : "Nothing here yet");
+      e.dataset.row = "s" + si; ih = e.offsetHeight;
+    }
     const nh = notePile([st.id, ...(st.items || []).map(i => i.id)], notesX, y0, 4, "s" + si);
     const h = Math.max(stEl.offsetHeight, ih, nh);
     rows.push({key:"s" + si, y:y0, h, x:0, w:W});
     if (prevStage) {
-      const p = link(C.stageW / 2, prevStage.y + prevStage.h, C.stageW / 2, y0 - 2, "inj", prevStage.verb);
-      p.dataset.row = "s" + si; arrowHead(C.stageW / 2, y0 - 2);
+      const p = link(C.stageW / 2, prevStage.y + prevStage.h + 4, C.stageW / 2, y0 - 6, "inj spine", prevStage.verb);
+      p.dataset.row = "s" + si; arrowHead(C.stageW / 2, y0 - 6);
     }
     prevStage = {y:y0, h:stEl.offsetHeight, verb:st.verb || ""};
     y = y0 + h + C.gap;
@@ -501,7 +608,8 @@ function renderTree(m) {
 
 /* Named connections come from the model, never from the card positions. */
 function visibleLinks() {
-  return (MODEL.links || []).filter(l => S.mode === "compare" || (l.when || "both") === "both" || l.when === S.mode);
+  const mode = modeOf(MODEL.maps[S.map]);
+  return (MODEL.links || []).filter(l => mode === "changes" || mode === "all" || (l.when || "both") === "both" || l.when === mode);
 }
 function drawConnections() {
   const connections = visibleLinks().filter(l => nodes[l.from] && nodes[l.to]);
@@ -542,31 +650,95 @@ function applyConnections() {
 
 /* ---------- render ---------- */
 let bounds = {x:0, y:0, w:1000, h:800};
+/* Dashed lines join each note on the map to the box it is about. */
+function drawNoteLinks() {
+  world.querySelectorAll(".notecard").forEach(note => {
+    const box = nodes[note.dataset.anchor];
+    if (!box) return;
+    const nx = parseFloat(note.style.left), ny = parseFloat(note.style.top) + 22;
+    const bx = parseFloat(box.style.left) + box.offsetWidth, by = parseFloat(box.style.top) + Math.min(box.offsetHeight / 2, 40);
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    const mx = bx + (nx - bx) * 0.55;
+    path.setAttribute("d", `M${bx + 4},${by} C${mx},${by} ${mx},${ny} ${nx - 4},${ny}`);
+    path.setAttribute("class", "notelink inj"); path.dataset.row = note.dataset.row;
+    path.style.stroke = note.style.getPropertyValue("--role");
+    svg.appendChild(path);
+  });
+}
 function layout() {
   world.innerHTML = "";
-  nodes = {}; rows = [];
+  nodes = {}; rows = []; K = 0;
   svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.setAttribute("class", "links"); svg.setAttribute("aria-hidden", "true");
   world.appendChild(svg);
   const m = MODEL.maps[S.map];
   const kind = KIND[m.template];
+  document.body.dataset.mode = modeOf(m);
   bounds = m.template === "customer-journey" ? renderCustomerJourney(m) : kind === "journeys" ? renderJourneys(m) : kind === "chain" ? renderChain(m) : renderTree(m);
+  drawNoteLinks();
   drawConnections();
   applyFocus();
   if (current && current.kind === "box" && nodes[current.arg]) nodes[current.arg].classList.add("sel");
+  syncPanes();
 }
 function render() {
   layout();
   topBar();
   story();
 }
+/* Side by side: the same drawing twice, today on the left and the plan on the right, with
+   one pan and zoom. The right copy is for looking; clicks open the matching box. */
+const world2 = $("#world2"), viewport2 = $("#viewport2");
+function syncPanes() {
+  const on = sbsOn();
+  document.body.classList.toggle("sbs", on);
+  world.classList.toggle("pane-today", on);
+  world2.innerHTML = "";
+  if (!on) return;
+  const copy = world.cloneNode(true);
+  world2.append(...copy.childNodes);
+  world2.querySelectorAll("[tabindex]").forEach(e => e.setAttribute("tabindex", "-1"));
+  world2.querySelectorAll("[id]").forEach(e => e.removeAttribute("id"));
+}
+function twin(el) {
+  if (!el || !el.dataset.k) return null;
+  const other = el.closest("#world2") ? world : world2;
+  return other.querySelector(`[data-k="${el.dataset.k}"]`);
+}
+const pairline = $("#pairline");
+function showPair(el) {
+  const t = twin(el);
+  document.querySelectorAll(".pair").forEach(x => x.classList.remove("pair"));
+  if (!sbsOn() || !t) { pairline.style.display = "none"; return; }
+  const [a, b] = el.closest("#world2") ? [t, el] : [el, t];
+  a.classList.add("pair"); b.classList.add("pair");
+  const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+  const x1 = ra.right, y1 = ra.top + Math.min(ra.height / 2, 30), x2 = rb.left, y2 = rb.top + Math.min(rb.height / 2, 30);
+  const len = Math.hypot(x2 - x1, y2 - y1);
+  Object.assign(pairline.style, {display:"block", left:x1 + "px", top:y1 + "px", width:len + "px", transform:`rotate(${Math.atan2(y2 - y1, x2 - x1)}rad)`});
+}
+[world, world2].forEach(w => {
+  w.addEventListener("mouseover", e => { const el = e.target.closest("[data-k]"); if (el) showPair(el); });
+  w.addEventListener("mouseleave", () => showPair(null));
+});
 
 /* ---------- pan and zoom ---------- */
 let Z = 1, X = 40, Y = 80;
 const leftEdge = () => S.story && getComputedStyle($("#story")).display !== "none" ? $("#story").getBoundingClientRect().right : 0;
 const rightEdge = () => document.body.classList.contains("panel-open") && innerWidth > 720 ? innerWidth - $("#panel").getBoundingClientRect().left : 0;
+/* The drawing area: the whole screen with the side lists as insets, or in Side by side the
+   left half of the space between them. X and Y are measured from the pane's corner. */
+function pane() {
+  if (!sbsOn()) return {x:0, w:innerWidth, l:leftEdge(), r:rightEdge()};
+  const l = leftEdge(), w = Math.floor((innerWidth - l - rightEdge()) / 2);
+  return {x:l, w, l:0, r:0};
+}
 function apply() {
-  world.style.transform = `translate(${X}px,${Y}px) scale(${Z})`;
+  const P = pane(), on = sbsOn();
+  Object.assign(viewport.style, on ? {left:P.x + "px", width:P.w + "px", right:"auto"} : {left:"", width:"", right:""});
+  Object.assign(viewport2.style, on ? {left:(P.x + P.w) + "px", width:P.w + "px"} : {left:"", width:""});
+  const tf = `translate(${X}px,${Y}px) scale(${Z})`;
+  world.style.transform = tf; world2.style.transform = tf;
   document.documentElement.style.setProperty("--z", Z);
   const inv = Math.min(2.4, Math.max(1, 0.62 / Z));
   const changed = document.body.classList.contains("z-far") !== (Z < 0.55) ||
@@ -574,21 +746,29 @@ function apply() {
   document.documentElement.style.setProperty("--inv", inv);
   document.body.classList.toggle("z-far", Z < 0.55);
   if (changed) layout();
+  pairline.style.display = "none";
 }
 function zoomAt(f, cx, cy) {
+  const P = pane();
+  const ox = sbsOn() && cx >= P.x + P.w ? P.x + P.w : P.x;
+  const lx = cx - ox;
   const nz = Math.min(MAX_Z, Math.max(MIN_Z, Z * f));
-  X = cx - (cx - X) * (nz / Z); Y = cy - (cy - Y) * (nz / Z); Z = nz; apply();
+  X = lx - (lx - X) * (nz / Z); Y = cy - (cy - Y) * (nz / Z); Z = nz; apply();
 }
 const bottomEdge = () => document.body.classList.contains("panel-open") && innerWidth <= 720 ? innerHeight - $("#panel").getBoundingClientRect().top : 0;
-const topEdge = () => S.notesOnMap && NOTES.length ? TOP_H + 50 : TOP_H;
-const viewCenter = () => [leftEdge() + (innerWidth - leftEdge() - rightEdge()) / 2, topEdge() + (innerHeight - topEdge() - bottomEdge()) / 2];
+const topEdge = () => (S.notesOnMap && NOTES.length ? TOP_H + 50 : TOP_H) + (sbsOn() ? 34 : 0);
+const viewCenter = () => { const P = pane(); return [P.x + P.l + (P.w - P.l - P.r) / 2, topEdge() + (innerHeight - topEdge() - bottomEdge()) / 2]; };
 function fitTo(b) {
-  const vw = innerWidth - leftEdge() - rightEdge() - 40, vh = innerHeight - topEdge() - bottomEdge() - 40;
-  let z = Math.min(vw / b.w, vh / b.h) * 0.95;
-  const tall = z < MIN_Z + 0.08;
-  if (tall) z = Math.min(1, Math.max(MIN_Z + 0.1, vw / b.w * 0.96));   // too tall: fit the width, start at the top
+  const P = pane();
+  const vw = P.w - P.l - P.r - 40, vh = innerHeight - topEdge() - bottomEdge() - 40;
+  const zw = vw / b.w * 0.96, zh = vh / b.h * 0.95;
+  let z = Math.min(zw, zh);
+  // A tall map would shrink until its words are unreadable: fit the width instead and start
+  // at the top, so people scroll down through readable boxes.
+  const tall = zh < 0.62 && zw > zh * 1.2;
+  if (tall) z = Math.min(1, Math.max(sbsOn() ? MIN_Z : MIN_Z + 0.1, zw));
   Z = Math.min(1.3, Math.max(MIN_Z, z));
-  X = leftEdge() + 20 + Math.max(0, (vw - b.w * Z) / 2) - b.x * Z;
+  X = P.l + 20 + Math.max(0, (vw - b.w * Z) / 2) - b.x * Z;
   Y = topEdge() + 20 + (tall ? 0 : Math.max(0, (vh - b.h * Z) / 2)) - b.y * Z;
   apply();
 }
@@ -601,20 +781,22 @@ function centerOn(el) {
   const x = parseFloat(el.style.left) + el.offsetWidth / 2, y = parseFloat(el.style.top) + el.offsetHeight / 2;
   if (Z < 0.75) Z = 0.9;
   const [cx, cy] = viewCenter();
-  X = cx - x * Z; Y = cy - y * Z; apply();
+  X = cx - pane().x - x * Z; Y = cy - y * Z; apply();
 }
 let drag = null;
-viewport.addEventListener("pointerdown", e => {
-  if (e.target.closest(".box,.notecard,.morenotes,button")) return;
-  drag = {x:e.clientX, y:e.clientY, X, Y}; viewport.classList.add("dragging"); viewport.setPointerCapture(e.pointerId);
+[viewport, viewport2].forEach(vp => {
+  vp.addEventListener("pointerdown", e => {
+    if (e.target.closest(".box,.notecard,.morenotes,button")) return;
+    drag = {x:e.clientX, y:e.clientY, X, Y, vp}; vp.classList.add("dragging"); vp.setPointerCapture(e.pointerId);
+  });
+  vp.addEventListener("pointermove", e => { if (!drag) return; X = drag.X + e.clientX - drag.x; Y = drag.Y + e.clientY - drag.y; apply(); });
+  vp.addEventListener("pointerup", () => { if (drag) drag.vp.classList.remove("dragging"); drag = null; });
+  vp.addEventListener("wheel", e => {
+    e.preventDefault();
+    if (e.ctrlKey || e.metaKey) zoomAt(Math.exp(-e.deltaY * 0.01), e.clientX, e.clientY);
+    else { X -= e.deltaX; Y -= e.deltaY; apply(); }
+  }, {passive:false});
 });
-viewport.addEventListener("pointermove", e => { if (!drag) return; X = drag.X + e.clientX - drag.x; Y = drag.Y + e.clientY - drag.y; apply(); });
-viewport.addEventListener("pointerup", () => { drag = null; viewport.classList.remove("dragging"); });
-viewport.addEventListener("wheel", e => {
-  e.preventDefault();
-  if (e.ctrlKey || e.metaKey) zoomAt(Math.exp(-e.deltaY * 0.01), e.clientX, e.clientY);
-  else { X -= e.deltaX; Y -= e.deltaY; apply(); }
-}, {passive:false});
 $("#zin").addEventListener("click", () => zoomAt(1.25, ...viewCenter()));
 $("#zout").addEventListener("click", () => zoomAt(1 / 1.25, ...viewCenter()));
 $("#zfit").addEventListener("click", () => fit());
@@ -625,48 +807,67 @@ function applyFocus() {
   document.body.classList.toggle("dim", on);
   world.querySelectorAll(".inj").forEach(el => el.classList.toggle("hot", on && el.dataset.row === "j" + S.journey));
   svg.querySelectorAll("path").forEach(p => p.classList.toggle("hot", on && p.dataset.row === "j" + S.journey));
+  if (sbsOn()) syncPanes();
 }
 function showMap(i) { if (i !== S.map) { S.map = i; S.journey = -1; persist(); render(); } }
 function focusJourney(mi, ji) { showMap(mi); S.journey = ji; persist(); applyFocus(); story(); fit(); }
 function focusRow(mi, key) { showMap(mi); S.journey = -1; persist(); applyFocus(); story(); fitRow(key); }
-function setMode(m) { S.mode = m; persist(); render(); }
+function setMode(m) { S.mode = m; if (m !== "changes") S.sbs = false; persist(); render(); }
+function setSideBySide(on) {
+  if (on && innerWidth < 1000) return toast("Side by side needs a wider window. What changes shows the same on one map.");
+  S.sbs = on; if (on) S.mode = "changes"; persist(); render(); fit();
+}
 
 /* ---------- top bar ---------- */
-const ICONS = {
-  lines:'<path d="M4 6h6l4 12h6M16 14l4 4-4 4"/><circle cx="4" cy="6" r="2"/><circle cx="20" cy="18" r="2"/>',
-  notes:'<path d="M4 4h16v12H9l-5 4V4Z"/><path d="M8 8h8M8 12h5"/>',
-  tech:'<path d="M4 5h16M4 10h12M4 15h7M16 14v7M12.5 17.5h7"/>',
-  dots:'<path stroke-linecap="round" stroke-width="3" d="M5 5h.01M12 5h.01M19 5h.01M5 12h.01M12 12h.01M19 12h.01M5 19h.01M12 19h.01M19 19h.01"/>',
-  story:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M5.5 8h1M5.5 12h1"/>',
-  glossary:'<path d="M12 5v15M12 5C9 3 5 3 2 4v15c3-1 7-1 10 1 3-2 7-2 10-1V4c-3-1-7-1-10 1Z"/>'
-};
-function iconControl(action, label, on) {
-  const state = on === undefined ? "" : ` · ${on ? "On" : "Off"}`;
-  return `<button class="icon-control" data-tool="${action}" aria-label="${label}" title="${label}${state}"${on === undefined ? "" : ` aria-pressed="${on}"`}>
-    <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7">${ICONS[action]}</svg>
-    <span class="control-tip">${label}${state}</span>${on === undefined ? "" : '<span class="toggle-state" aria-hidden="true"></span>'}</button>`;
+/* Words, not icons: the view switch, one View menu for display options, the questions, the
+   save button and Tools. */
+function modeSwitch(where) {
+  const m = MODEL.maps[S.map];
+  if (!hasChanges(m)) return "";
+  const mode = modeOf(m);
+  return `<div class="seg mode-seg ${where}" role="group" aria-label="Today, planned, or what changes">
+    ${Object.entries(MODES).map(([k, l]) => `<button data-mode="${k}" aria-pressed="${mode === k && !(k === "changes" && sbsOn())}">${l}</button>`).join("")}
+    <button data-sbs class="sbs" aria-pressed="${sbsOn()}">Side by side</button></div>`;
+}
+function wireModeSwitch(root) {
+  root.querySelectorAll("[data-mode]").forEach(b => b.addEventListener("click", () => { setMode(b.dataset.mode); b.dataset.mode === "changes" ? fitFirstChange() : fit(); }));
+  root.querySelectorAll("[data-sbs]").forEach(b => b.addEventListener("click", () => { setSideBySide(!sbsOn()); if (sbsOn()) fitFirstChange(); }));
+}
+/* On a journey map the changes can sit far down: start at the first journey that changes. */
+function fitFirstChange() {
+  const m = MODEL.maps[S.map];
+  const ji = (m.journeys || []).findIndex(j => (j.steps || []).some(s => s.when === "today" || s.when === "planned"));
+  if (KIND[m.template] === "journeys" && ji > 0) fitRow("j" + ji); else fit();
+}
+function viewItems() {
+  const details = Object.values(BOX).some(info => info.mi === S.map && info.box.detail);
+  return [
+    NOTES.length ? ["notes", "Notes on the map", S.notesOnMap] : null,
+    (MODEL.links || []).length ? ["lines", "All connections", S.lines] : null,
+    details ? ["tech", "Technical names on the map", S.tech] : null,
+    ["dots", "Background dots", S.dots],
+    ["story", "List on the left", leftEdge() > 0],
+    TERMS.length ? ["glossary", "Word meanings", ""] : null,
+    ["key", "What the colours mean", ""],
+  ].filter(Boolean);
 }
 function topBar() {
-  const details = Object.values(BOX).filter(info => info.mi === S.map && info.box.detail);
+  const qn = questionList().length;
   $("#top").innerHTML = `
     <span class="title" title="${esc(MODEL.title)}">${esc(MODEL.title)}</span>
-    <div class="display-controls" role="group" aria-label="Map display">
-      ${KIND[MODEL.maps[S.map].template] === "chain" ? `<select id="view-version" aria-label="Current and proposed work">${[["compare","Compare"],["today","Current"],["planned","Proposed"]].map(([value,label]) => `<option value="${value}"${S.mode === value ? " selected" : ""}>${label}</option>`).join("")}</select>` : ""}
-      ${iconControl("story", "Left navigation", leftEdge() > 0)}
-      ${NOTES.length ? iconControl("notes", "Notes beside boxes", S.notesOnMap) : ""}
-      ${(MODEL.links || []).length ? iconControl("lines", "All connections", S.lines) : ""}
-      ${details.length ? iconControl("tech", "Extra details on the map", S.tech) : ""}
-      ${iconControl("dots", "Background dots", S.dots)}
-      ${TERMS.length ? iconControl("glossary", "Word meanings") : ""}
-    </div>
+    ${modeSwitch("in-top")}
+    <button id="tview" aria-haspopup="true" aria-expanded="false">View ▾</button>
+    <button id="tquestions" class="primary"><span class="wide-label">Questions to decide</span><span class="short-label">Questions</span><span class="count">${qn}</span></button>
     <button id="tsave" class="save-primary">${SESSION ? S.sessionFinished ? "Read my answers" : "Finish review" : "Save my answers"}</button>
     <button id="tshare" aria-haspopup="true" aria-expanded="false">Tools ▾</button>`;
   roleStrip();
-  const version = $("#view-version"); if (version) version.addEventListener("change", () => { setMode(version.value); fit(); });
-  $("#top").querySelectorAll("[data-tool]").forEach(button => button.addEventListener("click", () => { const action = button.dataset.tool; act(action); const next = $("#top [data-tool=" + action + "]"); if (next) next.focus({preventScroll:true}); }));
+  wireModeSwitch($("#top"));
+  $("#tview").addEventListener("click", e => menu(e.currentTarget, viewItems()));
+  $("#tquestions").addEventListener("click", () => open("questions"));
   $("#tsave").addEventListener("click", () => SESSION && S.sessionFinished ? open("reviewsummary") : saveReview());
   $("#tshare").addEventListener("click", e => menu(e.currentTarget, [
     ["walk", "Walk me through it", ""],
+    ...(hasChanges(MODEL.maps[S.map]) ? [["walkchanges", "Walk through the changes", ""]] : []),
     [SESSION ? "backup" : "save", SESSION ? "Download a backup copy" : "Save my answers as a file", ""],
     ["copy", "Copy the questions as a list", ""], ["paper", "Print the questions", ""],
     ["print", "Print this view", ""], ["roles", "Whose notes to show", ""],
@@ -693,7 +894,9 @@ function menu(btn, items) {
   document.querySelectorAll("#top [aria-expanded]").forEach(b => b.setAttribute("aria-expanded", "false"));
   if (reopen) return;
   mm._from = btn;
-  mm.innerHTML = items.map(([a, label, state]) => `<button role="menuitem" data-a="${a}"><span>${label}</span><span class="state">${state}</span></button>`).join("");
+  mm.innerHTML = items.map(([a, label, state]) => typeof state === "boolean"
+    ? `<button role="menuitemcheckbox" aria-checked="${state}" aria-label="${label}" data-a="${a}"><span>${label}</span><span class="state" aria-hidden="true">${state ? "On" : "Off"}</span></button>`
+    : `<button role="menuitem" data-a="${a}"><span>${label}</span><span class="state">${state}</span></button>`).join("");
   const r = btn.getBoundingClientRect();
   mm.style.left = Math.max(8, Math.min(r.left, innerWidth - 290)) + "px"; mm.style.top = (r.bottom + 6) + "px";
   mm.classList.add("open"); btn.setAttribute("aria-expanded", "true");
@@ -703,6 +906,7 @@ function menu(btn, items) {
 document.addEventListener("click", e => { if (!e.target.closest("#menu,#tshare,#tview")) $("#menu").classList.remove("open"); });
 function act(a) {
   if (a === "walk") walk(0);
+  if (a === "walkchanges") walkChanges(0);
   if (a === "tech" && !Object.values(BOX).some(info => info.mi === S.map && info.box.detail)) return toast("This map has no extra box details.");
   if (a === "lines") { S.lines = !S.lines; persist(); topBar(); applyConnections(); }
   if (a === "glossary") open("glossary");
@@ -726,7 +930,6 @@ function act(a) {
 /* ---------- left story list ---------- */
 function setStory(on) { document.body.classList.toggle("show-navigation", on); S.story = on; persist(); document.body.classList.toggle("nostory", !on); story(); topBar(); fit(); }
 $("#storytab").addEventListener("click", () => setStory(true));
-let exploringMaps = false;
 function story() {
   const el = $("#story");
   if (!S.story) { el.innerHTML = ""; return; }
@@ -737,13 +940,20 @@ function story() {
     if (kind === "journeys") sub = (m.journeys || []).map((j, ji) => `<li><button class="view" data-j="${mi}:${ji}" aria-current="${cur && S.journey === ji}"><b><span class="num">${mi + 1}.${ji + 1}</span>${esc(j.title)}</b><span>${esc(j.summary || plural((j.steps || []).length, "step"))}</span></button></li>`).join("");
     if (kind === "chain") sub = (m.stages || []).map((st, si) => `<li><button class="view" data-row="${mi}:s${si}"><b><span class="num">${mi + 1}.${si + 1}</span>${esc(st.label)}</b><span>${esc(st.sub || "")}</span></button></li>`).join("");
     if (kind === "tree") sub = (m.root.children || []).map((b, bi) => `<li><button class="view" data-row="${mi}:b${bi}"><b><span class="num">${mi + 1}.${bi + 1}</span>${esc(b.title)}</b><span>${plural((b.children || []).length, "idea")}</span></button></li>`).join("");
-    const seg = kind === "chain" && cur ? `<div class="seg" role="group" aria-label="Current and proposed work"><button data-mode="compare" aria-pressed="${S.mode === "compare"}">Compare</button><button data-mode="today" aria-pressed="${S.mode === "today"}">Current</button><button data-mode="planned" aria-pressed="${S.mode === "planned"}">Proposed</button></div>` : "";
-    return `<li><button class="view" data-map="${mi}" aria-current="${cur && S.journey < 0}"><b><span class="num">${mi + 1}.</span>${esc(m.title)}</b><span>${esc(m.intro || "")}</span></button>${seg}<ol class="sub">${sub}</ol></li>`;
+    const tag = hasChanges(m) ? `<span class="viewtag">${countsText(changeList(m))}</span>` : "";
+    return `<li class="${cur ? "cur" : ""}"><button class="view top-view" data-map="${mi}" aria-current="${cur && S.journey < 0}"><b><span class="num">${mi + 1}.</span>${esc(m.title)}</b><span>${esc(m.intro || "")}</span>${tag}</button>${cur ? modeSwitch("in-story") : ""}${cur ? `<ol class="sub">${sub}</ol>` : ""}</li>`;
   }).join("");
+  const m = MODEL.maps[S.map];
+  const changes = hasChanges(m) ? changeList(m) : [];
   const qs = questionList(), done = qs.filter(q => answerDone(q.n)).length;
   const active = current && current.kind;
   el.innerHTML = `<button class="hide" data-hide>Hide list</button>
     <div class="small">The decision</div><p class="q">${gl(MODEL.question, true)}</p>
+    <button class="walkbtn" data-walk>▶ Walk me through it</button>
+    <h2>The maps</h2><ol class="maps">${views}</ol>
+    ${changes.length ? `<h2>What changes on this map</h2><p class="chg-legend">${countsHtml(changes)}</p>
+      <button class="walkbtn alt" data-walk-changes>▶ Walk through the changes</button>
+      <ol class="changes">${changes.map((c, i) => `<li><button class="view chg" data-change="${i}"><span class="ribbon ${c.change}">${CHANGE_WORD[c.change]}</span><b>${esc(titleOf(c.box))}</b>${c.before ? `<span>Today: ${esc(titleOf(c.before))}</span>` : ""}</button></li>`).join("")}</ol>` : ""}
     <h2>Your review</h2><p class="small">${done} of ${qs.length} questions answered</p>
     <div class="more workflow">
       <button data-open="reviewstart" aria-current="${active === 'reviewstart'}">1. Understand the decision</button>
@@ -751,24 +961,25 @@ function story() {
       <button data-open="reviewsummary" aria-current="${active === 'reviewsummary'}">3. Check your answers</button>
     </div>
     <h2>Supporting material</h2><div class="more">
-      <button data-explore aria-current="${exploringMaps}">Explore the map</button>
       ${MODEL.comparison ? `<button data-open="comparison">Compare the options</button>` : ""}
       <button data-open="evidence">Supporting sources</button>
       ${DECISIONS.length ? `<button data-open="decisions">Decision record</button>` : ""}
       ${GAPS.length ? `<button data-open="gaps">Changes to consider</button>` : ""}
       ${MODEL.reading ? `<button data-open="reading">How to read the map</button>` : ""}
-    </div>
-    ${exploringMaps ? `<h2>Map views</h2><ol>${views}</ol>` : ""}`;
+    </div>`;
   el.querySelector("[data-hide]").addEventListener("click", () => setStory(false));
-  el.querySelector("[data-give]").addEventListener("click", () => {
-    exploringMaps = false;
-    goReview(Math.max(0, qs.findIndex(q => !answerDone(q.n))));
-  });
-  el.querySelector("[data-explore]").addEventListener("click", () => { exploringMaps = !exploringMaps; close(); story(); fit(); });
+  el.querySelector("[data-walk]").addEventListener("click", () => walk(0));
+  const wc = el.querySelector("[data-walk-changes]"); if (wc) wc.addEventListener("click", () => walkChanges(0));
+  el.querySelector("[data-give]").addEventListener("click", () => goReview(Math.max(0, qs.findIndex(q => !answerDone(q.n)))));
   el.querySelectorAll("[data-map]").forEach(b => b.addEventListener("click", () => { showMap(+b.dataset.map); S.journey = -1; persist(); applyFocus(); story(); fit(); }));
   el.querySelectorAll("[data-j]").forEach(b => b.addEventListener("click", () => { const [mi, ji] = b.dataset.j.split(":").map(Number); focusJourney(mi, ji); }));
   el.querySelectorAll("[data-row]").forEach(b => b.addEventListener("click", () => { const [mi, key] = b.dataset.row.split(":"); focusRow(+mi, key); }));
-  el.querySelectorAll("[data-mode]").forEach(b => b.addEventListener("click", () => setMode(b.dataset.mode)));
+  el.querySelectorAll("[data-change]").forEach(b => b.addEventListener("click", () => {
+    const c = changes[+b.dataset.change];
+    if (modeOf(m) === "today" || modeOf(m) === "planned") setMode("changes");
+    open("box", c.box.id); jumpTo(c.box.id);
+  }));
+  wireModeSwitch(el);
   el.querySelectorAll("[data-open]").forEach(b => b.addEventListener("click", () => open(b.dataset.open)));
   wireTerms(el);
 }
@@ -785,7 +996,7 @@ function steps() {
       out.push({title:`${ji + 1}. ${j.title}`, text:(j.summary || "") + ` ${plural((j.steps || []).length, "step")}.` + (moments.length ? ` Moments that matter: ${moments.join("; ")}.` : ""), go:() => focusJourney(mi, ji)});
     });
     if (kind === "chain") (m.stages || []).forEach((st, si) => {
-      const items = (st.items || []).filter(it => (it.when || "both") === "both" || it.when === S.mode).map(it => it.title);
+      const items = arrange(st.items || [], modeOf(m)).map(slot => slotLabel(slot, slot.box.title));
       out.push({title:`${si + 1}. ${st.label}`, text:`${st.sub || ""}. ${items.length ? items.join("; ") + "." : "Nothing here yet."}`, go:() => focusRow(mi, "s" + si)});
     });
     if (kind === "tree") (m.root.children || []).forEach((b, bi) => {
@@ -801,11 +1012,11 @@ function steps() {
   out.push({title:"What we need to decide", text:`${plural(qs.length, "question")}, ${must} that must be decided. Answer them on the right, then press Save my answers. Send the downloaded file to the review owner.`, panel:true, go:() => open("questions")});
   return out;
 }
-let walkAt = -1;
+let walkAt = -1, walkKind = "tour";
 function walk(i) {
   const list = steps();
   if (i < 0 || i >= list.length) return endWalk();
-  walkAt = i;
+  walkAt = i; walkKind = "tour";
   hideHint();
   const s = list[i];
   if (!s.panel) close();
@@ -822,12 +1033,37 @@ function walk(i) {
   wireTerms(w);
 }
 function endWalk() { walkAt = -1; $("#walk").classList.remove("open"); }
+const stepWalk = d => walkKind === "changes" ? walkChanges(walkAt + d) : walk(walkAt + d);
+/* One change at a time: the box is outlined on the map and its before and after open on the right. */
+function walkChanges(i) {
+  const m = MODEL.maps[S.map];
+  const list = changeList(m);
+  if (!list.length || i < 0 || i >= list.length) return endWalk();
+  walkAt = i; walkKind = "changes";
+  hideHint();
+  if (modeOf(m) !== "changes") { S.mode = "changes"; persist(); render(); }
+  const c = list[i];
+  open("box", c.box.id);
+  jumpTo(c.box.id);
+  const what = c.change === "changed" ? `Today: ${esc(titleOf(c.before))}. In the plan: ${esc(titleOf(c.box))}.`
+    : c.change === "new" ? "Not there today. The plan adds it." : "There today. The plan drops it.";
+  const w = $("#walk");
+  w.innerHTML = `<div class="step">Change ${i + 1} of ${list.length} · ${countsText(list)}</div>
+    <h3><span class="ribbon ${c.change}">${CHANGE_WORD[c.change]}</span> ${esc(titleOf(c.box))}</h3><p>${what}</p>
+    <div class="row"><button data-w="back"${i === 0 ? " disabled" : ""}>Back</button><span class="grow"></span>
+    <button data-w="end">End the walk-through</button><button class="next" data-w="next">${i === list.length - 1 ? "Finish" : "Next"}</button></div>`;
+  w.classList.add("open");
+  w.querySelector('[data-w="back"]').addEventListener("click", () => walkChanges(walkAt - 1));
+  w.querySelector('[data-w="next"]').addEventListener("click", () => walkChanges(walkAt + 1));
+  w.querySelector('[data-w="end"]').addEventListener("click", endWalk);
+  w.querySelector('[data-w="next"]').focus();
+}
 
 /* ---------- first-visit hint ---------- */
 function hint() {
   if (S.hintSeen) return;
   const h = $("#hint");
-  h.innerHTML = `<b>New here?</b> Press <b>Walk me through it</b> in Tools for a short tour, or click any box to read about it. ${SESSION ? "Answer questions on the right. Your answers save for your agent automatically; press Finish review when ready." : "Answer questions on the right, then press Save my answers. Send the downloaded file to the review owner."}<br><button id="hintok">Got it</button>`;
+  h.innerHTML = `<b>New here?</b> Pick a view on the left, or press <b>Walk me through it</b>. Click any box to read about it. ${hasChanges(MODEL.maps[S.map]) ? "Use <b>Today</b>, <b>Planned</b> and <b>What changes</b> to see the plan. " : ""}${SESSION ? "Answer questions on the right. Your answers save for your agent automatically; press Finish review when ready." : "Answer questions on the right, then press Save my answers. Send the downloaded file to the review owner."}<br><button id="hintok">Got it</button>`;
   h.classList.add("open");
   $("#hintok").addEventListener("click", hideHint);
 }
@@ -855,6 +1091,27 @@ function close() {
   current = null; topBar(); applyConnections(); world.querySelectorAll(".sel").forEach(x => x.classList.remove("sel")); story(); fit();
 }
 
+/* What the plan does to this box: new, gone, or before and after with the words that change. */
+function changeSection(id) {
+  const c = CHANGE_INFO[id];
+  if (!c) return "";
+  if (c.change === "new") return `<section class="change new"><span class="ribbon new">New</span><p>Not there today. The plan adds this.</p></section>`;
+  if (c.change === "gone") return `<section class="change gone"><span class="ribbon gone">Goes away</span><p>There today. The plan drops it.</p></section>`;
+  const before = c.change === "replaced" ? c.box : c.before, after = c.change === "replaced" ? c.by : c.box;
+  const field = (label, a, b) => {
+    if (!a && !b) return "";
+    const [da, db] = a === b ? [esc(a), esc(b)] : wordDiff(a, b);
+    return `<div class="ba-row"><div class="ba-label">${label}</div><div class="ba-cell before">${da || "<i>None</i>"}</div><div class="ba-cell after">${db || "<i>None</i>"}</div></div>`;
+  };
+  const st = x => x.status ? STATUS[x.status] : "";
+  return `<section class="change changed"><span class="ribbon changed">Changed</span>
+    ${c.change === "replaced" ? `<p>This is how it works today. In the plan it becomes <button class="mini" data-jump-to="${esc(after.id)}">${esc(titleOf(after))}</button>.</p>` : "<p>The plan changes this. Words that go are struck through; words that arrive are marked.</p>"}
+    <div class="ba"><div class="ba-row head"><div class="ba-label"></div><div class="ba-cell before">Today</div><div class="ba-cell after">In the plan</div></div>
+    ${field(before.title ? "Name" : "What happens", titleOf(before), titleOf(after))}
+    ${before.title || after.title ? field("In short", before.text || "", after.text || "") : ""}
+    ${field("Status", st(before), st(after))}
+    ${S.tech ? field("Technical", before.detail || "", after.detail || "") : ""}</div></section>`;
+}
 function evidenceHtml(refs) {
   return (refs || []).map(r => {
     const e = EVID[r]; if (!e) return "";
@@ -937,17 +1194,18 @@ const PANELS = {
     const notes = notesOn(id);
     const where = info.kind === "step" ? `Step ${info.k + 1} · ${esc(lane ? lane.label : b.lane)}` : info.kind === "journey" ? `Journey ${info.ji + 1}` : info.kind === "stage" ? `Stage ${info.si + 1}` : "";
     return [esc(titleOf(b)), `
+      ${changeSection(id)}
       <p class="small">${where} ${pill(b.status)}</p>
       ${b.title && b.text ? `<p>${gl(b.text, true)}</p>` : ""}${b.summary ? `<p>${gl(b.summary, true)}</p>` : ""}${b.sub ? `<p>${gl(b.sub, true)}</p>` : ""}
       ${b.pain ? `<p><b>Pain point:</b> ${gl(b.pain, true)}</p>` : ""}
       ${b.moment ? `<p><b>A moment that matters.</b> Get this right and people trust the rest.</p>` : ""}
       ${b.feeling ? `<p><i class="feel ${b.feeling}"></i>${FEEL[b.feeling]}</p>` : ""}
-      ${sinceAdded.has(id) ? `<p><span class="chip new">New</span> since the last review.</p>` : ""}
-      ${ch ? `<p><span class="chip changed">Changed</span> since the last review: ${ch.map(esc).join(", ")}.</p>` : ""}
+      ${sinceAdded.has(id) ? `<p><span class="chip since">New since last review</span></p>` : ""}
+      ${ch ? `<p><span class="chip since">Changed since last review</span> ${ch.map(esc).join(", ")}.</p>` : ""}
       ${b.checked ? `<p class="small">Checked ${esc(b.checked)}.</p>` : ""}
       ${visibleLinks().filter(l => l.from === id || l.to === id).length ? `<h3>Connected to this</h3>${visibleLinks().filter(l => l.from === id || l.to === id).map(l => {
         const other = l.from === id ? l.to : l.from;
-        return `<p class="connection-description ${l.kind || "flow"}">${esc(l.label)} ${l.from === id ? "→" : "←"} <button class="mini" data-connection-to="${esc(other)}">${esc(titleOf(BOX[other].box))}</button>${S.mode === "compare" && l.when && l.when !== "both" ? ` <span class="small">(${l.when === "today" ? "current" : "proposed"})</span>` : ""}</p>`;
+        return `<p class="connection-description ${l.kind || "flow"}">${esc(l.label)} ${l.from === id ? "→" : "←"} <button class="mini" data-connection-to="${esc(other)}">${esc(titleOf(BOX[other].box))}</button>${modeOf(MODEL.maps[S.map]) === "changes" && l.when && l.when !== "both" ? ` <span class="small">(${l.when === "today" ? "today only" : "in the plan"})</span>` : ""}</p>`;
       }).join("")}` : ""}
       ${b.detail ? `<h3>More about this</h3><p>${gl(b.detail, true)}</p>` : ""}
       ${(b.evidence || []).length ? `<h3>Evidence</h3>${evidenceHtml(b.evidence)}` : ""}
@@ -1108,12 +1366,14 @@ const PANELS = {
       <h3>Notes</h3><p>Each note is one role's comment and ends in a question. A box shows how many notes it has; red means at least one must be decided. The coloured edge on a note shows how urgent it is:</p>
       <p class="legend"><span><span class="swatch" style="background:var(--must)"></span>Must decide</span><span><span class="swatch" style="background:var(--should)"></span>Should decide</span><span><span class="swatch" style="background:var(--info)"></span>For information</span></p>
       <h3>Roles</h3><p class="legend">${ROLES.map(r => `<span><span class="swatch" style="background:${r.color}"></span>${esc(r.label)}</span>`).join(" ")}</p>
-      <h3>Marks on boxes</h3><p class="legend"><span class="chip moment">Moment that matters</span> <span class="chip pain">Pain point</span> <span class="chip new">New</span> <span class="chip changed">Changed</span> <span class="chip stale">May be out of date</span></p>`];
+      <h3>What changes</h3><p class="legend"><span class="ribbon new">New</span> <span class="ribbon changed">Changed</span> <span class="ribbon gone">Goes away</span></p>
+      <p>New boxes have a teal dashed edge, changed ones an amber edge, and boxes that go away are faded and struck through. Open a changed box to see today and the plan side by side. Side by side shows today on the left and the plan on the right.</p>
+      <h3>Marks on boxes</h3><p class="legend"><span class="chip moment">Moment that matters</span> <span class="chip pain">Pain point</span> <span class="chip since">New since last review</span> <span class="chip stale">May be out of date</span></p>`];
   },
   keys() {
     return ["Keyboard shortcuts", `<p class="small">Everything also works with the buttons on screen. These are only shortcuts.</p>
       <ul><li><b>Tab</b> and <b>Enter</b>: move between boxes and open one</li><li><b>W</b>: walk me through it; <b>→</b> and <b>←</b>: next and back during the walk-through</li>
-      <li><b>F</b>: fit to screen; <b>+</b> and <b>−</b>: zoom</li><li><b>Q</b>: questions to decide</li><li><b>T</b>: today or planned (on a chain view)</li>
+      <li><b>F</b>: fit to screen; <b>+</b> and <b>−</b>: zoom</li><li><b>Q</b>: questions to decide</li><li><b>T</b>: Today, Planned, What changes (where a map has a plan)</li><li><b>S</b>: side by side</li>
       <li><b>N</b>: show all notes on the map</li><li><b>X</b>: show extra box details on the map, when available</li><li><b>1</b> to <b>9</b>: switch view</li><li><b>Esc</b>: close the panel or menu</li></ul>
       <p class="small">Boxes are placed automatically. Drag empty space to move the view. Zoom with Ctrl and scroll, or pinch.</p>`];
   },
@@ -1199,7 +1459,12 @@ function jumpTo(id) {
   if (info && info.kind === "gap") return open("gaps");
   const mi = mapOfAnchor(id);
   if (mi >= 0) showMap(mi);
-  if (info && info.kind === "item" && !nodes[id]) setMode(info.box.when === "today" ? "today" : "planned");
+  if (info && !nodes[id] && hasChanges(MODEL.maps[S.map])) {
+    const c = CHANGE_INFO[id];
+    if (c && c.change === "replaced" && modeOf(MODEL.maps[S.map]) === "changes") id = c.by.id;
+    else if (info.box.when === "today") setMode("today");
+    else if (info.box.when === "planned") setMode("planned");
+  }
   if (S.journey >= 0 && info && info.ji !== S.journey) { S.journey = -1; applyFocus(); story(); }
   const el = nodes[id];
   if (el) { world.querySelectorAll(".sel").forEach(x => x.classList.remove("sel")); el.classList.add("sel"); centerOn(el); }
@@ -1215,6 +1480,7 @@ function activate(el) {
   else if (d.type === "outcome") open("outcome", d.o);
 }
 world.addEventListener("click", e => { const term = e.target.closest(".term"); if (term) { showTerm(term); return; } const el = e.target.closest("[role=button]"); if (el && el._data) activate(el); });
+world2.addEventListener("click", e => { const el = e.target.closest("[data-k]"); const t = twin(el); if (t && t._data) activate(t); });
 world.addEventListener("keydown", e => {
   const term = e.target.closest(".term"); if (term && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); showTerm(term); return; }
   const el = e.target.closest("[role=button]");
@@ -1304,7 +1570,7 @@ document.addEventListener("keydown", e => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   const k = e.key.toLowerCase();
   if (k === "escape") { $("#menu").classList.remove("open"); hideTerm(); if (walkAt >= 0) endWalk(); else close(); return; }
-  if (walkAt >= 0 && (k === "arrowright" || k === "arrowleft")) { walk(walkAt + (k === "arrowright" ? 1 : -1)); e.preventDefault(); return; }
+  if (walkAt >= 0 && (k === "arrowright" || k === "arrowleft")) { stepWalk(k === "arrowright" ? 1 : -1); e.preventDefault(); return; }
   const m = MODEL.maps[S.map];
   if (/^[1-9]$/.test(k) && +k <= MODEL.maps.length) { showMap(+k - 1); fit(); }
   else if (k === "w") walk(0);
@@ -1315,7 +1581,8 @@ document.addEventListener("keydown", e => {
   else if (k === "n") act("notes");
   else if (k === "x") act("tech");
   else if (k === "?") open("keys");
-  else if (k === "t" && KIND[m.template] === "chain") setMode(S.mode === "today" ? "planned" : "today");
+  else if (k === "t" && hasChanges(m)) { const order = ["today", "planned", "changes"]; setMode(order[(order.indexOf(modeOf(m)) + 1) % 3]); fit(); }
+  else if (k === "s" && hasChanges(m)) setSideBySide(!sbsOn());
   else return;
   e.preventDefault();
 });

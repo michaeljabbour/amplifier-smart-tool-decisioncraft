@@ -24,14 +24,24 @@ def main():
         page = browser.new_page(viewport={"width": 1440, "height": 1000})
         page.goto(path.as_uri())
         page.get_by_role("button", name="Got it", exact=True).click()
-        details = page.get_by_role("button", name="Extra details on the map", exact=True)
-        assert details.get_attribute("aria-pressed") == "false"
+
+        def item(name):
+            page.locator("#top").get_by_role("button", name="View ▾").click()
+            return page.get_by_role("menuitemcheckbox", name=name, exact=True)
+
+        def state(name):
+            it = item(name)
+            value = it.get_attribute("aria-checked")
+            page.keyboard.press("Escape")
+            return value
+
+        assert state("Technical names on the map") == "false"
         assert not page.locator("#world .techname").count()
         page.locator("#world .box").click()
         assert "More context for this choice." in page.inner_text("#panel")
         page.locator("#pclose").click()
-        details.click()
-        assert details.get_attribute("aria-pressed") == "true"
+        item("Technical names on the map").click()
+        assert state("Technical names on the map") == "true"
         assert page.locator("#world .techname").inner_text() == "More context for this choice."
         assert page.locator("#world .term").count() == 2
         page.locator("#world .term").nth(1).hover()
@@ -43,21 +53,24 @@ def main():
         page.keyboard.press("Enter")
         assert page.locator("#gloss").is_visible()
         assert not page.locator("#panel").is_visible()
-        page.get_by_role("button", name="Word meanings", exact=True).click()
+        page.locator("#top").get_by_role("button", name="View ▾").click()
+        page.get_by_role("menuitem", name="Word meanings", exact=True).click()
         assert model["glossary"]["API"] in page.inner_text("#panel")
-        page.get_by_role("button", name="Background dots", exact=True).click()
+        item("Background dots").click()
         assert "dots" not in page.locator("body").get_attribute("class").split()
-        page.get_by_role("button", name="Left navigation", exact=True).click()
-        assert page.get_by_role("button", name="Left navigation", exact=True).get_attribute("aria-pressed") == "false"
+        item("List on the left").click()
+        assert state("List on the left") == "false"
         page.reload()
-        assert details.get_attribute("aria-pressed") == "true"
-        assert page.get_by_role("button", name="Background dots", exact=True).get_attribute("aria-pressed") == "false"
-        page.get_by_role("button", name="Left navigation", exact=True).click()
+        assert state("Technical names on the map") == "true"
+        assert state("Background dots") == "false"
+        item("List on the left").click()
         assert page.locator("#story [data-give]").is_visible()
         page.set_viewport_size({"width": 390, "height": 844})
         # The resize handler rebuilds the toolbar before fitting the map.
         page.wait_for_timeout(150)
         for button in page.locator("#top button").all():
+            if not button.is_visible():
+                continue
             rect = button.bounding_box()
             assert rect and rect["x"] >= 0 and rect["x"] + rect["width"] <= 390, (button.get_attribute("aria-label") or button.inner_text(), rect)
             assert button.get_attribute("aria-label") or button.inner_text().strip()
@@ -66,10 +79,11 @@ def main():
         plain = Path(tmp) / "plain.html"
         plain.write_text(dc.render(model))
         page.goto(plain.as_uri())
-        assert not details.count()
-        assert not page.get_by_role("button", name="Word meanings", exact=True).count()
+        page.locator("#top").get_by_role("button", name="View ▾").click()
+        assert not page.get_by_role("menuitemcheckbox", name="Technical names on the map", exact=True).count()
+        assert not page.get_by_role("menuitem", name="Word meanings", exact=True).count()
         browser.close()
-    print("ok display states, extra details, repeated word meanings, reload and mobile controls")
+    print("ok View menu states, technical names, repeated word meanings, reload and mobile controls")
 
 
 if __name__ == "__main__":

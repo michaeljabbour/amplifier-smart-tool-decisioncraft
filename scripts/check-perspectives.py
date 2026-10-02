@@ -57,7 +57,8 @@ def main():
         page = browser.new_page(viewport={"width": 1440, "height": 1000})
         page.goto(path.as_uri())
         page.get_by_role("button", name="Got it", exact=True).click()
-        page.get_by_role("button", name="Notes beside boxes", exact=True).click()
+        page.locator("#top").get_by_role("button", name="View ▾").click()
+        page.get_by_role("menuitemcheckbox", name="Notes on the map", exact=True).click()
         assert page.locator(".notecard").count() == 2
         assert (
             page.locator("#role-strip")

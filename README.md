@@ -174,9 +174,13 @@ MIT. See [LICENSE](LICENSE).
 
 New drafts choose suitable maps from the supplied material by default (`--template auto`).
 An explicit template still works. Customer journeys use a timeline, staff and system
-handoffs use lanes, stage flows compare current and proposed work, and alternatives branch.
+handoffs use lanes, stage flows run from what someone said to whether it worked, and
+alternatives branch. Where a map holds a plan, one switch reads it as Today, Planned or
+What changes: a single map where each box is marked New, Changed or Goes away, with
+counts, a list of every change, a walk through the changes, and before and after for each
+changed box. Side by side puts today and the plan in two panes that pan and zoom together.
 Optional named connections highlight when a box is selected and remain readable in the
-text version. Display icons have labels and show their on or off state.
+text version. Every control is a labelled button; display options sit in one View menu.
 
 Start with `decisioncraft discover`, then use the answers to shape the draft. See
 [the decision process](docs/DECISION-PROCESS.md) and [host setup](docs/HOSTS.md).

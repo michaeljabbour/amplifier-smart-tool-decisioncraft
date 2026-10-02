@@ -11,7 +11,10 @@ buttons, no keyboard shortcuts):
   3. Open a box, read its notes and answer a question there.
   4. Review the questions, copy them, and save with the visible button.
   5. Zoom in, zoom out and fit with the zoom buttons.
-Plus: show extra box details from the bar, and switch Today/Planned where offered.
+Plus: display options from the View menu, and on maps with a plan: the Today / Planned /
+What changes switch is text-labelled, What changes marks boxes with ribbons and counts,
+Side by side keeps both panes on one pan and zoom, and nothing overlaps any text at about
+30%, 60%, 100% and 150% zoom.
 
 Needs Playwright (`pip install playwright && playwright install chromium`); a development
 check, not a runtime dependency.
@@ -28,19 +31,42 @@ from pathlib import Path
 OVERLAP_JS = """
 () => {
   const r = el => el.getBoundingClientRect();
-  const boxes = [...document.querySelectorAll('#world .box')].map(r);
-  const notes = [...document.querySelectorAll('#world .notecard, #world .morenotes')].map(r);
+  const hit = (a, b) => a.width && b.width && a.left < b.right - 1 && a.right > b.left + 1 && a.top < b.bottom - 1 && a.bottom > b.top + 1;
   let hits = 0;
-  const cards = boxes;
-  for (let i = 0; i < cards.length; i++) for (let j = i + 1; j < cards.length; j++) {
-    const a = cards[i], b = cards[j];
-    if (a.left < b.right - 1 && a.right > b.left + 1 && a.top < b.bottom - 1 && a.bottom > b.top + 1) hits++;
+  for (const w of ['#world', '#world2']) {
+    const boxes = [...document.querySelectorAll(w + ' .box')].map(r);
+    const notes = [...document.querySelectorAll(w + ' .notecard, ' + w + ' .morenotes')].map(r);
+    const words = [...document.querySelectorAll(w + ' .label, ' + w + ' .lanehead, ' + w + ' .steplabel, ' + w + ' .modebar, ' + w + ' .maptitle, ' + w + ' .mapintro')].map(r);
+    for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) if (hit(boxes[i], boxes[j])) hits++;
+    for (const n of notes) for (const b of boxes) if (hit(n, b)) hits++;
+    for (const t of words) for (const b of [...boxes, ...notes]) if (hit(t, b)) hits++;
   }
-  for (const n of notes) for (const b of boxes)
-    if (n.left < b.right - 1 && n.right > b.left + 1 && n.top < b.bottom - 1 && n.bottom > b.top + 1) hits++;
   return hits;
 }"""
+SCALE = "parseFloat((document.getElementById('world').style.transform.match(/scale\\(([^)]+)\\)/) || [0, 1])[1])"
 TRANSFORM = "document.getElementById('world').style.transform"
+
+
+def view_toggle(page, name):
+    """Turn a display option on or off from the View menu; returns its new state."""
+    page.locator("#top").get_by_role("button", name="View ▾").click()
+    item = page.get_by_role("menuitemcheckbox", name=name, exact=True)
+    item.click()
+    page.wait_for_timeout(250)
+    return item
+
+
+def zoom_to(page, target):
+    """Use the visible zoom buttons until the scale is within a step of the target."""
+    for _ in range(14):
+        z = page.evaluate(SCALE)
+        if z < target / 1.12:
+            page.get_by_role("button", name="+ Zoom in").click()
+        elif z > target * 1.12:
+            page.get_by_role("button", name="− Zoom out").click()
+        else:
+            break
+    return page.evaluate(SCALE)
 
 
 def check(page, path: Path, shots: Path | None) -> tuple[list[str], list[str]]:
@@ -92,7 +118,6 @@ def check(page, path: Path, shots: Path | None) -> tuple[list[str], list[str]]:
 
     # 2. open a journey or stage from the list
     try:
-        click_text("Explore the map", "#story")
         item = page.locator("#story .sub .view").nth(1)
         label = item.inner_text().split("\n")[0]
         before = page.evaluate(TRANSFORM)
@@ -175,32 +200,84 @@ def check(page, path: Path, shots: Path | None) -> tuple[list[str], list[str]]:
     except Exception as e:  # noqa: BLE001
         problems.append(f"task 5 (zoom): {e}")
 
-    # extras: details, notes on the map, today/planned, each view
+    # extras: details, notes on the map, each view
     try:
-        detail_toggle = page.get_by_role("button", name="Extra details on the map", exact=True)
-        if detail_toggle.count():
-            detail_toggle.click()
-            assert detail_toggle.get_attribute("aria-pressed") == "true"
-            assert page.locator("#world .techname").count() > 0
-        page.get_by_role("button", name="Notes beside boxes", exact=True).click()
-        page.wait_for_timeout(250)
-        views = page.locator("#story > ol > li > .view").count()
+        page.locator("#top").get_by_role("button", name="View ▾").click()
+        has_tech = page.get_by_role("menuitemcheckbox", name="Technical names on the map", exact=True).count()
+        page.keyboard.press("Escape")
+        if has_tech:
+            item = view_toggle(page, "Technical names on the map")
+            assert page.locator("#world .techname").count() > 0, "no technical names on the map"
+        view_toggle(page, "Notes on the map")
+        views = page.locator("#story ol.maps > li > .view").count()
         for i in range(views):
-            page.locator("#story > ol > li > .view").nth(i).click()
+            page.locator("#story ol.maps > li > .view").nth(i).click()
             page.wait_for_timeout(250)
             hits = page.evaluate(OVERLAP_JS)
             if hits:
-                problems.append(f"view {i + 1}: {hits} box or note overlaps with notes on the map")
+                problems.append(f"view {i + 1}: {hits} overlaps with notes on the map")
             shot(f"7-view{i + 1}-notes-on-map")
-            if page.locator("#story [data-mode=today]").count():
-                page.locator("#story [data-mode=today]").click()
-                page.wait_for_timeout(200)
-                shot(f"7-view{i + 1}-today")
-                page.locator("#story [data-mode=planned]").click()
-        page.get_by_role("button", name="Notes beside boxes", exact=True).click()
-        done.append("extra details, notes on the map and every view")
+        view_toggle(page, "Notes on the map")
+        done.append("display options, notes on the map and every view")
     except Exception as e:  # noqa: BLE001
         problems.append(f"extras: {e}")
+
+    # maps with a plan: the switch, What changes, Side by side, zoom levels
+    try:
+        views = page.locator("#story ol.maps > li > .view").count()
+        planned = 0
+        for i in range(views):
+            page.locator("#story ol.maps > li > .view").nth(i).click()
+            page.wait_for_timeout(200)
+            if not page.locator("#top .mode-seg").count():
+                continue
+            planned += 1
+            top = page.locator("#top")
+            for label in ("Today", "Planned", "What changes", "Side by side"):
+                b = top.get_by_role("button", name=label, exact=True)
+                assert b.count() == 1 and b.inner_text().strip() == label, f"switch button {label!r} is not a labelled button"
+            for label in ("Today", "Planned"):
+                top.get_by_role("button", name=label, exact=True).click()
+                page.wait_for_timeout(200)
+                assert not page.locator("#world .box > .ribbon").count(), f"{label} should not mark changes"
+                hits = page.evaluate(OVERLAP_JS)
+                if hits:
+                    problems.append(f"view {i + 1} {label}: {hits} overlaps")
+                shot(f"8-view{i + 1}-{label.lower()}")
+            top.get_by_role("button", name="What changes", exact=True).click()
+            page.wait_for_timeout(250)
+            ribbons = page.locator("#world .box > .ribbon").count()
+            counts = page.locator("#world .modebar .ribbon").count()
+            assert ribbons > 0 and counts > 0, f"What changes shows {ribbons} ribbons and {counts} counts"
+            assert page.locator("#story .changes .view").count() == ribbons, "the left list does not list every change"
+            shot(f"8-view{i + 1}-what-changes")
+            for target in (0.3, 0.6, 1.0, 1.5):
+                z = zoom_to(page, target)
+                hits = page.evaluate(OVERLAP_JS)
+                if hits:
+                    problems.append(f"view {i + 1} What changes at {z:.2f}: {hits} overlaps")
+            page.get_by_role("button", name="Fit to screen").click()
+            top.get_by_role("button", name="Side by side", exact=True).click()
+            page.wait_for_timeout(300)
+            assert page.evaluate("document.body.classList.contains('sbs')"), "side by side did not open"
+            assert page.is_visible("#viewport2"), "the right pane is not visible"
+            same = "document.getElementById('world').style.transform === document.getElementById('world2').style.transform"
+            assert page.evaluate(same), "panes start out of step"
+            page.get_by_role("button", name="+ Zoom in").click()
+            page.mouse.move(700, 600); page.mouse.down(); page.mouse.move(640, 520); page.mouse.up()
+            assert page.evaluate(same), "panes fell out of step after zoom and drag"
+            left = page.locator("#world .box").count(); right = page.locator("#world2 .box").count()
+            assert left == right, f"panes differ: {left} and {right} boxes"
+            hits = page.evaluate(OVERLAP_JS)
+            if hits:
+                problems.append(f"view {i + 1} side by side: {hits} overlaps")
+            shot(f"8-view{i + 1}-side-by-side")
+            top.get_by_role("button", name="Side by side", exact=True).click()
+            page.wait_for_timeout(200)
+        if planned:
+            done.append(f"Today, Planned, What changes and Side by side on {planned} map(s)")
+    except Exception as e:  # noqa: BLE001
+        problems.append(f"plan views: {e}")
 
     if errors:
         problems += [f"console: {e}" for e in errors[:5]]
