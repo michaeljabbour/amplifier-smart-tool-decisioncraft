@@ -15,7 +15,12 @@ def load(p):
 
 
 def test_four_examples_exist():
-    assert {p.parent.name for p in MODELS} == {"business", "technical", "engineering", "medical"}
+    assert {p.parent.name for p in MODELS} == {
+        "business",
+        "technical",
+        "engineering",
+        "medical",
+    }
 
 
 @pytest.mark.parametrize("path", MODELS, ids=lambda p: p.parent.name)
@@ -72,7 +77,44 @@ def test_require_valid_raises_with_every_problem():
     assert len(e.value.problems) >= 2
 
 
+def test_validate_reports_wrong_field_types_instead_of_crashing():
+    m = {
+        "format": "decisioncraft/1",
+        "title": "T",
+        "question": "Q?",
+        "maps": "oops",
+        "roles": "oops",
+        "sources": "oops",
+        "evidence": "oops",
+        "gaps": "oops",
+        "notes": "oops",
+        "decisions": "oops",
+        "outcomes": "oops",
+    }
+    errors = [p for p in dc.validate(m) if p["level"] == "error"]
+    assert any("maps" in p["path"] for p in errors)
+    assert any(p["path"] == "roles" for p in errors)
+
+
+def test_validate_reports_non_object_items_in_lists():
+    m = load(EXAMPLES / "business" / "model.json")
+    m["sources"] = m["sources"] + ["oops"]
+    m["notes"] = m["notes"] + [42]
+    errors = [p for p in dc.validate(m) if p["level"] == "error"]
+    assert any("sources" in p["path"] and "object" in p["message"] for p in errors)
+    assert any("notes" in p["path"] and "object" in p["message"] for p in errors)
+
+
 def test_default_roles_cover_the_room():
     ids = {r["id"] for r in dc.roles()}
-    assert {"designer", "analyst", "engineer", "owner", "security", "voice", "agent", "finance"} <= ids
+    assert {
+        "designer",
+        "analyst",
+        "engineer",
+        "owner",
+        "security",
+        "voice",
+        "agent",
+        "finance",
+    } <= ids
     assert all(r.get("asks") for r in dc.roles())

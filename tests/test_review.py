@@ -65,6 +65,13 @@ def test_merge_refuses_files_that_are_not_reviews(model):
         dc.merge([bad], model)
 
 
+def test_merge_refuses_a_model_file_passed_in_as_a_review(model):
+    """A model has its own top-level `dots` field; merge must report the wrong format
+    instead of crashing when it tries to read that field as a review's."""
+    with pytest.raises(ValueError, match="Not a review file"):
+        dc.merge([model], model)
+
+
 def test_diff_finds_added_changed_and_removed():
     old = load(EX / "technical" / "model-before.json")
     new = load(EX / "technical" / "model.json")
