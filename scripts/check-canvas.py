@@ -129,7 +129,8 @@ def check(page, path: Path, shots: Path | None) -> tuple[list[str], list[str]]:
 
     # 2. open a journey or stage from the list
     try:
-        item = page.locator("#story .sub .view").nth(1)
+        subs = page.locator("#story .sub .view")
+        item = subs.nth(1 if subs.count() > 1 else 0)   # a map may have a single journey
         label = item.inner_text().split("\n")[0]
         before = page.evaluate(TRANSFORM)
         item.click()

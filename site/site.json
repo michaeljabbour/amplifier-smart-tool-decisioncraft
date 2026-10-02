@@ -4,49 +4,49 @@
   "name": "Decisioncraft",
   "accent": "#7a5a2f",
   "title": "Decisioncraft | Amplifier Smart Tools",
-  "promise": "Decide together, with every voice in the room.",
-  "description": "Map how a problem works today and what you plan to change. Put the evidence beside every claim, gather notes from every point of view, and leave the review with a short, ranked list of what to decide.",
-  "image": "docs/images/business-poster.png",
-  "video": "docs/images/business-demo.mp4",
-  "alt": "A bakery's decision about a monthly box: the list of views on the left, a subscriber's journey on the map, a walk-through card, a step's notes with an answer, and the questions to decide.",
-  "caption": "Screen recording of the bakery example: take the walk-through, open a step, answer a question, then see everything that needs deciding.",
+  "promise": "Point it at anything. See how it works, what is missing, and what every role thinks.",
+  "description": "Point Decisioncraft at a codebase, a folder of notes, a page or a topic. It maps how things work today and how they could work, turns the gaps into user stories with done-when checks, and puts a sticky note from every role beside the boxes. For a choice, it helps at the right depth: a quick table, a guided interview, or a full team review.",
+  "image": "docs/images/hero-notes.png",
+  "video": "docs/images/bike-hire-map-demo.mp4",
+  "alt": "A footbridge decision in Planned view: the chain from source to outcome, each box marked, and tilted role-coloured sticky notes beside the boxes they question.",
+  "caption": "The footbridge example, Planned view, notes on the map. Fictional town, people and figures.",
   "width": 1440,
   "height": 900,
-  "flow_title": "Map it. Hear everyone. Decide.",
-  "flow_intro": "Start from the notes, interviews, data or code you already have. Decisioncraft turns them into one map that a mixed group can read without training.",
+  "flow_title": "Point it. Hear everyone. Decide.",
+  "flow_intro": "Start from what you already have: a repo, notes, interviews, figures or just a question. Decisioncraft turns it into one map that a mixed group can read without training.",
   "steps": [
     [
-      "Bring what you know.",
-      "Give your agent the material: meeting notes, interviews, figures, documents. It drafts a decision model with sources, quoted evidence, journeys or stages, and gaps between today and the plan."
+      "Point it at anything.",
+      "decisioncraft map ./your-repo reads the code, notes or page, cites every claim by file and line, and draws today's way and the planned way. No model to route? map --starter gives your agent a digest and a model to fill in."
     ],
     [
       "Hear every point of view.",
-      "Designers, analysts, engineers, owners, security, the people you serve, an AI agent teammate and finance each leave notes. Every note ends in a question."
+      "Designers, architects, analysts, engineers, product, security, the people you serve, an AI agent teammate and finance each leave a sticky note beside the boxes. Every note ends in a question. Add your own rough note and ask the experts."
     ],
     [
-      "Review, then decide.",
-      "Send one offline file round. Reviewers take the walk-through, answer questions, place dots on what matters most and save their answers. Merge the answers to see where people agree."
+      "Decide at the right depth.",
+      "A quick table in the chat for a small choice, a short interview and a map for a costly one, a full review for a team. Merge reviews to see where people agree and split, then record the decision with an owner and a date."
     ]
   ],
   "detail_title": "Keep the reasons with the decision.",
   "details": [
     [
       "Evidence beside every claim.",
-      "Boxes and notes link to the exact words or numbers behind them, with the source and date. Customer and patient quotes are marked as their own words."
+      "Boxes and notes link to the exact words, numbers or lines of code behind them, with the source and date. Customer and patient quotes are marked as their own words."
     ],
     [
-      "Gaps you can rank.",
-      "Differences between today and the plan become gaps with user stories, done-when checks, and impact and effort scores. Quick wins sort to the top."
+      "What changes, at a glance.",
+      "One map marks every box New, Changed or Goes away, with a walk through each change and before and after side by side. Side by side shows today and the plan in two panes."
     ],
     [
-      "See what changed.",
-      "Compare two versions of a model before a follow-up review. New and changed boxes are marked, and boxes not checked for a while say so."
+      "Scores and costs you can trust.",
+      "Must-haves first, weighted scores with what would change the winner computed, and real cost over time with break-even points and what-ifs."
     ]
   ],
-  "prompt": "Use Decisioncraft to help us decide whether to open on Sundays. Read decisioncraft --help, draft a model from the notes in ./notes with the customer-journey template, check it with validate, then render the canvas and open it for review.",
-  "install": "uv tool install \"amplifier-smart-tool-decisioncraft[smart] @ git+https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft\"\ndecisioncraft --help",
+  "prompt": "Show me how this repo works and what's missing. Use Decisioncraft: read decisioncraft --help, run decisioncraft map . --starter --dir repo-map, fill in the model from the digest using decisioncraft guide, validate it, then render the canvas and open it.",
+  "install": "uv tool install \"amplifier-smart-tool-decisioncraft[smart,mcp] @ git+https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft\"\ndecisioncraft --help",
   "prerequisites": "Python 3.11 or later. Canvases are single HTML files that open in any current browser, offline.",
-  "model_note": "Drafting a model and adding role notes need separately configured Anthropic or OpenAI access. Checking, drawing, comparing and merging reviews need no model.",
+  "model_note": "map and draft need a model: your host's own (by command or MCP sampling) or Anthropic or OpenAI access. Without one, map --starter and decisioncraft guide let your agent write the map itself. Triage, the interview, quick tables with scores given, drawing, comparing and merging reviews need no model.",
   "guide": "src/decisioncraft/SMART_TOOL.md",
   "related": [
     "possibly",
@@ -54,6 +54,48 @@
     "showrun"
   ],
   "capability_demos": [
+    {
+      "id": "bike-hire-map",
+      "eyebrow": "Point it at a repo",
+      "title": "A small app, mapped in one go.",
+      "description": "decisioncraft map --starter read a made-up bike hire repo; a coding agent filled in the map from it, citing each file and line. Today's way, the planned way, six gaps with user stories, and a sticky note from each of eight roles.",
+      "image": "docs/images/bike-hire-map-poster.png",
+      "video": "docs/images/bike-hire-map-demo.mp4",
+      "width": 1440,
+      "height": 900,
+      "alt": "The bike hire map: journeys across visitor, booking rules, records and staff, planned steps marked, and role notes beside the boxes.",
+      "caption": "Screen recording. A made-up repository.",
+      "link": "examples/bike-hire-map.html",
+      "link_text": "Open the example canvas"
+    },
+    {
+      "id": "personal-car",
+      "eyebrow": "For a personal choice",
+      "title": "Keep, lease, buy, or go car-free?",
+      "description": "Five options for a family whose lease is ending. Must-haves first, a scoring table with live weights and what would change the winner, and five years of real cost with break-even points and what-ifs. Real published figures, a fictional family.",
+      "image": "docs/images/personal-car-poster.png",
+      "video": "docs/images/personal-car-demo.mp4",
+      "width": 1440,
+      "height": 900,
+      "alt": "The car example: a scoring table with must-haves and weighted scores, then a cost-over-time chart with break-even points.",
+      "caption": "Screen recording. Fictional family; cited public figures.",
+      "link": "examples/personal-car.html",
+      "link_text": "Open the example canvas"
+    },
+    {
+      "id": "ask-experts",
+      "eyebrow": "Ask the experts",
+      "title": "Stick a rough note on it. Hear every role.",
+      "description": "A shop manager worries that collection only would lose two villages. The customer voice, finance and the owner each reply under the note with a short view and a question, which joins the list of things to decide.",
+      "image": "docs/images/ask-experts-poster.png",
+      "video": "docs/images/ask-experts-demo.mp4",
+      "width": 1440,
+      "height": 900,
+      "alt": "A reviewer's rough note on a box, with replies from several roles threaded underneath.",
+      "caption": "Screen recording. Fictional business and people.",
+      "link": "examples/business.html",
+      "link_text": "Open the example canvas"
+    },
     {
       "id": "business",
       "eyebrow": "For a business decision",
