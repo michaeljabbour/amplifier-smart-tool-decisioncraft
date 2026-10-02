@@ -67,10 +67,17 @@ def handoff(model: dict, review: dict) -> dict:
     problems = check_review(review)
     if problems:
         raise ValueError("; ".join(problems))
-    if review.get("model") != model["title"] or review.get(
-        "model_fingerprint"
-    ) != fingerprint(model):
-        raise ValueError("The review must belong to this model.")
+    if review.get("model") != model["title"]:
+        raise ValueError(
+            f"This review is for {review.get('model')!r}, not {model['title']!r}. "
+            "Pass the model the review was made for."
+        )
+    # Same rule as merge: a review without a fingerprint is accepted; a different one is not.
+    if review.get("model_fingerprint") not in (None, "", fingerprint(model)):
+        raise ValueError(
+            "This review was made for an earlier version of the model. Open the current canvas "
+            "and review it again, or merge the old review to read it alongside the new one."
+        )
     known_notes = {n["id"] for n in model.get("notes", [])} | {
         r.get("id") for n in (review.get("notes") or []) if isinstance(n, dict)
         for r in (n.get("replies") or []) if isinstance(r, dict)}

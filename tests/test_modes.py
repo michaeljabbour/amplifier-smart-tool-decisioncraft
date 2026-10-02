@@ -243,7 +243,9 @@ def test_cli_quick_json_and_errors():
     assert env["ok"] and env["result"]["lean"]["title"] == "Buy"
     bad = cli("quick", "--option", "A", "--option", "B", "--score", "A=cost", "--json")
     assert bad.returncode == 2 and json.loads(bad.stdout)["error"]["field"] == "--score"
-    none = cli("quick", "--text", "renew or buy?", "--json")
+    plain = cli("quick", "--text", "renew or buy?", "--json")  # plain words name the options: no model needed
+    assert plain.returncode == 0 and [o["title"] for o in json.loads(plain.stdout)["result"]["options"]] == ["Renew", "Buy"]
+    none = cli("quick", "--text", "help me think about my car", "--json")
     assert none.returncode == 2 and json.loads(none.stdout)["error"]["code"] == "missing_argument"
 
 

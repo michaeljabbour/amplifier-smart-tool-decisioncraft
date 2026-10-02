@@ -55,7 +55,7 @@ const seed = SESSION ? {answers:SESSION.review.answers || {}, votes:SESSION.revi
 /* The model can choose how the map first opens (display.notes_on_map, display.start_view).
    Anything the reviewer picks later in View is saved here and wins from then on. */
 const DISPLAY = MODEL.display || {};
-const S = Object.assign({map:0, mode:["today", "planned", "changes"].includes(DISPLAY.start_view) ? DISPLAY.start_view : "changes", sbs:false, sbsJourney:null, sbsAll:false, journey:-1, tech:false, notesOnMap:DISPLAY.notes_on_map === true, lines:false, dots:true, story:true,
+const S = Object.assign({map:0, mode:["today", "planned", "changes"].includes(DISPLAY.start_view) ? DISPLAY.start_view : "changes", sbs:false, sbsJourney:null, sbsAll:false, journey:-1, tech:false, notesOnMap:DISPLAY.notes_on_map === true, lines:false, dots:true, story:typeof window === "undefined" || window.innerWidth >= 760,
   hintSeen:false, roles:Object.fromEntries(ROLES.map(r => [r.id, true])),
   answers:{}, votes:{}, decisions:{}, reviewer:"", myNotes:[], weights:{}, whatifs:[], costView:"chart", horizon:0}, seed, saved);
 if (SESSION && saved.syncedVersion !== SESSION.version) Object.assign(S, seed);
@@ -1457,7 +1457,7 @@ function topBar() {
     ${modeSwitch("in-top")}
     <button id="tview" aria-haspopup="true" aria-expanded="false">View ▾</button>
     <button id="tquestions" class="primary"><span class="wide-label">Questions to decide</span><span class="short-label">Questions</span><span class="count">${qn}</span></button>
-    <button id="tsave" class="save-primary">${SESSION ? S.sessionFinished ? "Read my answers" : "Finish review" : "Save my answers"}</button>
+    <button id="tsave" class="save-primary" aria-label="${SESSION ? S.sessionFinished ? "Read my answers" : "Finish review" : "Save my answers"}">${SESSION ? S.sessionFinished ? '<span class="wide-label">Read my answers</span><span class="short-label">Answers</span>' : '<span class="wide-label">Finish review</span><span class="short-label">Finish</span>' : '<span class="wide-label">Save my answers</span><span class="short-label">Save</span>'}</button>
     <button id="tshare" aria-haspopup="true" aria-expanded="false">Tools ▾</button>`;
   roleStrip();
   wireModeSwitch($("#top"));
@@ -1710,7 +1710,7 @@ function walkChanges(i) {
 function hint() {
   if (S.hintSeen) return;
   const h = $("#hint");
-  h.innerHTML = `<b>New here?</b> Pick a view on the left, or press <b>Walk me through it</b>. Click any box to read about it. ${hasChanges(MODEL.maps[S.map]) ? "Use <b>Today</b>, <b>Planned</b> and <b>What changes</b> to see the plan. " : ""}${SESSION ? "Answer questions on the right. Your answers save for your agent automatically; press Finish review when ready." : "Answer questions on the right, then press Save my answers. Send the downloaded file to the review owner."}<br><button id="hintok">Got it</button>`;
+  h.innerHTML = `<b>New here?</b> ${S.story ? "Pick a view on the left" : "Press <b>Show list</b> to pick a view"}, or press <b>Walk me through it</b>. Click any box to read about it. ${hasChanges(MODEL.maps[S.map]) ? "Use <b>Today</b>, <b>Planned</b> and <b>What changes</b> to see the plan. " : ""}${SESSION ? "Answer questions on the right. Your answers save for your agent automatically; press Finish review when ready." : "Answer questions on the right, then press Save my answers. Send the downloaded file to the review owner."}<br><button id="hintok">Got it</button>`;
   h.classList.add("open");
   $("#hintok").addEventListener("click", hideHint);
 }

@@ -109,14 +109,70 @@ def parse_list(text: str) -> list[str]:
     return out
 
 
+UNSURE = re.compile(
+    r"\s*(not sure|unsure|i'?m not sure|idk|i don'?t know|don'?t know|dunno|no idea|no clue|"
+    r"not yet|tbd|to be decided|maybe|hmm+|\?+|skip|pass|n/a|na|-)\s*[.!?]*\s*", re.I)
+
+
+def is_unsure(text: str | None) -> bool:
+    """True when an answer says the person doesn't know yet ("not sure", "idk", "?", empty)."""
+    return not (text or "").strip() or bool(UNSURE.fullmatch(text or ""))
+
+
+# Plain words that point at one of the people choices, checked as whole words.
+_PEOPLE_WORDS = [
+    (r"just me|only me|me alone|myself|\bme\b|\bi\b", "Just me"),
+    (r"family|household|kids?|children|wife|husband|partner|spouse|parents?|son|daughter", "Me and my family or household"),
+    (r"team|colleagues?|co-?workers|my group|staff", "A team"),
+    (r"groups|departments|company|organi[sz]ation|customers|everyone|several", "Several groups"),
+]
+
+
 def _parse_choice(text: str, choices: list[str]) -> str | None:
     t = text.strip().lower()
+    if not t:
+        return None
     if t.isdigit() and 1 <= int(t) <= len(choices):
         return choices[int(t) - 1]
     for c in choices:
-        if t and (t in c.lower() or c.lower().split()[0] in t):
+        if t == c.lower() or re.search(rf"\b{re.escape(t)}\b", c.lower()) and len(t) > 2:
+            return c
+    if choices == PEOPLE_CHOICES:
+        # Most specific first: groups, then team, then family, then just me.
+        for pattern, choice in reversed(_PEOPLE_WORDS):
+            if re.search(pattern, t):
+                return choice
+    for c in choices:
+        # Whole significant words only: "a" in "A team" must not match "March".
+        words = [w for w in re.findall(r"[a-z]+", c.lower()) if len(w) > 3]
+        if any(re.search(rf"\b{w}\b", t) for w in words):
             return c
     return None
+
+
+def options_from_text(text: str) -> list[str]:
+    """Options read from plain words, with no model: "should I renew or buy used?",
+    "pizza or tacos", "X vs Y", "between X and Y", "A, B or C". Empty when the words don't say."""
+    t = (text or "").strip()
+    m = re.search(r"\b(?:whether to|whether|should i|should we|i should|we should)\s+(?:just\s+)?(.+?)[?.!]?$", t, re.I)
+    clause = m.group(1) if m else (t if len(t) <= 90 else "")
+    clause = re.sub(r"^[^:]{1,30}:\s*", "", clause)  # "laptop: mac or pc" -> "mac or pc"
+    b = re.search(r"\bbetween\s+(.+?)\s+and\s+(.+?)\s*[?.!]?\s*$", clause, re.I)
+    if b:
+        parts = list(b.groups())
+    elif re.search(r"\bor\b|\bvs\.?\s|\bversus\b", clause, re.I):
+        parts = re.split(r",|\bor\b|\bvs\.?\s|\bversus\b", clause, flags=re.I)
+    else:
+        return []
+    out = []
+    for p in parts:
+        p = re.sub(r"^\s*(?:maybe|perhaps|either|just|or|and)\s+", "", p.strip(" ?.!"), flags=re.I)
+        p = re.sub(r"\s+(tonight|today|now|this (week|year|month))$", "", p, flags=re.I).strip()
+        if p:
+            out.append(p[:1].upper() + p[1:])
+    if not 2 <= len(out) <= 6 or any(len(o.split()) > 8 for o in out):
+        return []
+    return out
 
 
 def _set_from(text: str) -> str:
@@ -172,6 +228,15 @@ def _record(state: dict, qid: str, text: str) -> None:
     q = BY_ID[qid]
     text = (text or "").strip()
     suggested = (state.get("suggested") or {}).get(qid)
+    if qid != "decision" and is_unsure(text):
+        # "Not sure" is an answer: note it as something to check, never as an option or a must-have.
+        state.setdefault("unsure", [])
+        if qid not in state["unsure"]:
+            state["unsure"].append(qid)
+        value = list(suggested) if q["kind"] == "list" and suggested else ([] if q["kind"] == "list" else None)
+        state["answers"][qid] = value
+        state["asked"].append(qid)
+        return
     if q["kind"] == "list" and suggested:
         adding = re.match(r"\s*(yes|yeah|also|and|plus|add)\b", text, re.I)
         extra = [] if re.fullmatch(r"\s*(|no|none|nope|that'?s (it|all)|those|both|yes|correct)\s*\.?", text, re.I) \
@@ -181,6 +246,7 @@ def _record(state: dict, qid: str, text: str) -> None:
     elif q["kind"] == "list":
         value = parse_list(text)
     elif q["kind"] == "choice":
+        # An answer that matches no choice is kept in the person's own words.
         value = _parse_choice(text, q["choices"]) or text
     else:
         value = text
@@ -197,14 +263,10 @@ def _record(state: dict, qid: str, text: str) -> None:
         if re.search(r"\b(just me|only me|only affects me)\b", text, re.I) and state["set"] == "personal":
             state["answers"]["people"] = "Just me"
             state["inferred"].append("people")
-        opts = re.findall(r"\b(?:whether to|whether|should i|should we|i should|we should)\s+(?:just\s+)?(.+?)\s+or\s+(.+?)[?.!]?$", text.strip(), re.I)
-        if not opts and len(text) <= 90 and len(re.findall(r"\bor\b", text, re.I)) == 1:
-            m = re.match(r"\s*(.+?)\s+or\s+(.+?)\s*[?.!]?\s*$", text, re.I)
-            opts = [m.groups()] if m else []
+        opts = options_from_text(text)
         if opts and "options" not in state["answers"]:
             # Suggested, not settled: the options question is still asked, with these filled in.
-            a, b = opts[0]
-            state["suggested"] = {"options": [a[:1].upper() + a[1:], b[:1].upper() + b[1:].rstrip("?")]}
+            state["suggested"] = {"options": opts}
 
 
 def _next_q(state: dict) -> dict | None:
@@ -394,6 +456,12 @@ def build_model(state: dict, *, date: str = "") -> dict:
     summary = a.get("why_now") or ""
     if a.get("known"):
         summary = (summary + " " if summary else "") + f"What we know so far: {a['known']}"
+    labels = {"options": "any other options", "must_haves": "the must-haves", "criteria": "what matters most",
+              "deadline": "the deadline", "budget": "the budget", "people": "who else is affected",
+              "known": "what is already known", "whatifs": "what could change", "reversible": "how easy it is to undo"}
+    unsure = [labels.get(q, q.replace("_", " ")) for q in state.get("unsure", [])]
+    if unsure:
+        summary = (summary + " " if summary else "") + "Still to find out: " + ", ".join(unsure) + "."
     model["summary"] = summary.strip()
     crit = _criteria(a)
     options = a.get("options") or []
@@ -409,9 +477,10 @@ def build_model(state: dict, *, date: str = "") -> dict:
             "options": [{"id": o["id"], "title": o["title"], "summary": "", "evaluations": []}
                         for o in (q["options"] if q else [])],
             "method": "",
-            "review_when": a.get("deadline", ""),
+            "review_when": a.get("deadline") or "",
         }
-    model["interview"] = {"set": state["set"], "answers": a, "inferred": state["inferred"]}
+    model["interview"] = {"set": state["set"], "answers": a, "inferred": state["inferred"],
+                          "unsure": state.get("unsure", [])}
     return model
 
 
