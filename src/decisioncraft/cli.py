@@ -552,6 +552,10 @@ def do_new(run: Run) -> Out:
         material = material or run.ask("Where are your notes and documents? (a folder; Enter to make one)", "")
         folder = folder or run.ask("Folder to create", slug(title or question))
     template = template or "decision-chain"
+    known = [t["id"] for t in lib.templates()]
+    if template not in known:
+        raise ToolError("invalid_input", f"Unknown template: {template}. Choose one of {', '.join(known)}.",
+                        hint="See them all with: decisioncraft templates", field="--template")
     role_ids = None if not roles or roles == "all" else [r.strip() for r in roles.split(",") if r.strip()]
 
     if folder:

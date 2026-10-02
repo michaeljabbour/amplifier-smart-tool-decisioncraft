@@ -35,32 +35,48 @@ where people read notes and answer.
 ## Install
 
 ```sh
-uv tool install "amplifier-smart-tool-decisioncraft[smart] @ git+https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft"
-decisioncraft --help
+uv tool install "amplifier-smart-tool-decisioncraft[smart,mcp] @ git+https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft"
+decisioncraft doctor
 ```
 
-Python 3.11 or later. The `[smart]` extra is only needed for the two model-backed
-capabilities. You can also run straight from a checkout: `python3 bin/decisioncraft.py --help`.
+Python 3.11 or later. `[smart]` is only needed for `--provider` on the two model-backed
+commands, and `[mcp]` only for `decisioncraft mcp`. `doctor` checks your setup, never calls
+a model, and says exactly what to fix. You can also run straight from a checkout:
+`python3 bin/decisioncraft.py`.
 
 ## Quick start
 
 ```sh
-# start from a template and fill it in by hand
-decisioncraft new --template customer-journey --title "Missed pickups" \
-  --question "How do we cut missed pickups by half?" --out model.json
-decisioncraft validate model.json
-decisioncraft render model.json --out canvas.html
+decisioncraft                               # a short start screen
+decisioncraft example medical --open        # copy a worked example and open it
+decisioncraft new                           # a few questions, then a starter folder
+decisioncraft render model.json --open      # draw your model
+decisioncraft render model.json --watch     # draw again every time you save
+```
 
-# or draft it from your material with a language model (costs tokens; review the result)
-export ANTHROPIC_API_KEY=...
-decisioncraft draft notes/*.md --template decision-chain \
-  --question "Should we open on Sundays?" --provider anthropic --out model.json
+`new` asks questions only in a terminal. Scripts and agents pass flags instead:
+
+```sh
+decisioncraft new --question "How do we cut missed pickups by half?" \
+  --template customer-journey --roles owner,voice,finance --dir pickups
+decisioncraft validate pickups/model.json
+decisioncraft render pickups/model.json --out pickups/canvas.html
+
+# or draft it from your material with a model (costs tokens; read the result)
+decisioncraft draft pickups/material/*.md --question "How do we cut missed pickups by half?" \
+  --complete-cmd 'python3 my_adapter.py' --out pickups/model.json
+#   ...or --provider anthropic --model <model-name>, with ANTHROPIC_API_KEY set
 
 # after the review
-decisioncraft merge model.json review-*.json --out merged.json
-decisioncraft render model.json --merged merged.json --out canvas.html
-decisioncraft words model.json --out model.md
+decisioncraft merge pickups/model.json review-*.json --out merged.json
+decisioncraft render pickups/model.json --merged merged.json --open
+decisioncraft words pickups/model.json --out pickups/model.md
 ```
+
+Every command has a short summary (`-h`) and a full guide written for agents (`--help`).
+Add `--json` to any command for one machine-readable result on stdout, errors included;
+the exit code always matches (0 finished, 1 input problem, 2 wrong command line, 3 set
+something up first, 4 model call failed). See [contracts/cli.v1.md](contracts/cli.v1.md).
 
 From Python, every capability takes and returns plain data:
 
@@ -140,8 +156,8 @@ opportunity tree draws an outcome, needs, ideas and quick tests. Run
 
 | Capability | Kind |
 |---|---|
-| `manifest`, `templates`, `roles`, `new`, `validate`, `render`, `words`, `questions`, `merge`, `diff` | deterministic; no model, no credentials |
-| `draft`, `perspectives` | model-backed; need `--provider` and an API key, or a `complete` function passed by a host |
+| `example`, `new`, `render`, `doctor`, `session`, `questions`, `merge`, `diff`, `words`, `validate`, `handoff`, `discover`, `templates`, `roles`, `manifest`, `mcp` | deterministic; no model, no credentials |
+| `draft`, `perspectives` | model-backed; one of `--complete-cmd` (your host's own model), `--provider` with an API key, a `complete` function from code, or MCP sampling |
 
 Model replies are validated; one repair is attempted; the result still needs a person.
 
