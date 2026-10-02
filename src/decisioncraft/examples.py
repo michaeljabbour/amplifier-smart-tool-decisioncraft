@@ -19,9 +19,11 @@ EXAMPLES = {
     "(about how the ward works; not medical advice, no patient data).",
     "car": "A family choosing whether to keep, lease, buy new, buy used or go car-free "
     "(scoring table, cost over time, what-ifs).",
+    "map": "A bike hire shop's small code repository, mapped as it works today and as it could "
+    "work (made with decisioncraft map; a made-up repo).",
 }
 # An example's folder, where it differs from its name.
-FOLDERS = {"car": "personal-car"}
+FOLDERS = {"car": "personal-car", "map": "bike-hire-map"}
 
 
 def _root(name: str):

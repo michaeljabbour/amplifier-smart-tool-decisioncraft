@@ -1,0 +1,661 @@
+{
+  "format": "decisioncraft/1",
+  "title": "How Harbourside Bike Hire works, and what is missing",
+  "question": "How does Harbourside Bike Hire work today, and what is missing?",
+  "summary": "A small Python prototype holds bikes by date and size and records returns. The documented web flow is not wired up here. Holds never expire, availability ignores bike status, and records disappear when the process stops. Proposed changes below are suggestions, not implemented features.",
+  "checked": {
+    "date": "2026-10-02",
+    "note": "Checked against commit e3a7a50 of ."
+  },
+  "roles": [
+    {
+      "id": "designer",
+      "label": "UX designer",
+      "color": "#e86a92",
+      "asks": "Will people understand this and find their way without help?"
+    },
+    {
+      "id": "architect",
+      "label": "Architect",
+      "color": "#d9a400",
+      "asks": "Do the parts fit together, and what breaks if one changes?"
+    },
+    {
+      "id": "analyst",
+      "label": "Business analyst",
+      "color": "#4f7fd8",
+      "asks": "Is it clear what must be true, for whom, and how we will measure it?"
+    },
+    {
+      "id": "engineer",
+      "label": "Lead engineer",
+      "color": "#2e9e5b",
+      "asks": "What is the smallest safe order to build this in, and how do we test it?"
+    },
+    {
+      "id": "owner",
+      "label": "Product manager",
+      "color": "#8a6fd1",
+      "asks": "Is this the right thing to do next, and what would we cut?"
+    },
+    {
+      "id": "security",
+      "label": "Security and privacy",
+      "color": "#d0453b",
+      "asks": "Who can see or change this, and what happens to the data?"
+    },
+    {
+      "id": "voice",
+      "label": "Customer voice",
+      "color": "#d68a00",
+      "asks": "Would the people who use it notice, and would they care?"
+    },
+    {
+      "id": "agent",
+      "label": "AI agent teammate",
+      "color": "#0f8f8a",
+      "asks": "Which steps could an agent do safely, and which need a person's OK?"
+    }
+  ],
+  "glossary": {},
+  "sources": [
+    {
+      "id": "s0",
+      "title": "README.md",
+      "kind": "document",
+      "ref": "README.md"
+    },
+    {
+      "id": "s1",
+      "title": "src/booking/app.py",
+      "kind": "code",
+      "ref": "src/booking/app.py"
+    },
+    {
+      "id": "s2",
+      "title": "src/booking/store.py",
+      "kind": "code",
+      "ref": "src/booking/store.py"
+    },
+    {
+      "id": "s3",
+      "title": "docs/staff-notes.md",
+      "kind": "document",
+      "ref": "docs/staff-notes.md"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "readme",
+      "source": "s0",
+      "kind": "file",
+      "text": "A small web app where visitors book a bike for the day and staff check bikes in and out.",
+      "where": "README.md:3",
+      "voice": false
+    },
+    {
+      "id": "hold",
+      "source": "s1",
+      "kind": "file",
+      "text": "    bike = hold_bike(date, size, minutes=HOLD_MINUTES)",
+      "where": "src/booking/app.py:9",
+      "voice": false
+    },
+    {
+      "id": "pay",
+      "source": "s1",
+      "kind": "file",
+      "text": "    return {\"ok\": True, \"bike\": bike, \"pay\": \"at the counter\"}",
+      "where": "src/booking/app.py:12",
+      "voice": false
+    },
+    {
+      "id": "availability",
+      "source": "s2",
+      "kind": "file",
+      "text": "        if s == size and (date, bike) not in HOLDS:",
+      "where": "src/booking/store.py:9",
+      "voice": false
+    },
+    {
+      "id": "duration",
+      "source": "s2",
+      "kind": "file",
+      "text": "            HOLDS[(date, bike)] = minutes",
+      "where": "src/booking/store.py:10",
+      "voice": false
+    },
+    {
+      "id": "memory",
+      "source": "s2",
+      "kind": "file",
+      "text": "HOLDS = {}",
+      "where": "src/booking/store.py:3",
+      "voice": false
+    },
+    {
+      "id": "out",
+      "source": "s2",
+      "kind": "file",
+      "text": "    STATUS[bike] = \"out\"",
+      "where": "src/booking/store.py:16",
+      "voice": false
+    },
+    {
+      "id": "in",
+      "source": "s2",
+      "kind": "file",
+      "text": "    STATUS[bike] = \"in\"",
+      "where": "src/booking/store.py:21",
+      "voice": false
+    },
+    {
+      "id": "damage",
+      "source": "s1",
+      "kind": "file",
+      "text": "    # TODO: no way to record damage here; staff use a paper list.",
+      "where": "src/booking/app.py:20",
+      "voice": false
+    },
+    {
+      "id": "no_show",
+      "source": "s3",
+      "kind": "quote",
+      "text": "- \"About one booking in five never shows up on a sunny Saturday.\" (shift lead)",
+      "where": "docs/staff-notes.md:3",
+      "voice": true
+    },
+    {
+      "id": "request",
+      "source": "s3",
+      "kind": "quote",
+      "text": "- Staff would like a text reminder the evening before, and a way to report damage on a phone.",
+      "where": "docs/staff-notes.md:5",
+      "voice": true
+    }
+  ],
+  "maps": [
+    {
+      "id": "m1",
+      "template": "system-journeys",
+      "title": "How it works",
+      "intro": "Existing code and documented human steps, followed by a proposed working service.",
+      "lanes": [
+        {
+          "id": "visitor",
+          "label": "Visitor"
+        },
+        {
+          "id": "app",
+          "label": "Booking rules"
+        },
+        {
+          "id": "store",
+          "label": "Bike records"
+        },
+        {
+          "id": "staff",
+          "label": "Staff"
+        },
+        {
+          "id": "later",
+          "label": "Scheduled work"
+        }
+      ],
+      "journeys": [
+        {
+          "id": "booking_flow",
+          "title": "Booking through return",
+          "summary": "Follow the visitor, booking rules, records and staff handoffs.",
+          "steps": [
+            {
+              "id": "choose",
+              "lane": "visitor",
+              "text": "Choose a date and bike size",
+              "status": "partial",
+              "when": "today",
+              "evidence": [
+                "readme",
+                "hold"
+              ],
+              "detail": "README describes a booking page. This checkout provides Python functions; no page, HTTP server or routing is present."
+            },
+            {
+              "id": "reserve",
+              "lane": "app",
+              "text": "Choose the first matching bike without a hold",
+              "status": "partial",
+              "when": "today",
+              "evidence": [
+                "availability",
+                "hold"
+              ],
+              "detail": "book() calls hold_bike(); only size and the date/bike key are checked. STATUS is ignored."
+            },
+            {
+              "id": "hold_record",
+              "lane": "store",
+              "text": "Keep the hold in process memory",
+              "status": "partial",
+              "when": "today",
+              "evidence": [
+                "duration",
+                "memory"
+              ],
+              "detail": "The value is 15, not an expiration timestamp. No release mechanism exists."
+            },
+            {
+              "id": "counter",
+              "lane": "staff",
+              "text": "Take payment at the counter",
+              "status": "partial",
+              "when": "today",
+              "evidence": [
+                "pay"
+              ],
+              "detail": "Documented human step. No payment record is implemented."
+            },
+            {
+              "id": "checkout",
+              "lane": "staff",
+              "text": "Mark a bike as out",
+              "status": "partial",
+              "when": "today",
+              "evidence": [
+                "out"
+              ],
+              "detail": "check_out() delegates to mark_out(). Unknown identifiers and invalid transitions are accepted."
+            },
+            {
+              "id": "return",
+              "lane": "staff",
+              "text": "Mark a bike as in; record damage on paper",
+              "status": "partial",
+              "when": "today",
+              "evidence": [
+                "in",
+                "damage"
+              ],
+              "detail": "check_in() cannot report damage."
+            },
+            {
+              "id": "reminder",
+              "lane": "later",
+              "text": "No reminder is sent",
+              "status": "missing",
+              "when": "today",
+              "evidence": [
+                "request",
+                "no_show"
+              ],
+              "detail": "No contact details or scheduler are present. The reported one-in-five rate is a staff estimate, not measured telemetry."
+            },
+            {
+              "id": "choose_new",
+              "lane": "visitor",
+              "text": "Use a booking page with clear pickup terms",
+              "status": "planned",
+              "when": "planned",
+              "evidence": [
+                "readme"
+              ],
+              "detail": "Proposed change; not implemented.",
+              "replaces": "choose"
+            },
+            {
+              "id": "reserve_new",
+              "lane": "app",
+              "text": "Reserve only a usable bike with an atomic check",
+              "status": "planned",
+              "when": "planned",
+              "evidence": [
+                "availability"
+              ],
+              "detail": "Proposed change; not implemented.",
+              "replaces": "reserve"
+            },
+            {
+              "id": "hold_new",
+              "lane": "store",
+              "text": "Save bookings and expire abandoned holds",
+              "status": "planned",
+              "when": "planned",
+              "evidence": [
+                "duration"
+              ],
+              "detail": "Proposed change; not implemented.",
+              "replaces": "hold_record"
+            },
+            {
+              "id": "counter_new",
+              "lane": "staff",
+              "text": "Record arrival and counter payment",
+              "status": "planned",
+              "when": "planned",
+              "evidence": [
+                "pay"
+              ],
+              "detail": "Proposed change; not implemented.",
+              "replaces": "counter"
+            },
+            {
+              "id": "checkout_new",
+              "lane": "staff",
+              "text": "Allow staff to check out a valid booking",
+              "status": "planned",
+              "when": "planned",
+              "evidence": [
+                "out"
+              ],
+              "detail": "Proposed change; not implemented.",
+              "replaces": "checkout"
+            },
+            {
+              "id": "return_new",
+              "lane": "staff",
+              "text": "Report damage and block the bike until repaired",
+              "status": "planned",
+              "when": "planned",
+              "evidence": [
+                "damage"
+              ],
+              "detail": "Proposed change; not implemented.",
+              "replaces": "return"
+            },
+            {
+              "id": "reminder_new",
+              "lane": "later",
+              "text": "Send a reminder with customer permission",
+              "status": "planned",
+              "when": "planned",
+              "evidence": [
+                "request"
+              ],
+              "detail": "Proposed change; not implemented.",
+              "replaces": "reminder"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "gaps": [
+    {
+      "id": "expiry",
+      "title": "Holds never expire",
+      "why": "As a visitor, I want abandoned holds released so I can book an available bike.",
+      "anchors": [
+        "hold_record",
+        "hold_new"
+      ],
+      "impact": 5,
+      "effort": 2,
+      "stories": [
+        {
+          "done_when": [
+            "A hold has an expiry timestamp.",
+            "After 15 minutes an abandoned hold becomes available.",
+            "A confirmed booking survives temporary hold expiry."
+          ],
+          "as": "As a visitor, I want abandoned holds released so I can book an available bike."
+        }
+      ]
+    },
+    {
+      "id": "inventory",
+      "title": "Availability ignores bike condition and checkout state",
+      "why": "As staff, I want only usable bikes offered so customers receive safe bikes.",
+      "anchors": [
+        "reserve",
+        "reserve_new",
+        "return_new"
+      ],
+      "impact": 5,
+      "effort": 3,
+      "stories": [
+        {
+          "done_when": [
+            "An unavailable or damaged bike cannot be booked.",
+            "Concurrent requests cannot reserve the same bike for overlapping use.",
+            "Returning a damaged bike blocks future allocation until repair is recorded."
+          ],
+          "as": "As staff, I want only usable bikes offered so customers receive safe bikes."
+        }
+      ]
+    },
+    {
+      "id": "durable",
+      "title": "Records disappear on restart",
+      "why": "As staff, I want durable bookings so a restart does not lose reservations.",
+      "anchors": [
+        "hold_record",
+        "hold_new"
+      ],
+      "impact": 5,
+      "effort": 3,
+      "stories": [
+        {
+          "done_when": [
+            "Bookings and bike state survive a process restart.",
+            "Reservation and status changes commit together or fail together."
+          ],
+          "as": "As staff, I want durable bookings so a restart does not lose reservations."
+        }
+      ]
+    },
+    {
+      "id": "web",
+      "title": "The documented web flow is not implemented",
+      "why": "As a visitor or staff member, I want usable screens to complete the booking workflow.",
+      "anchors": [
+        "choose",
+        "choose_new",
+        "checkout_new"
+      ],
+      "impact": 4,
+      "effort": 4,
+      "stories": [
+        {
+          "done_when": [
+            "A documented command starts the app from a fresh checkout.",
+            "A visitor can choose a date and size and see success or no availability.",
+            "Only authorized staff can change bike state.",
+            "Invalid dates, sizes, identifiers and state transitions are rejected."
+          ],
+          "as": "As a visitor or staff member, I want usable screens to complete the booking workflow."
+        }
+      ]
+    },
+    {
+      "id": "reminders",
+      "title": "No reminders or arrival tracking",
+      "why": "As a visitor, I want a reminder so I remember my booking.",
+      "anchors": [
+        "reminder",
+        "reminder_new",
+        "counter_new"
+      ],
+      "impact": 3,
+      "effort": 3,
+      "stories": [
+        {
+          "done_when": [
+            "Pickup time and hold policy are defined before scheduling reminders.",
+            "Consenting customers receive one reminder at the agreed time.",
+            "Failed sends are visible to staff without duplicate delivery.",
+            "Arrival and no-show counts are measured; staff estimates remain labeled as estimates."
+          ],
+          "as": "As a visitor, I want a reminder so I remember my booking."
+        }
+      ]
+    },
+    {
+      "id": "checks",
+      "title": "No automated tests or setup manifest",
+      "why": "As a maintainer, I want repeatable checks so booking changes do not break availability.",
+      "anchors": [
+        "reserve_new",
+        "hold_new",
+        "checkout_new"
+      ],
+      "impact": 4,
+      "effort": 2,
+      "stories": [
+        {
+          "done_when": [
+            "Setup and launch dependencies are documented.",
+            "Checks cover expiry, persistence, concurrent allocation, damaged bikes and invalid staff actions."
+          ],
+          "as": "As a maintainer, I want repeatable checks so booking changes do not break availability."
+        }
+      ]
+    }
+  ],
+  "notes": [
+    {
+      "id": "n0",
+      "role": "designer",
+      "anchor": "choose_new",
+      "title": "Booking terms",
+      "body": "The README says a day booking but the hold lasts 15 minutes in name only.",
+      "recommend": "Explain when the visitor must arrive.",
+      "question": "When should a reservation become a confirmed day booking?",
+      "urgency": "should",
+      "evidence": [
+        "hold"
+      ],
+      "answer_type": "text",
+      "author": "Codex assistant"
+    },
+    {
+      "id": "n1",
+      "role": "architect",
+      "anchor": "hold_new",
+      "title": "Consistent records",
+      "body": "Separate dictionaries do not coordinate reservations and bike state.",
+      "recommend": "Use one durable transactional store.",
+      "question": "What overlapping hire periods must availability support?",
+      "urgency": "should",
+      "evidence": [
+        "memory",
+        "availability"
+      ],
+      "answer_type": "text",
+      "author": "Codex assistant"
+    },
+    {
+      "id": "n2",
+      "role": "analyst",
+      "anchor": "reminder_new",
+      "title": "Measure no-shows",
+      "body": "The one-in-five figure is a staff estimate for sunny Saturdays.",
+      "recommend": "Record arrivals and cancellations before comparing results.",
+      "question": "What will count as a no-show?",
+      "urgency": "should",
+      "evidence": [
+        "no_show"
+      ],
+      "answer_type": "text",
+      "author": "Codex assistant"
+    },
+    {
+      "id": "n3",
+      "role": "engineer",
+      "anchor": "reserve_new",
+      "title": "Build order",
+      "body": "Allocation currently ignores status and never releases holds.",
+      "recommend": "Fix allocation and expiry, then persistence and screens.",
+      "question": "Which booking failure should be covered first?",
+      "urgency": "should",
+      "evidence": [
+        "duration",
+        "availability"
+      ],
+      "answer_type": "text",
+      "author": "Codex assistant"
+    },
+    {
+      "id": "n4",
+      "role": "owner",
+      "anchor": "return_new",
+      "title": "Prioritize damage handling",
+      "body": "Damage is recorded on paper and cannot block booking.",
+      "recommend": "Prioritize usable inventory before reminders.",
+      "question": "Should damage blocking be the first release?",
+      "urgency": "should",
+      "evidence": [
+        "damage",
+        "request"
+      ],
+      "answer_type": "text",
+      "author": "Codex assistant"
+    },
+    {
+      "id": "n5",
+      "role": "security",
+      "anchor": "checkout_new",
+      "title": "Staff access and contact data",
+      "body": "The functions have no authorization boundary; reminders would require contact data.",
+      "recommend": "Define staff access and collect only needed contact details.",
+      "question": "Who should be allowed to change bike condition?",
+      "urgency": "should",
+      "evidence": [
+        "out",
+        "request"
+      ],
+      "answer_type": "text",
+      "author": "Codex assistant"
+    },
+    {
+      "id": "n6",
+      "role": "voice",
+      "anchor": "reminder_new",
+      "title": "Helpful reminders",
+      "body": "Staff want reminders the evening before.",
+      "recommend": "Agree useful reminder content with customers.",
+      "question": "What information would help customers arrive on time?",
+      "urgency": "should",
+      "evidence": [
+        "request"
+      ],
+      "answer_type": "text",
+      "author": "Codex assistant"
+    },
+    {
+      "id": "n7",
+      "role": "agent",
+      "anchor": "hold_new",
+      "title": "Safe automation",
+      "body": "Expired holds could be released automatically once the policy is agreed.",
+      "recommend": "Automate expiry; leave repair clearance to staff.",
+      "question": "Which bike changes must always require a staff decision?",
+      "urgency": "should",
+      "evidence": [
+        "duration",
+        "damage"
+      ],
+      "answer_type": "text",
+      "author": "Codex assistant"
+    }
+  ],
+  "decisions": [],
+  "outcomes": [],
+  "display": {
+    "notes_on_map": true,
+    "start_view": "planned"
+  },
+  "map_source": {
+    "kind": "repo",
+    "target": "sample-repo",
+    "read": [
+      "README.md",
+      ".amplifier/skills/decisioncraft/SKILL.md",
+      ".claude/skills/decisioncraft/SKILL.md",
+      "AGENTS.md",
+      "docs/staff-notes.md",
+      "src/booking/app.py",
+      "src/booking/store.py"
+    ]
+  },
+  "reading": "Use Today and Side by side to compare the existing functions with the proposed workflow. Open boxes for code evidence; gaps contain user stories and completion checks. Role notes are assistant-authored review prompts."
+}

@@ -14,13 +14,14 @@ def load(p):
     return json.loads(Path(p).read_text(encoding="utf-8"))
 
 
-def test_four_examples_exist():
+def test_the_examples_exist():
     assert {p.parent.name for p in MODELS} == {
         "business",
         "technical",
         "engineering",
         "medical",
         "personal-car",
+        "bike-hire-map",
     }
 
 
