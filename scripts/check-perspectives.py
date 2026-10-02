@@ -12,6 +12,7 @@ from playwright.sync_api import sync_playwright
 
 def main():
     model = dc.new("opportunity-tree", "Compare review styles", "How should we review?")
+    model["maps"][0]["root"]["children"] = [dict(id="trial", title="Try a two-week trial", text="", children=[])]
     model["roles"] = [
         dict(id="architect", label="Architect", color="#d9b420"),
         dict(id="ux", label="UX", color="#de699b"),

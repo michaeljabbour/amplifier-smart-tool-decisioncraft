@@ -2,9 +2,9 @@
   "manifest_version": "0.4",
   "name": "decisioncraft",
   "display_name": "Decisioncraft",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Point it at anything and get as-is against to-be, the gaps as user stories, and a sticky note from every role.",
-  "long_description": "Point Decisioncraft at anything (a codebase, meeting notes, a process or a personal choice) and you get a map of as-is against to-be, the gaps written as user stories, and a sticky note from every role. It's rigorous decision analysis in plain language, from a quick side-by-side to a full team review. Canvases are single offline HTML files. In Claude Desktop the drawing is done by Claude itself; an Anthropic or OpenAI key is optional.",
+  "long_description": "Point Decisioncraft at anything (a codebase, meeting notes, a process or a personal choice) and you get a map of as-is against to-be, the gaps written as user stories, and a sticky note from every role. It's rigorous decision analysis in plain language, from a quick side-by-side to a full team review. The canvas opens right in the chat (MCP Apps), and is also saved as a single offline HTML file. In Claude Desktop the drawing is done by Claude itself; an Anthropic or OpenAI key is optional.",
   "author": {
     "name": "Decisioncraft contributors",
     "url": "https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft"
@@ -115,6 +115,10 @@
     {
       "name": "decisioncraft_close_review",
       "description": "Close a browser review after reading its handoff."
+    },
+    {
+      "name": "decisioncraft_save_review",
+      "description": "Used by the canvas in the chat to save a reviewer's answers for your agent."
     }
   ],
   "prompts": [

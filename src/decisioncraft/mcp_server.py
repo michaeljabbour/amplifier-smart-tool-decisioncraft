@@ -107,17 +107,35 @@ def _writable_dir(directory: str) -> None:
 
 def build_server():
     try:
+        from mcp import types
         from mcp.server.fastmcp import Context, FastMCP
     except ImportError as error:
         raise ValueError("Install the mcp extra to use this interface.") from error
     from . import lib
-    from .stats import summary
+    from .render import APP_MIME, APP_URI, app_html
+    from .stats import describe, summary
+
+    # MCP Apps: tools whose result can be drawn declare this view; hosts without MCP Apps
+    # ignore it and use the text result.
+    VIEW = {"ui": {"resourceUri": APP_URI}, "ui/resourceUri": APP_URI}
+
+    def visual(text: str, data: dict) -> "types.CallToolResult":
+        """A short text for the model and text-only hosts; the full data (with the model) for
+        the canvas view as structuredContent."""
+        return types.CallToolResult(content=[types.TextContent(type="text", text=text)], structuredContent=data)
 
     active = {}
     server = FastMCP(
         "Decisioncraft",
         log_level="WARNING",
         instructions=(
+            "Use Decisioncraft when someone is weighing a real choice, even without saying "
+            "'decision': renew or buy, keep or replace, a job offer, a school, a home, vendors, "
+            "quotes or plans, 'should I...', 'torn between', 'pros and cons', 'help me think it "
+            "through'. Also use it to show how something works and what is missing: a codebase, "
+            "a process, meeting notes, 'as-is and to-be', 'where are the gaps'. Not for factual "
+            "questions, trivial picks, or code-level choices inside a coding task. In hosts that "
+            "show MCP Apps, render, map, example and quick open the canvas right in the chat. "
             "To show how something works and what is missing, call decisioncraft_map with a repo or "
             "folder path, a file, or a topic (it reads the target, then asks this host's model to "
             "draw today's way, the planned way, gaps with user stories and 'done when' checks, and a "
@@ -217,7 +235,7 @@ def build_server():
         await asyncio.to_thread(session.wait, timeout)
         return {**session.status(), "session_id": session_id}
 
-    @server.tool(structured_output=True)
+    @server.tool(structured_output=True, meta=VIEW)
     def decisioncraft_render(
         model: dict,
         directory: str = "",
@@ -227,8 +245,9 @@ def build_server():
         since: dict | None = None,
         allow_empty: bool = False,
     ) -> dict[str, Any]:
-        """Draw a model as one offline HTML canvas and return where it was written. Refuses a
-        model with no boxes yet unless allow_empty is true."""
+        """Draw a model as one offline HTML canvas and return where it was written; in hosts with
+        MCP Apps the canvas also opens in the chat. Refuses a model with no boxes yet unless
+        allow_empty is true."""
         if "/" in filename or "\\" in filename or not filename.endswith(".html"):
             raise ValueError("filename must be a plain name ending in .html, for example canvas.html.")
         if directory:
@@ -238,7 +257,14 @@ def build_server():
         html = lib.render(model, reviews=reviews, merged=merged, since=since, allow_empty=allow_empty)
         path = folder / filename
         path.write_text(html, encoding="utf-8")
-        return {"path": str(path.resolve()), "bytes": len(html.encode("utf-8")), "summary": summary(model)}
+        from .review import diff as diff_models
+
+        if reviews and merged is None:
+            merged = lib.merge(reviews, model)
+        data = {"path": str(path.resolve()), "bytes": len(html.encode("utf-8")), "summary": summary(model),
+                "model": model, "merged": merged, "since": diff_models(since, model) if since else None}
+        return visual(f"Drew {model.get('title', 'the map')} ({describe(model)}). Canvas: {data['path']} "
+                      "(opens offline in any browser).", data)
 
     @server.tool(structured_output=True)
     def decisioncraft_words(model: dict, reviews: list[dict] | None = None) -> dict[str, Any]:
@@ -262,9 +288,11 @@ def build_server():
         """What was added, removed and changed between two versions of a model."""
         return lib.diff(old, new)
 
-    @server.tool(structured_output=True)
+    @server.tool(structured_output=True, meta=VIEW)
     def decisioncraft_example(name: str) -> dict[str, Any]:
-        """A worked example by id (map, car, business, technical, engineering or medical): model, material, reviews."""
+        """Show what a finished map looks like: a worked example by id (map, car, business,
+        technical, engineering or medical) with its model, material and reviews. Opens as a
+        canvas in hosts with MCP Apps."""
         return lib.example(name)
 
     @server.tool(structured_output=True)
@@ -334,7 +362,7 @@ def build_server():
 
 
 
-    @server.tool(structured_output=True)
+    @server.tool(structured_output=True, meta=VIEW)
     async def decisioncraft_map(
         target: str,
         ctx: Context,
@@ -346,7 +374,9 @@ def build_server():
         dry_run: bool = False,
         starter: bool = False,
     ) -> dict[str, Any]:
-        """Point it at anything: a repo or folder path, a notes file, a web page's text, or a topic.
+        """Show how something works and what is missing ('map this codebase', 'how does X work',
+        'as-is and to-be', 'where are the gaps'): point it at a repo or folder path, a notes file,
+        a web page's text, or a topic. In hosts with MCP Apps the finished map opens in the chat.
 
         Reads the target, then asks this host's model (MCP sampling) to draw how it works today
         with evidence by file and line, a planned way, gaps with user stories and 'done when'
@@ -404,8 +434,10 @@ def build_server():
 
         (folder / "model.json").write_text(_json.dumps(model, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         (folder / "canvas.html").write_text(lib.render(model), encoding="utf-8")
-        return {"model_path": str((folder / "model.json").resolve()), "canvas_path": str((folder / "canvas.html").resolve()),
-                "summary": summary(model), "plan": result["plan"], "drafted_with": how}
+        data = {"model_path": str((folder / "model.json").resolve()), "canvas_path": str((folder / "canvas.html").resolve()),
+                "summary": summary(model), "plan": result["plan"], "drafted_with": how, "model": model}
+        return visual(f"Mapped {target} ({describe(model)}). Model: {data['model_path']}; canvas: {data['canvas_path']}. "
+                      f"Drafted with {how}.", data)
 
     # ------------------------------------------------------------ modes
 
@@ -413,7 +445,9 @@ def build_server():
     def decisioncraft_triage(
         text: str = "", cost: str = "", reversible: str = "", people: str = "", deadline: str = ""
     ) -> dict[str, Any]:
-        """How much help a choice needs: none (just answer), quick, guided or team. No model call.
+        """Start here when someone is weighing options: 'should I...', 'renew or buy', 'keep or
+        replace', 'torn between', a job offer, vendors. Says how much help the choice needs: none
+        (just answer), quick, guided or team. No model call.
 
         Pass the person's own words in `text` and anything you know. Returns the mode, why,
         questions worth asking, and a sentence to offer help without taking over.
@@ -422,32 +456,77 @@ def build_server():
                                      "deadline": deadline}.items() if v}
         return lib.triage(answers, text=text)
 
-    @server.tool(structured_output=True)
+    @server.tool(structured_output=True, meta=VIEW)
     def decisioncraft_quick(
         options: list[str],
         criteria: list[str] | None = None,
         scores: list[dict] | None = None,
         question: str = "",
     ) -> dict[str, Any]:
-        """Quick mode: score options against what matters; returns a Markdown table, a lean and one check.
+        """Quick side-by-side for a choice ('which is better', 'keep or replace', comparing a few
+        options): score options against what matters; returns a Markdown table, a lean and one
+        check, and the scoring table as a canvas in hosts with MCP Apps.
 
         criteria: most important first; prefix 'must:' or 'nice:'. scores: [{option, criterion,
         score 1-5, why}] using names. No files and no model call; show the table in the chat.
         """
-        return lib.quick(options, criteria, scores, question=question)
+        from .modes import quick_model
+
+        result = lib.quick(options, criteria, scores, question=question)
+        if result.get("options") and result.get("criteria"):
+            result["model"] = quick_model(result)
+        return result
 
     @server.tool(structured_output=True)
     def decisioncraft_interview_next(
         directory: str, answer: str | None = None, question: str = "", kind: str | None = None,
         reset: bool = False,
     ) -> dict[str, Any]:
-        """Guided mode: record the answer, get the next question (ask it in your own words).
+        """Guided mode for a choice worth a closer look (a car, a home, a job, a vendor): record
+        the answer, get the next question (ask it in your own words).
 
         Repeat until done; finishing writes model.json and material/README.txt in `directory`,
         then call decisioncraft_render. kind: personal, team or system (default chosen for you).
         """
         _writable_dir(directory)
         return lib.interview_step(directory, answer, question=question, kind=kind, reset=reset)
+
+    # ------------------------------------------------------------ MCP Apps view
+
+    @server.resource(
+        APP_URI, name="Decisioncraft canvas", mime_type=APP_MIME,
+        description="The decision map canvas: today and planned, what changes, scores, costs and "
+        "every role's notes, drawn from a tool result. Self-contained; no outside requests.",
+        meta={"ui": {"csp": {}, "prefersBorder": False}},
+    )
+    def decisioncraft_canvas_view() -> str:
+        return app_html()
+
+    @server.tool(structured_output=True, meta={"ui": {"resourceUri": APP_URI, "visibility": ["app"]}})
+    def decisioncraft_save_review(review: dict, directory: str = "") -> dict[str, Any]:
+        """Save a reviewer's answers from the canvas (called by the canvas view, not the model).
+
+        Writes the review JSON to `directory` (default: DECISIONCRAFT_REVIEWS_DIR, else
+        ~/Decisioncraft/reviews) and returns its
+        path, so the agent can read, merge or hand off the answers."""
+        import json as _json
+        import time as _time
+
+        from .review import check_review
+
+        problems = check_review(review)
+        if problems:
+            raise ValueError(" ".join(problems))
+        import os as _os
+
+        default = _os.environ.get("DECISIONCRAFT_REVIEWS_DIR") or str(Path.home() / "Decisioncraft" / "reviews")
+        folder = Path(directory or default).expanduser()
+        _writable_dir(str(folder))
+        who = "".join(ch if ch.isalnum() else "-" for ch in str(review.get("reviewer") or "reviewer").lower()).strip("-") or "reviewer"
+        path = folder / f"review-{who}-{_time.strftime('%Y%m%d-%H%M%S')}.json"
+        path.write_text(_json.dumps(review, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        answered = len(review.get("answers") or {})
+        return {"path": str(path.resolve()), "answered": answered}
 
     # ------------------------------------------------------------ prompts
 

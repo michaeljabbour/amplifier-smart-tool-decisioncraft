@@ -1,7 +1,7 @@
 ---
 smart_tool_format: 1
 name: decisioncraft
-version: 0.2.2
+version: 0.2.3
 description: Point it at anything (a codebase, a folder of notes, a page or a topic) and get a map of how it works today, how it could work, the gaps as user stories with 'done when' checks, and a note from every role. It also helps someone weigh a choice at the right depth, from a quick side-by-side in the chat to a full team review. Use for 'map this codebase', 'show me how X works', 'as-is and to-be', 'where are the gaps', 'turn these notes into a process map', 'review this process', and whenever someone is weighing options without saying decision, such as 'should I', 'torn between', 'pros and cons', 'which is better', 'renew or buy', 'keep or replace', 'help me think this through', or comparing offers, quotes or vendors. Not for factual questions or trivial picks.
 use_cases:
   - Point it at a codebase, a folder of notes or a topic and see how it works today, how it could work, and the gaps as user stories

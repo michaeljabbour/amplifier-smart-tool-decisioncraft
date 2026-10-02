@@ -1,5 +1,50 @@
 # Changelog
 
+## 0.2.3 (2026-10-02)
+
+### The canvas opens in the chat, the skill ZIP is the whole tool, and an empty map no longer passes
+
+- **The canvas right in the chat (MCP Apps).** `decisioncraft mcp` now serves the canvas as an
+  MCP App view (`ui://decisioncraft/canvas.html`, `text/html;profile=mcp-app`). `render`,
+  `map`, `example` and `quick` declare it, so Claude Desktop and claude.ai, VS Code Copilot,
+  Cursor, Goose and other hosts that support MCP Apps draw today and planned, what changes,
+  scores and every role's notes inside the conversation, instead of a Markdown table. `quick`
+  results come with a scoring-table model for the view. The view makes no outside requests; its
+  Save my answers goes to a new view-only tool, `decisioncraft_save_review` (written to
+  `~/Decisioncraft/reviews/` or `DECISIONCRAFT_REVIEWS_DIR`), and Ask the experts calls
+  `decisioncraft_review_notes` through the host. Hosts without MCP Apps get a short text result
+  and the canvas file path. ChatGPT supports MCP Apps only for servers on the internet.
+- **Hosts know when to reach for it.** The MCP server's instructions now open with when to use
+  Decisioncraft (renew or buy, keep or replace, job offers, vendors; how something works,
+  as-is and to-be, gaps) and when not to (factual questions, trivial picks, code-level choices),
+  and the main tools' descriptions lead with the same plain phrases. Found by Claude Desktop
+  answering "my lease ends in March, help me think it through" on its own.
+- **"What would change the winner" says each change once.** Two challengers suggesting the same
+  change no longer list it twice, in the canvas and in the library.
+
+Found by Claude Desktop reviewing the 0.2.2 downloads.
+
+- **The skill ZIP was missing files the library reads.** `guide` returned an empty model format
+  and `example car` failed with "Can't find the file". The build now copies everything the
+  wheel adds to the package (the model format and the six worked examples, as models, material
+  and reviews; canvases are drawn on demand), and ends with a smoke test that unzips the ZIP,
+  runs `guide`, `example car` and the key commands offline with a bare interpreter, and compares
+  its files with a freshly built wheel. A ZIP missing anything fails the build.
+- **`guide` and `example` fail loudly.** A missing model format or example is now an error
+  (`missing_resource`, exit 3) that names the file and says how to fix it, instead of an empty
+  result or a bare "Can't find the file".
+- **An untouched starter is not a finished map.** `validate` and `render` now fail on a model
+  with no steps, items, ideas or options ("The map is empty"), so an agent can't hand someone a
+  blank canvas while the tool reports success. `--allow-empty` checks or draws an unfinished
+  starter on purpose. FILL-IN.md and the skill say so. Drafts from a model that come back empty
+  get a repair turn.
+- **`doctor` in skill mode** reports "Skill mode: your host's model does the thinking; no keys
+  or installs needed" instead of suggesting provider installs the skill never needs.
+- **Codex, documented and tested:** the Codex CLI and the Codex app read the same `~/.codex`
+  skills folder and `config.toml`. Install the skill with one `curl` line and the MCP server
+  with `codex mcp add decisioncraft -- decisioncraft mcp`; the terminal install prompt also
+  works, because Codex has a terminal.
+
 ## 0.2.2 (2026-10-02)
 
 ### Works in Claude Desktop and ChatGPT, not only coding agents

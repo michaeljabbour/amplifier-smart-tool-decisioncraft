@@ -9,11 +9,14 @@ Pick the line for where you work. Each one sets up the tool and its skill.
 | Where you work | What to do |
 |---|---|
 | **A coding agent with a terminal** (Claude Code, Codex, Amplifier) | Paste: `Install the Decisioncraft tool from https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft by following its README, then run decisioncraft doctor` |
-| **Claude Desktop** | Download [decisioncraft.mcpb](https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft/releases/latest/download/decisioncraft.mcpb), double-click it, then choose Install. No key needed: Claude does the drawing. |
+| **Codex** (CLI or app) | Paste the prompt above, or run: `mkdir -p ~/.codex/skills/decisioncraft && curl -fsSL https://raw.githubusercontent.com/michaeljabbour/amplifier-smart-tool-decisioncraft/main/skills/decisioncraft/SKILL.md -o ~/.codex/skills/decisioncraft/SKILL.md`, then `codex mcp add decisioncraft -- decisioncraft mcp` (after the terminal install below). |
+| **Claude Desktop** | Download [decisioncraft.mcpb](https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft/releases/latest/download/decisioncraft.mcpb), double-click it, then choose Install. No key needed: Claude does the drawing, and the canvas opens right in the chat. |
 | **Claude or ChatGPT, as a Skill** | Download [decisioncraft-skill.zip](https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft/releases/latest/download/decisioncraft-skill.zip). Claude: Customize > Skills > + and upload it (turn on Code execution). ChatGPT: Skills > Create, then upload it. |
 | **Your own terminal** | `uv tool install "amplifier-smart-tool-decisioncraft[smart,mcp] @ git+https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft"`, then `decisioncraft doctor` |
 
-Chat apps without Skills or local tools can't run Decisioncraft yet; use Codex or Claude Code.
+In Claude Desktop, VS Code Copilot, Cursor and other hosts with MCP Apps, the canvas opens right
+in the chat. ChatGPT supports this only for MCP servers on the internet, not local ones. Chat apps
+without Skills or local tools can't run Decisioncraft yet; use Codex or Claude Code.
 Agents installing from a terminal: install with the `uv tool install` line above, copy
 `skills/decisioncraft/SKILL.md` into your skills folder (see [docs/HOSTS.md](docs/HOSTS.md)), then
 run `decisioncraft doctor`.

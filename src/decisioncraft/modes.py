@@ -544,3 +544,36 @@ def quick(options=None, criteria=None, scores=None, *, question: str = "", text:
         "offer_next": "If it is bigger than it first looked, offer the Guided mode: "
         "decisioncraft interview --dir DECISION",
     }
+
+
+def quick_model(result: dict) -> dict:
+    """A small model that draws a `quick` result as a scoring table, for hosts that can show
+    the canvas (MCP Apps). Must-haves stay must-haves (met when scored 3 or more); the rest are
+    scored with the quick weights. Deterministic."""
+    from .model import new_model
+
+    question = result.get("question") or "Which option fits best?"
+    model = new_model("scoring-table", "Quick comparison", question)
+    model["options"] = [{"id": o["id"], "name": o["title"]} for o in result.get("options", [])]
+    criteria, kinds = [], {}
+    for c in result.get("criteria", []):
+        kind = "must" if c.get("importance") == "must" else "scored"
+        kinds[c["id"]] = kind
+        entry = {"id": c["id"], "name": c["label"], "kind": kind}
+        if kind == "scored":
+            entry["weight"] = max(0.5, min(5.0, float(c.get("weight") or 1)))
+        criteria.append(entry)
+    model["criteria"] = criteria
+    scores = []
+    for option, per in (result.get("scores") or {}).items():
+        for criterion, s in per.items():
+            if criterion not in kinds or s.get("score") is None:
+                continue
+            row = {"option": option, "criterion": criterion, "note": s.get("why") or ""}
+            if kinds[criterion] == "must":
+                row["meets"] = float(s["score"]) >= 3
+            else:
+                row["value"] = max(1, min(5, round(float(s["score"]))))
+            scores.append(row)
+    model["scores"] = scores
+    return model

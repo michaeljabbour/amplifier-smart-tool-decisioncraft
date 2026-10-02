@@ -335,7 +335,7 @@ def flips(model, w, cell, scored, eligible, options, limit: int = 3) -> list[dic
                             order.get(f["option"], 0), crit_order.get(f["criterion"], 0)))
     # Check each change against every option, not only the leader: report who ends on top.
     eligible_ids = [r["option"] for r in eligible]
-    checked = []
+    checked, seen = [], set()
     for f in out:
         ww, cc = dict(w), dict(cell)
         if f["kind"] == "weight":
@@ -344,7 +344,10 @@ def flips(model, w, cell, scored, eligible, options, limit: int = 3) -> list[dic
             key = (f["of"], f["criterion"])
             cc[key] = {**cc[key], "value": f["to"]}
         top = _top(eligible_ids, ww, cc, scored, order)
-        if top != lead:
+        # Two challengers can suggest the same change with the same result: report it once.
+        key = (f["kind"], f["criterion"], f["to"], f.get("of") if f["kind"] == "score" else None, top)
+        if top != lead and key not in seen:
+            seen.add(key)
             checked.append({**f, "new_leader": top})
     return checked[:limit]
 

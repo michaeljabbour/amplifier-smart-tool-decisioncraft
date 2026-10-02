@@ -1,6 +1,6 @@
 [project]
 name = "amplifier-smart-tool-decisioncraft"
-version = "0.2.2"
+version = "0.2.3"
 description = "Map how a problem works, gather every point of view, and decide together."
 readme = "README.md"
 license = "MIT"

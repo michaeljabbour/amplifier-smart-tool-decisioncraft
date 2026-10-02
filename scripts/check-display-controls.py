@@ -12,7 +12,7 @@ from playwright.sync_api import sync_playwright
 def main():
     model = dc.new("opportunity-tree", "Display check", "What should we try?")
     model["maps"][0]["root"].update(
-        title="API and API", detail="More context for this choice.", children=[]
+        title="API and API", detail="More context for this choice.", children=[dict(id="trial", title="Try a two-week trial", text="", children=[])]
     )
     model["glossary"] = {"API": "A way for programs to exchange information."}
     model["notes"] = [dict(id="Q1", anchor=model["maps"][0]["root"]["id"],
@@ -37,7 +37,7 @@ def main():
 
         assert state("Technical names on the map") == "false"
         assert not page.locator("#world .techname").count()
-        page.locator("#world .box").click()
+        page.locator("#world .box").first.click()
         assert "More context for this choice." in page.inner_text("#panel")
         page.locator("#pclose").click()
         item("Technical names on the map").click()

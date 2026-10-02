@@ -628,8 +628,13 @@ details.storynotes summary{cursor:pointer;font-size:12.5px;color:var(--accent)}
    a detail panel on the right; zoom buttons bottom right; a walk-through card.
    Maps that hold a plan can be read three ways: Today, Planned, and What changes (one map
    where each box says whether it is new, changed or goes away), plus Side by side. */
-(function () {
+/* Inside an MCP App host (Claude, ChatGPT, VS Code, Cursor) the page has no model until the
+   host delivers the tool result, so the view sets window.DC_DEFER and calls __dcBoot itself.
+   window.DC_HOST, when set, is that host bridge: saveReview(review) and askExperts(note,
+   roles) go through the host's tools/call instead of a download or a local session. */
+window.__dcBoot = function () {
 "use strict";
+const HOST = window.DC_HOST || null;
 
 const $ = (s, r) => (r || document).querySelector(s);
 const read = id => { const n = document.getElementById(id); return n && n.textContent.trim() ? JSON.parse(n.textContent) : null; };
@@ -855,7 +860,7 @@ function slotHtml(s, inner) {
 const slotLabel = (s, text) => (s.change && s.change !== "same" ? CHANGE_WORD[s.change] + ": " : "") + text;
 
 /* ---------- reviewers' rough notes and the experts' replies ---------- */
-const EXPERTS = !!(SESSION && SESSION.experts);
+const EXPERTS = !!(SESSION && SESSION.experts) || !!(HOST && HOST.askExperts);
 const MERGED_NOTES = (MERGED && MERGED.notes) || [];
 const cleanNote = n => { const c = Object.assign({}, n); delete c._waiting; delete c._error; return c; };
 const sameAnchor = (a, b) => (a || null) === (b || null);
@@ -1491,7 +1496,11 @@ function flipsOf(w, eligible) {
     if (f.kind === "weight") ww[f.criterion] = f.to;
     else { const k = f.of + "|" + f.criterion; cell[k] = Object.assign({}, cell[k], {value:f.to}); }
     return Object.assign(f, {new_leader:topOf(ids, ww, cell)});
-  }).filter(f => f.new_leader !== lead).slice(0, 3);
+  }).filter(f => f.new_leader !== lead).filter((f, i, all) => {
+    /* Two challengers can suggest the same change with the same result: say it once. */
+    const key = x => [x.kind, x.criterion, x.to, x.kind === "score" ? x.of : "", x.new_leader].join("|");
+    return all.findIndex(g => key(g) === key(f)) === i;
+  }).slice(0, 3);
 }
 const flipText = f => f.kind === "weight"
   ? `If <b>${esc(critName(f.criterion))}</b> mattered ${f.to > f.from ? "more" : "less"} (weight ${f.from} → ${f.to}), <b>${esc(optName(f.new_leader))}</b> would come out on top.`
@@ -2334,7 +2343,7 @@ function walkChanges(i) {
 function hint() {
   if (S.hintSeen) return;
   const h = $("#hint");
-  h.innerHTML = `<b>New here?</b> ${S.story ? "Pick a view on the left" : "Press <b>Show list</b> to pick a view"}, or press <b>Walk me through it</b>. Click any box to read about it. ${hasChanges(MODEL.maps[S.map]) ? "Use <b>Today</b>, <b>Planned</b> and <b>What changes</b> to see the plan. " : ""}${SESSION ? "Answer questions on the right. Your answers save for your agent automatically; press Finish review when ready." : "Answer questions on the right, then press Save my answers. Send the downloaded file to the review owner."}<br><button id="hintok">Got it</button>`;
+  h.innerHTML = `<b>New here?</b> ${S.story ? "Pick a view on the left" : "Press <b>Show list</b> to pick a view"}, or press <b>Walk me through it</b>. Click any box to read about it. ${hasChanges(MODEL.maps[S.map]) ? "Use <b>Today</b>, <b>Planned</b> and <b>What changes</b> to see the plan. " : ""}${SESSION ? "Answer questions on the right. Your answers save for your agent automatically; press Finish review when ready." : HOST ? "Answer questions on the right, then press Save my answers: they go straight to your agent." : "Answer questions on the right, then press Save my answers. Send the downloaded file to the review owner."}<br><button id="hintok">Got it</button>`;
   h.classList.add("open");
   $("#hintok").addEventListener("click", hideHint);
 }
@@ -2843,10 +2852,15 @@ function wireRough(p) {
 async function askLive(n, roles) {
   n._waiting = true; refreshPanel();
   try {
-    const response = await fetch(SESSION.base + "/experts", {method:"POST", headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({note:cleanNote(n), roles})});
-    const value = await response.json();
-    if (!response.ok) throw new Error(value.error || "The experts could not reply.");
+    let value;
+    if (SESSION && SESSION.experts) {
+      const response = await fetch(SESSION.base + "/experts", {method:"POST", headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({note:cleanNote(n), roles})});
+      value = await response.json();
+      if (!response.ok) throw new Error(value.error || "The experts could not reply.");
+    } else {
+      value = await HOST.askExperts(cleanNote(n), roles, MODEL, reviewData());
+    }
     n.replies = value.replies || [];
     n._waiting = false; persist(); refreshPanel(); toast(`${plural(n.replies.length, "reply")} arrived`.replace("replys", "replies"));
   } catch (error) {
@@ -2930,7 +2944,20 @@ function reviewData() {
     ...(S.whatifs.length ? {whatifs:S.whatifs} : {}),
     ...(S.myNotes.length ? {notes:S.myNotes.map(cleanNote)} : {})};
 }
-function saveReview() { if (SESSION) finishReview(); else downloadReview(); }
+function saveReview() { if (SESSION) finishReview(); else if (HOST && HOST.saveReview) hostSaveReview(); else downloadReview(); }
+/* In an MCP App host a download may be blocked by the sandbox: hand the review to the host's
+   decisioncraft_save_review tool instead, and fall back to a download if the host refuses. */
+async function hostSaveReview() {
+  try {
+    const value = await HOST.saveReview(reviewData());
+    S.lastExport = JSON.stringify([S.answers, S.votes, S.decisions, S.reviewer]);
+    persist();
+    toast(value && value.path ? `Saved for your agent: ${value.path}` : "Saved for your agent.");
+  } catch (error) {
+    toast("The host did not accept the answers, so they are downloading instead.");
+    downloadReview();
+  }
+}
 function downloadReview() {
   const blob = new Blob([JSON.stringify(reviewData(), null, 2)], {type:"application/json"});
   const a = document.createElement("a");
@@ -3012,7 +3039,8 @@ hint();
 if (SESSION) { hideHint(); open("reviewstart"); }
 queueSync();
 addEventListener("resize", () => { fit(); topBar(); });
-})();
+};
+if (!window.DC_DEFER) window.__dcBoot();
 
 </script>
 </body>

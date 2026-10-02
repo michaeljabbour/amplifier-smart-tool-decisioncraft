@@ -82,6 +82,35 @@ coding task. The right behaviour is a normal coding answer with no Decisioncraft
 
 No change to the skill description was needed.
 
+## Skill ZIP in a code sandbox (0.2.3)
+
+From 0.2.3 the build runs this test itself. It adds: `guide` must return the model format,
+`example car` must write its files, the untouched starter must fail `validate` (the map is
+empty) and `render`, `--allow-empty` must accept it, a filled example must validate and render,
+`doctor` must report skill mode, and the ZIP's package files must match a freshly built wheel
+(only `mcp_server.py` is left out on purpose). A ZIP with the model format and examples removed
+fails 5 of the 17 checks, which is the gap Claude Desktop found in 0.2.2.
+
+| Step | Result |
+|---|---|
+| deterministic smoke (`manifest`) | pass |
+| `guide` returns the model format | pass |
+| `example car` writes its files | pass |
+| `triage` | pass |
+| `quick` with scores | pass |
+| `interview --next` | pass |
+| `map --starter` on uploaded files | pass |
+| untouched starter fails `validate` (empty map) | pass |
+| untouched starter passes with `--allow-empty` | pass |
+| `render` refuses the empty starter | pass |
+| `validate` a filled model (car example) | pass |
+| `render` a filled model | pass |
+| hand-written empty model is rejected | pass |
+| `doctor` reports skill mode | pass |
+| plain `map` with no key falls back to the starter | pass |
+| matches the wheel's package files | pass |
+| no top-level `anthropic` / `openai` / `mcp` imports | pass |
+
 ## Skill ZIP in a code sandbox (0.2.2)
 
 `python3 scripts/test-skill-zip.py` unzips `decisioncraft-skill.zip` into a temp folder and runs it
@@ -109,3 +138,42 @@ through `claude_desktop_config.json` and Claude Desktop was restarted. Its log
 successfully", then `initialize`, `tools/list`, `prompts/list` and `resources/list` each answered.
 The config was restored afterwards. Installing the `.mcpb` by double-click needs a person and was
 not automated.
+
+## Codex (0.2.3)
+
+Codex CLI 0.160, `codex exec --sandbox workspace-write`, in a temporary `CODEX_HOME` holding only
+the sign-in, the user's settings without their MCP servers, the skill in `skills/decisioncraft/`,
+and `decisioncraft mcp` added with `codex mcp add`. The user's own `~/.codex` was not touched.
+
+| Prompt | What Codex did | Result |
+|---|---|---|
+| "help me figure out whether to keep or replace my car" (scratch repo) | Read the skill, ran `decisioncraft triage` (guided: a lot at stake, hard to undo), offered to work through it, and asked one question about the car and why replace it. Built no files. | pass |
+| "map this repo and tell me what's missing" (a copy of the sample bike-hire repo) | Ran `doctor`, `map . --dry-run`, `map . --starter --dir repo-map`, read `guide`, filled in the model from the digest, validated and rendered `repo-map/canvas.html`, and summarised seven gaps in a table with the key open question. The model validates with 0 problems. | pass |
+
+It used the command line, not the MCP tools: inside Codex the skill's terminal route came first,
+which is fine, since both reach the same library. The Codex app shares `~/.codex` with the CLI,
+so the same skill and MCP setup apply; the app itself was not driven in this test.
+
+## The canvas in the chat: MCP Apps (0.2.3)
+
+**Reference host.** The MCP Apps reference host (`examples/basic-host` from
+modelcontextprotocol/ext-apps, which loads views through a separate-origin sandbox iframe) was
+driven headlessly with Playwright against `decisioncraft mcp` served over HTTP. Each tool call
+drew the canvas inside the host's iframe, with no console errors:
+
+| Tool call | Result in the host |
+|---|---|
+| `decisioncraft_render` with the car example | the full canvas: scoring table, cost over time, journeys, 14 questions |
+| `decisioncraft_quick` (3 options, a must-have, 3 weighted criteria) | the scoring table with weights, totals and "What would change the winner?" |
+| `decisioncraft_render` with Codex's map of the sample bike-hire repo | How it works, Today / Planned / What changes, 7 changes, 8 roles |
+| Save my answers in the car canvas | the view called `decisioncraft_save_review` through the host; the review file was written and the canvas said where |
+
+**Claude Desktop.** With a temporary entry in `claude_desktop_config.json` (backed up and
+restored byte for byte afterwards), Claude Desktop started the server, sent `initialize`,
+`tools/list`, `prompts/list` and `resources/list`, and advertised MCP Apps support in its
+`initialize` capabilities: `extensions: {"io.modelcontextprotocol/ui": {"mimeTypes":
+["text/html;profile=mcp-app"]}}`. It did not advertise MCP sampling, so in Claude Desktop the
+model-backed steps use an API key if one is set, otherwise `decisioncraft_map` hands Claude a
+starter to fill in and Claude then calls `decisioncraft_render`, which draws the canvas in the
+chat. The view itself is fetched (`resources/read`) only when a visual tool runs in a
+conversation; that needs a person and was not automated.

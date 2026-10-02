@@ -34,6 +34,12 @@ mkdir -p ~/.codex/skills/decisioncraft && curl -fsSL https://raw.githubuserconte
 codex mcp add decisioncraft -- decisioncraft mcp
 ```
 
+The Codex CLI and the Codex app read the same `~/.codex` folder, so these lines set up both:
+the skill in `~/.codex/skills/` and the MCP server in `~/.codex/config.toml`. Codex has a
+terminal, so you can also paste the install prompt from the README and let it do this. Inside
+Codex, `map` lets Codex's own model fill in the map (no API key is billed) unless you choose a
+provider. Tested with Codex CLI 0.160; see docs/HARNESS-TESTS.md.
+
 Older Codex versions without skills: paste the body of `skills/decisioncraft/SKILL.md` into
 your `AGENTS.md`, or point `AGENTS.md` at it.
 
@@ -51,7 +57,8 @@ mkdir -p ~/.amplifier/skills/decisioncraft && curl -fsSL https://raw.githubuserc
 ## Claude Desktop
 
 **One click:** download [decisioncraft.mcpb](https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft/releases/latest/download/decisioncraft.mcpb),
-double-click it and choose Install. Claude Desktop installs Python and the package itself (MCPB
+double-click it and choose Install. The canvas then opens right in the chat when Claude maps,
+compares or draws something. Claude Desktop installs Python and the package itself (MCPB
 `uv` runtime). API keys in the extension settings are optional: without one, `decisioncraft_map`
 writes a starter and Claude fills in the map with its own model. Built from `desktop/`
 (`npx -y @anthropic-ai/mcpb pack desktop dist/decisioncraft.mcpb`).
@@ -103,6 +110,11 @@ starts the server in; pass absolute paths when unsure.
 
 ## Which model answers over MCP
 
+Claude Desktop (checked with version current on 2 October 2026) offers MCP Apps but not MCP
+sampling, so without an API key in the extension settings, `decisioncraft_map` hands Claude a
+starter to fill in with its own model, and the finished map is drawn in the chat by
+`decisioncraft_render`.
+
 `decisioncraft_map`, `decisioncraft_draft`, `decisioncraft_perspectives` and
 `decisioncraft_review_notes` need a language model. The server tries, in order:
 
@@ -143,6 +155,24 @@ while the state is open), `decisioncraft_handoff`, `decisioncraft_close_review`.
 **Resources:** `decisioncraft://templates`, `decisioncraft://roles`,
 `decisioncraft://model-format`, `decisioncraft://writing-guide`,
 `decisioncraft://interview-questions`, `decisioncraft://modes`, `decisioncraft://examples`.
+
+**The canvas in the chat (MCP Apps):** `ui://decisioncraft/canvas.html` (MIME type
+`text/html;profile=mcp-app`) is the canvas as an MCP App view. `decisioncraft_render`,
+`decisioncraft_map`, `decisioncraft_example` and `decisioncraft_quick` declare it
+(`_meta.ui.resourceUri`), so hosts that support MCP Apps draw the result right in the chat:
+today and planned, what changes, scores and every role's notes. The view's Save my answers
+calls `decisioncraft_save_review` (visible only to the view; it writes the review to
+`~/Decisioncraft/reviews/` and returns the path), and Ask the experts calls
+`decisioncraft_review_notes` through the host. The view makes no outside requests. Hosts
+without MCP Apps get the same tools with a short text result and the canvas file path.
+
+## The canvas right in the chat
+
+In Claude Desktop and claude.ai, VS Code Copilot, Cursor, Goose and other hosts that support
+MCP Apps, the canvas opens inside the conversation when one of those tools runs. ChatGPT
+supports MCP Apps too, but only for MCP servers on the internet (developer mode connectors), not
+local ones like `decisioncraft mcp`. Everywhere else, the tools return the canvas file path to
+open in a browser.
 
 ## The agent workflow
 

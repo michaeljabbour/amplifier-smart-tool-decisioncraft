@@ -17,7 +17,7 @@ def main():
     model = dc.new(
         "opportunity-tree", "Local review check", "Which trial should we run?"
     )
-    model["maps"][0]["root"].update(id="goal", title="Choose a trial", children=[])
+    model["maps"][0]["root"].update(id="goal", title="Choose a trial", children=[dict(id="trial", title="Try a two-week trial", text="", children=[])])
     model["notes"] = [
         dict(
             id="Q1",

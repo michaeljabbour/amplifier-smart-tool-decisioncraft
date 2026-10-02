@@ -46,3 +46,25 @@ def render(model: dict, *, reviews: list[dict] | None = None, merged: dict | Non
     }
     # one pass over the template only, so text inside the model is never rescanned
     return re.sub(r"__(TITLE|MODEL|MERGED|SINCE|META|CSS|JS)__", lambda m: slots[m.group(1)], page)
+
+
+APP_URI = "ui://decisioncraft/canvas.html"
+APP_MIME = "text/html;profile=mcp-app"
+
+
+def app_html() -> str:
+    """The canvas as an MCP App view: the same engine and styles with no model inside. It waits
+    for the host to deliver a tool result whose structuredContent holds {model, merged?, since?}
+    and then draws it (resources/app-bridge.js). Self-contained: no outside requests."""
+    from .help import VERSION
+
+    res = files("decisioncraft").joinpath("resources")
+    page = res.joinpath("canvas.html").read_text(encoding="utf-8")
+    bridge = res.joinpath("app-bridge.js").read_text(encoding="utf-8").replace("__VERSION__", VERSION)
+    slots = {
+        "TITLE": "Decision map", "MODEL": "", "MERGED": "", "SINCE": "", "META": "",
+        "CSS": res.joinpath("canvas.css").read_text(encoding="utf-8"),
+        "JS": bridge + "\n" + res.joinpath("canvas.js").read_text(encoding="utf-8"),
+    }
+    return re.sub(r"__(TITLE|MODEL|MERGED|SINCE|META|CSS|JS)__", lambda m: slots[m.group(1)], page)
+

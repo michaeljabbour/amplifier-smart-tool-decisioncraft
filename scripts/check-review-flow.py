@@ -18,7 +18,7 @@ from playwright.sync_api import sync_playwright
 
 def main():
     model = dc.new('opportunity-tree', 'Review flow check', 'Which trial should we run?')
-    model['maps'][0]['root'].update(id='goal', title='Choose a trial', children=[])
+    model['maps'][0]['root'].update(id='goal', title='Choose a trial', children=[dict(id="trial", title="Try a two-week trial", text="", children=[])])
     model['notes'] = [dict(id='Q1', role='owner', anchor='goal', title='Choose a trial',
         question='Which trial should we run?', recommend='Use one small trial.', urgency='must'),
         dict(id='Q2', role='engineer', anchor='goal', title='Support the plan',
