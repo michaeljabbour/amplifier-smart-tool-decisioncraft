@@ -86,19 +86,16 @@ def _model_complete(ctx, loop, no_model_message: str):
     return complete, how
 
 
-_PATHLIKE = ("/", "./", "../", "~", ".\\")
 
 
 def _check_target(target: str) -> str:
     """Refuse a path that doesn't exist instead of silently treating it as a topic."""
-    t = target.strip()
-    looks_like_path = t.startswith(_PATHLIKE) or ((("/" in t) or ("\\" in t)) and " " not in t and "://" not in t)
-    if looks_like_path and not Path(t).expanduser().exists():
-        raise ValueError(
-            f"{t} looks like a path but nothing is there (the server's folder is {Path.cwd()}). "
-            "Pass an absolute path, or put a topic in plain words."
-        )
-    return t
+    from .mapper import check_target
+
+    try:
+        return check_target(target)
+    except ValueError as error:
+        raise ValueError(f"{error} Pass an absolute path, or put a topic in plain words.") from None
 
 
 def _writable_dir(directory: str) -> None:
@@ -197,9 +194,9 @@ def build_server():
         key = session.base.rsplit("/", 1)[-1]
         active[key] = session
         if open_browser:
-            import webbrowser
+            from .term import open_in_browser
 
-            webbrowser.open(session.url)
+            open_in_browser(session.url)
         return {
             **session.info(),
             "session_id": key,

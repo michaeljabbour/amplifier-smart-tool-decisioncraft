@@ -50,3 +50,31 @@ class Term:
 def interactive() -> bool:
     """True when a person can answer prompts: stdin and stderr are both terminals."""
     return sys.stdin is not None and sys.stdin.isatty() and sys.stderr.isatty()
+
+
+def open_in_browser(url: str) -> bool:
+    """Open `url` in a browser without letting helper programs write to the terminal.
+
+    Python's webbrowser runs helpers such as osascript or xdg-open, and inside a sandbox
+    (Codex, CI) they print their own errors straight to stderr. Point the process's
+    stderr at /dev/null for the call, so the caller can print one plain fallback line.
+    """
+    import webbrowser
+
+    try:
+        saved = os.dup(2)
+    except OSError:
+        saved = None
+    try:
+        if saved is not None:
+            devnull = os.open(os.devnull, os.O_WRONLY)
+            os.dup2(devnull, 2)
+            os.close(devnull)
+        try:
+            return bool(webbrowser.open(url))
+        except Exception:
+            return False
+    finally:
+        if saved is not None:
+            os.dup2(saved, 2)
+            os.close(saved)

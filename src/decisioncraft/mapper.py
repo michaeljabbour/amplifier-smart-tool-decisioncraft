@@ -73,6 +73,29 @@ def map_roles(ids: list[str] | None = None) -> list[dict]:
     return [base[i] for i in ids]
 
 
+_PATH_PREFIXES = ("/", "./", "../", "~", ".\\", "..\\")
+
+
+def looks_like_path(target: str) -> bool:
+    """True when `target` reads as a file or folder rather than a topic in plain words."""
+    t = (target or "").strip()
+    if not t or "://" in t:
+        return False
+    if t.startswith(_PATH_PREFIXES) or t in (".", ".."):
+        return True
+    if " " in t:
+        return False
+    return "/" in t or "\\" in t or Path(t).suffix.lower() in TEXT_EXT | CODE_EXT | {".pdf", ".docx"}
+
+
+def check_target(target: str) -> str:
+    """Refuse a path that doesn't exist instead of quietly mapping it as a topic."""
+    t = (target or "").strip()
+    if looks_like_path(t) and not Path(t).expanduser().exists():
+        raise ValueError(f"{t} looks like a path, but nothing is there (looked from {Path.cwd()}).")
+    return t
+
+
 def detect(target: str) -> str:
     """repo, folder, file, url or topic."""
     t = (target or "").strip()

@@ -405,8 +405,12 @@ def _norm_scores(scores, options, criteria) -> dict:
     for s in items:
         o = oid.get(str(s.get("option", "")).lower()) or oid.get(s.get("option"))
         c = cid.get(str(s.get("criterion", "")).lower()) or cid.get(s.get("criterion"))
-        if o is None or c is None:
-            raise ValueError(f"Score for unknown option or criterion: {s.get('option')!r} / {s.get('criterion')!r}.")
+        if o is None:
+            valid = ", ".join(repr(x["title"]) for x in options) or "none yet"
+            raise ValueError(f"Score for unknown option {s.get('option')!r}. Options are: {valid}.")
+        if c is None:
+            valid = ", ".join(repr(x["label"]) for x in criteria) or "none yet (add --criterion)"
+            raise ValueError(f"Score for unknown criterion {s.get('criterion')!r}. Criteria are: {valid}.")
         v = s.get("score")
         if v is None:
             continue
@@ -463,7 +467,8 @@ def quick(options=None, criteria=None, scores=None, *, question: str = "", text:
     crit = _norm_criteria(criteria)
     if len(opts) < 2:
         raise ValueError("A comparison needs at least two options (doing nothing can be one).")
-    grid = _norm_scores(scores, opts, crit) if crit else {o["id"]: {} for o in opts}
+    # Always check scores, so a score for something that isn't listed is an error, not silently dropped.
+    grid = _norm_scores(scores, opts, crit) if (crit or scores) else {o["id"]: {} for o in opts}
     # Percent of what was scored for anyone: a criterion nobody has scored yet (say an
     # unchecked must-have) would only drag every option down by the same amount.
     scored = {cid for o in opts for cid in grid[o["id"]]}

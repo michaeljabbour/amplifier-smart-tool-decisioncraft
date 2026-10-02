@@ -20,8 +20,7 @@ the install line above (add `--force`), then check again.
 `decisioncraft doctor` says which one they will use. In order: an `ANTHROPIC_API_KEY`
 (`claude-sonnet-5-5`) or `OPENAI_API_KEY` (`gpt-5.5`) already set means nothing extra to
 type; `DECISIONCRAFT_PROVIDER` / `DECISIONCRAFT_MODEL` or `decisioncraft config set` pick one
-for good; `--provider NAME --model NAME` picks one for a run (`perspectives` and `session`
-take `--model-name`, because their first argument is the model file); `--complete-cmd 'cmd'`
+for good; `--provider NAME --model NAME` picks one for a run, on every command; `--complete-cmd 'cmd'`
 routes through your own model; and with no model at all, `map --starter` lets you fill the
 map in yourself. If a model step fails with "Say which model should answer", use one of these.
 

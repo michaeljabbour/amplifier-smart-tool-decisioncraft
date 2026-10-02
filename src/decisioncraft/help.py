@@ -393,8 +393,8 @@ CAPABILITIES: dict[str, dict] = {
             ("--per-role", "Most notes to add per role (default 3)."),
             ("--provider", "anthropic or openai. Needs the matching API key."),
             (
-                "--model-name",
-                "Model name (required for openai; optional default for anthropic).",
+                "--model",
+                "Model name. Optional: with only an API key set, it picks one.",
             ),
             (
                 "--complete-cmd",
@@ -409,7 +409,7 @@ CAPABILITIES: dict[str, dict] = {
             ("--dry-run", "With --notes: show what would be asked, with no model call."),
         ],
         "example": "decisioncraft perspectives model.json --provider anthropic "
-        "--model-name <model-name> --out model.json",
+        "--model claude-sonnet-5-5 --out model.json",
         "result": "The model with new notes added; existing notes are kept. With --notes: the answers "
         "file with each role's reply (a short view and one question) under each reviewer note.",
         "fails": "Neither --provider nor --complete-cmd (exit 2); a provider with no key, "

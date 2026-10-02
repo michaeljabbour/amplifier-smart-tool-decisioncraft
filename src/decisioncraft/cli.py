@@ -428,8 +428,9 @@ def _model_flags(c, *, name_flag: str, optional: bool = False) -> None:
     if name_flag == "--model":
         g.add_argument("--model", metavar="NAME", help="Model name for --provider.")
     else:
-        g.add_argument("--model-name", dest="model_name", metavar="NAME",
+        g.add_argument("--model", dest="model_name", metavar="NAME",
                        help="Model name for --provider (the positional is the model file).")
+        g.add_argument("--model-name", dest="model_name", help=argparse.SUPPRESS)  # older spelling
     g.add_argument("--complete-cmd", metavar="CMD",
                    help="Route calls through your own command: it reads {system, prompt} "
                    "JSON on stdin and prints the reply.")
@@ -537,12 +538,12 @@ class Run:
         if os.environ.get("DECISIONCRAFT_NO_BROWSER"):
             self.term.say(f"Not opening a browser (DECISIONCRAFT_NO_BROWSER is set): {path}")
             return
-        import webbrowser
+        from .term import open_in_browser
 
-        if webbrowser.open(path.resolve().as_uri()):
+        if open_in_browser(path.resolve().as_uri()):
             self.term.say("Opened it in your browser.")
         else:
-            self.term.warn(f"Couldn't open a browser here. Open this file yourself: {path.resolve()}")
+            self.term.warn(f"Couldn't open a browser here; open: {path.resolve()}")
 
     def ask(self, prompt: str, default: str = "") -> str:
         shown = f"{prompt} [{default}]: " if default else f"{prompt}: "
@@ -850,9 +851,10 @@ def do_session(run: Run) -> None:
         emit("started", active.info())
         run.term.say(f"Review is open at {active.url}")
         if a.open:
-            import webbrowser
+            from .term import open_in_browser
 
-            webbrowser.open(active.url)
+            if not open_in_browser(active.url):
+                run.term.warn(f"Couldn't open a browser here; open: {active.url}")
         if a.until_finished:
             run.term.say("Waiting for the person to press Finish review (Ctrl-C to stop) ...")
             active.wait()
@@ -1282,7 +1284,14 @@ def do_quick(run: Run) -> Out:
     if not options and complete is None:
         raise ToolError("missing_argument", "A quick comparison needs at least two options.", field="--option",
                         exit_code=E.USAGE, hint='Add --option "A" --option "B" (doing nothing can be one).')
-    r = lib.quick(options, criteria, scores or None, question=question, text=a.text, complete=complete)
+    try:
+        r = lib.quick(options, criteria, scores or None, question=question, text=a.text, complete=complete)
+    except ValueError as e:
+        if "unknown option" in str(e) or "unknown criterion" in str(e):
+            raise ToolError("invalid_input", str(e), field="--score", exit_code=E.INPUT,
+                            hint='Name each option with --option and each criterion with --criterion, then score '
+                                 'them: --score "OPTION=CRITERION=4".') from None
+        raise
     text = None
     if run.pretty:
         lines = [run.term.paint(r["question"], "bold")] if r["question"] else []
@@ -1334,8 +1343,15 @@ def do_interview(run: Run) -> Out:
 
 def do_map(run: Run) -> Out:
     a = run.args
-    from .mapper import detect, map_roles
+    from .mapper import check_target, detect, map_roles
     from .starter import slug
+
+    try:
+        check_target(a.target)
+    except ValueError as e:
+        raise ToolError("file_not_found", str(e), file=a.target, exit_code=E.INPUT,
+                        hint="Check the path, or put a topic in plain words in quotes, "
+                             'for example: decisioncraft map "how our onboarding works".') from None
 
     roles = [r.strip() for r in a.roles.split(",") if r.strip()] if a.roles else None
     try:

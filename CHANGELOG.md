@@ -2,6 +2,16 @@
 
 ## 0.2.1 (2026-10-02)
 
+### Small fixes
+
+- `quick` refuses a score for an option or criterion it doesn't know, and names the valid ones,
+  instead of quietly leaving it out.
+- Every model-backed command takes `--model`, including `perspectives` and `session`
+  (`--model-name` still works).
+- `--open` inside a sandbox prints one plain line when no browser can open, without the
+  browser helper's own errors.
+- `map ./something-missing` says the path isn't there instead of mapping it as a topic.
+
 ### Works with just an API key
 
 - `map`, `draft` and `perspectives` no longer need `--provider` and `--model`. With

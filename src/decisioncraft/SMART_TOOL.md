@@ -263,7 +263,7 @@ If you are an agent, choose the first that fits:
    `decisioncraft_templates` and `decisioncraft_validate`.
 5. **A vendor SDK.** With `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` set and the `[smart]`
    extra installed, no flags are needed. Pin one with `--provider anthropic --model
-   claude-sonnet-5-5` (`--model-name` for perspectives) or `decisioncraft config set`.
+   claude-sonnet-5-5` (every command takes `--model`) or `decisioncraft config set`.
 
 ## For agents and scripts
 
