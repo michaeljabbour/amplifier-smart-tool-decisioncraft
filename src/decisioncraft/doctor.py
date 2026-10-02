@@ -147,6 +147,17 @@ def doctor(*, directory: str = ".", complete_cmd: str | None = None, live: bool 
         if answer and not sdks.get(answer["provider"]):
             answer = None
 
+    from .intelligence import detect_host, host_first
+
+    host = detect_host()
+    agent_first = host_first()
+    if agent_first:
+        add("host", "ok", f"Running inside {host}: map lets {host} fill in the map with its own model "
+            "(no API key is billed). Other model steps would bill your key and say so.",
+            "To use your API key for map too: decisioncraft config set provider anthropic (or openai)")
+    elif host:
+        add("host", "ok", f"Running inside {host}, but a model is chosen explicitly, so that model answers.")
+
     mcp = _pkg("mcp")
     if mcp:
         add("mcp", "ok", f"mcp {mcp} installed: decisioncraft mcp can serve MCP hosts")
@@ -162,11 +173,16 @@ def doctor(*, directory: str = ".", complete_cmd: str | None = None, live: bool 
         "draft_with_complete_cmd": routing_ready,
         "draft_by_default": bool(answer),
         "mcp": bool(mcp),
+        "host": host,
+        "map_uses_host_model": bool(agent_first),
     }
     if failed:
         text = "Some things need fixing before you start (marked fix)."
     elif not (answer or routing_ready):
         text = "Ready to draw, review and compare. To draft with a model, set up a provider or --complete-cmd."
+    elif agent_first:
+        text = (f"Ready. Inside {host}, map hands the drawing to {host}'s own model. "
+                "Try: decisioncraft map . --open")
     elif answer:
         text = (f"Ready, including drafting with a model: {answer['provider']} {answer['model']}. "
                 "Try: decisioncraft map ./your-repo --open")

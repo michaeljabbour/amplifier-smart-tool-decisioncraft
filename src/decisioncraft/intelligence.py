@@ -83,6 +83,46 @@ def save_config(values: dict) -> str:
     return str(p)
 
 
+# Environment markers that agent harnesses set for the commands they run. A host can also
+# declare itself with DECISIONCRAFT_HOST=<name>, or opt out with DECISIONCRAFT_HOST=none.
+HOST_MARKERS = (
+    ("Claude Code", ("CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT")),
+    ("Codex", ("CODEX_SANDBOX", "CODEX_SANDBOX_NETWORK_DISABLED", "CODEX_THREAD_ID", "CODEX_CI")),
+    ("Amplifier", ("AMPLIFIER_SESSION_ID", "AMPLIFIER_SESSION")),
+)
+
+
+def detect_host() -> str | None:
+    """The agent harness this process runs inside, or None. DECISIONCRAFT_HOST wins."""
+    declared = os.environ.get("DECISIONCRAFT_HOST", "").strip()
+    if declared:
+        return None if declared.lower() in ("none", "off", "0", "no") else declared
+    for name, keys in HOST_MARKERS:
+        if any(os.environ.get(k) for k in keys):
+            return name
+    return None
+
+
+def explicit_choice(provider: str | None = None) -> str | None:
+    """Where an explicit model choice comes from (flag, env or config), or None when the tool
+    would only be guessing from an API key."""
+    if provider:
+        return "--provider"
+    if os.environ.get("DECISIONCRAFT_PROVIDER"):
+        return "DECISIONCRAFT_PROVIDER"
+    if load_config().get("provider"):
+        return "config"
+    return None
+
+
+def host_first(provider: str | None = None, complete_cmd: str | None = None) -> str | None:
+    """The host whose own model should answer instead of an API key: inside a detected agent,
+    when nobody chose a model explicitly. None means use the normal order."""
+    if complete_cmd or explicit_choice(provider):
+        return None
+    return detect_host()
+
+
 def resolve(provider: str | None = None, model: str | None = None) -> dict:
     """Which provider and model will answer, and why. Precedence, first that is set wins:
     --provider/--model, DECISIONCRAFT_PROVIDER/DECISIONCRAFT_MODEL, the user config file, then

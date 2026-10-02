@@ -1044,6 +1044,14 @@ def _complete_kwargs(run: Run, *, name_attr: str) -> tuple[dict, str]:
             exit_code=E.SETUP, field="--provider",
         ) from None
     fn = provider_complete(r["provider"], r["model"])
+    from .intelligence import host_first
+
+    host = host_first(a.provider, a.complete_cmd)
+    if host:
+        env = "ANTHROPIC_API_KEY" if r["provider"] == "anthropic" else "OPENAI_API_KEY"
+        run.term.warn(f"Running inside {host}, but this step bills {env}, not {host}. To route it "
+                      f"through {host}'s model use --complete-cmd or the MCP server; to keep using "
+                      f"the key quietly: decisioncraft config set provider {r['provider']}")
     if r["escalate"]:
         run.escalate = escalation_complete(r["provider"], r["escalate"])
     more = f"; tries {r['escalate']} once if the draft still has problems" if run.escalate else ""
@@ -1377,7 +1385,16 @@ def do_map(run: Run) -> Out:
             lines.append(f"Model calls: {plan['model_calls']} (none now: this was a dry run).")
             text = "\n".join(lines) + "\n"
         return Out(data=plan, text=text)
-    if a.starter:
+    from .intelligence import host_first
+
+    host = None if a.starter else host_first(a.provider, a.complete_cmd)
+    if host:
+        # Inside an agent nobody pointed at an API key: let the agent draw the map with its own
+        # model (and its own bill) instead of quietly charging ANTHROPIC_API_KEY / OPENAI_API_KEY.
+        run.term.say(f"Running inside {host}: your agent will fill in the map with its own model. "
+                     "To use your API key instead: --provider anthropic (or openai), "
+                     "or: decisioncraft config set provider anthropic")
+    if a.starter or host:
         kind = detect(a.target)
         page = Path(a.page).expanduser().read_text(encoding="utf-8") if a.page else ""
         try:
@@ -1401,7 +1418,8 @@ def do_map(run: Run) -> Out:
         return Out(data={"directory": str(folder.resolve()), "model_path": str((folder / "model.json").resolve()),
                          "digest_path": str((folder / "material" / "digest.md").resolve()),
                          "instructions_path": str((folder / "FILL-IN.md").resolve()),
-                         "instructions": st["instructions"], "plan": st["plan"]},
+                         "instructions": st["instructions"], "plan": st["plan"],
+                         "route": "host" if host else "starter", "host": host},
                    files=files, next=nxt, text="")
     kind = detect(a.target)
     if kind == "url" and not a.page and not a.allow_network:
