@@ -17,12 +17,12 @@ choice" or `--version` is not recognised, an older copy is first on the PATH: up
 the install line above (add `--force`), then check again.
 
 **First run: which model?** `map`, `draft`, `perspectives` and Ask the experts need a model.
-`decisioncraft doctor` says which one they will use. In order: an `ANTHROPIC_API_KEY`
-(`claude-sonnet-5-5`) or `OPENAI_API_KEY` (`gpt-5.5`) already set means nothing extra to
-type; `DECISIONCRAFT_PROVIDER` / `DECISIONCRAFT_MODEL` or `decisioncraft config set` pick one
-for good; `--provider NAME --model NAME` picks one for a run, on every command; `--complete-cmd 'cmd'`
-routes through your own model; and with no model at all, `map --starter` lets you fill the
-map in yourself. If a model step fails with "Say which model should answer", use one of these.
+`decisioncraft doctor` says which one applies. In order: an explicit choice wins
+(`--provider`/`--model`, `DECISIONCRAFT_PROVIDER`/`DECISIONCRAFT_MODEL`, or `decisioncraft config set`);
+otherwise, **inside you (an agent harness), `map` hands the drawing to you**: it writes a digest and a
+starter map, you fill it in with your own model, so the user's API key is not billed; outside an agent,
+an `ANTHROPIC_API_KEY` (`claude-sonnet-5-5`) or `OPENAI_API_KEY` (`gpt-5.5`) answers and is billed;
+`--complete-cmd 'cmd'` routes through any model you name; `map --starter` always works with no model.
 
 Then run `decisioncraft --help` and follow it. It is the full guide and stays correct
 when the tool changes. Each command has its own: `decisioncraft <command> --help`.

@@ -65,3 +65,47 @@ What this changed:
 - Real-model quality of `map` with `--complete-cmd` or `--provider` was not scored here;
   the agents wrote the models themselves from the digest.
 - Phones were not tested.
+
+## False positives: coding questions that must not trigger it (0.2.2)
+
+In a scratch Python repo with the skill installed, each harness got a code-level choice inside a
+coding task. The right behaviour is a normal coding answer with no Decisioncraft. Run through Forge
+(`delegate claude --model sonnet` and `codex-exec --sandbox read-only`), 2026-10-02.
+
+| Prompt | Claude Code | Codex |
+|---|---|---|
+| "should I use a map or a list here?" | coding answer, not triggered | coding answer, not triggered |
+| "torn between pytest and unittest for this file" | coding answer, not triggered | coding answer, not triggered |
+| "keep or replace this regex?" | coding answer, not triggered | coding answer, not triggered |
+| "which is better here, async or threads?" | coding answer, not triggered | coding answer, not triggered |
+| Control: "my car lease is up in March… keep it or replace it? help me think it through" | offered the guided interview and a map (triggered, as it should) | ran Decisioncraft and asked the first question (triggered, as it should) |
+
+No change to the skill description was needed.
+
+## Skill ZIP in a code sandbox (0.2.2)
+
+`python3 scripts/test-skill-zip.py` unzips `decisioncraft-skill.zip` into a temp folder and runs it
+the way a Skills sandbox would: `python3 -I -S` (no site-packages, no user site, no PYTHON*
+environment) with networking disabled (any socket connect raises).
+
+| Step | Result |
+|---|---|
+| deterministic smoke (`manifest`) | pass |
+| `triage` | pass |
+| `quick` with scores | pass |
+| `interview --next` | pass |
+| `map --starter` on uploaded files | pass |
+| `guide` | pass |
+| `validate` a hand-written model | pass (reports its problems) |
+| `render` → `canvas.html` | pass |
+| plain `map` with no key falls back to the starter | pass |
+| no top-level `anthropic` / `openai` / `mcp` imports | pass |
+
+## Claude Desktop extension (0.2.2)
+
+The extension's server (`desktop/src/server.py`, MCPB `uv` runtime) was added to Claude Desktop
+through `claude_desktop_config.json` and Claude Desktop was restarted. Its log
+(`~/Library/Logs/Claude/mcp-server-decisioncraft.log`) showed: "Server started and connected
+successfully", then `initialize`, `tools/list`, `prompts/list` and `resources/list` each answered.
+The config was restored afterwards. Installing the `.mcpb` by double-click needs a person and was
+not automated.

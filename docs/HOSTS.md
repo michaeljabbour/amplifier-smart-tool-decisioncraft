@@ -48,6 +48,40 @@ mkdir -p ~/.amplifier/skills/decisioncraft && curl -fsSL https://raw.githubuserc
   -o ~/.amplifier/skills/decisioncraft/SKILL.md
 ```
 
+## Claude Desktop
+
+**One click:** download [decisioncraft.mcpb](https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft/releases/latest/download/decisioncraft.mcpb),
+double-click it and choose Install. Claude Desktop installs Python and the package itself (MCPB
+`uv` runtime). API keys in the extension settings are optional: without one, `decisioncraft_map`
+writes a starter and Claude fills in the map with its own model. Built from `desktop/`
+(`npx -y @anthropic-ai/mcpb pack desktop dist/decisioncraft.mcpb`).
+
+**By hand:** add this to `~/Library/Application Support/Claude/claude_desktop_config.json`
+(Windows: `%APPDATA%\Claude\claude_desktop_config.json`), then quit and reopen Claude Desktop.
+Claude Desktop does not read your shell's PATH, so give `uvx` its full path (`which uvx`):
+
+```json
+{
+  "mcpServers": {
+    "decisioncraft": {
+      "command": "/full/path/to/uvx",
+      "args": ["--from", "amplifier-smart-tool-decisioncraft[mcp] @ git+https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft", "decisioncraft", "mcp"],
+      "env": {"DECISIONCRAFT_HOST": "Claude Desktop"}
+    }
+  }
+}
+```
+
+**As a Skill (also claude.ai and ChatGPT):** download
+[decisioncraft-skill.zip](https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft/releases/latest/download/decisioncraft-skill.zip). Claude:
+Customize > Skills > + and upload it, with Code execution turned on. ChatGPT: Skills > Create,
+then upload it. The skill carries the library itself and runs in the host's code sandbox with no
+key, pip or network: the host's model writes the map, Decisioncraft checks and draws it, and the
+canvas comes back as a file to download. Build it with `python3 scripts/build-skill-zip.py`.
+
+ChatGPT connects only to MCP servers on the internet, not local ones, so the local server does
+not reach it; use the Skill, or Codex.
+
 ## Any other MCP host
 
 Run `decisioncraft mcp` as a stdio server. In a host that uses an `mcpServers` config:

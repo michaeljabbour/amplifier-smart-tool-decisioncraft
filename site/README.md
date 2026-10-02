@@ -5,13 +5,14 @@ lives in `site.json`. `site/theme/` is a versioned copy of the family theme (ver
 0.1.0, MIT licensed; see `site/theme/LICENSE`), so a build does not depend on a moving
 remote theme or an online service.
 
-Two local changes to the copy:
+Local changes to the copy:
 
 - `site/theme/family.json` registers this page under the key `decisioncraft`, because the
   theme looks up each page's repository there.
 - `site/theme/build.py`: a capability demo may set `link` and `link_text` to add a link
   next to "Watch full size". The page uses it to open each example canvas, which the
   publish step copies to `examples/<name>.html`.
+- An install band under the hero (`install_options` and `install_footnote` in `site.json`, rendered by `install_options()` in `build.py`, styled at the end of `style.css`), and a smaller product name on phones narrower than 520px.
 
 ## Build and preview
 

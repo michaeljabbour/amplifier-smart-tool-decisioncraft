@@ -153,5 +153,23 @@
       "link_text": "Open the example canvas"
     }
   ],
-  "agent_install": "Install https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft"
+  "install_options": [
+    {
+      "title": "Coding agents: Claude Code, Codex, Amplifier",
+      "text": "Install the Decisioncraft tool from https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft by following its README, then run decisioncraft doctor"
+    },
+    {
+      "title": "Claude Desktop: one-click extension",
+      "text": "Download decisioncraft.mcpb, double-click it, then choose Install",
+      "link": "https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft/releases/latest/download/decisioncraft.mcpb",
+      "link_text": "Download decisioncraft.mcpb"
+    },
+    {
+      "title": "Claude or ChatGPT: Skills upload",
+      "text": "Claude: Customize > Skills > + > upload decisioncraft-skill.zip (turn on Code execution). ChatGPT: Skills > Create, then upload it.",
+      "link": "https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft/releases/latest/download/decisioncraft-skill.zip",
+      "link_text": "Download decisioncraft-skill.zip"
+    }
+  ],
+  "install_footnote": "Chat apps without Skills or local tools can't run Decisioncraft yet; use Codex or Claude Code."
 }

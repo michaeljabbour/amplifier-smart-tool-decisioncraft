@@ -12,7 +12,7 @@ from importlib.resources import files
 from .model import templates
 
 NAME = "decisioncraft"
-VERSION = "0.2.1"
+VERSION = "0.2.2"
 
 CAPABILITIES: dict[str, dict] = {
     "map": {

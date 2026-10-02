@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.2.2 (2026-10-02)
+
+### Works in Claude Desktop and ChatGPT, not only coding agents
+
+- **Claude Desktop extension:** `decisioncraft.mcpb` (built from `desktop/`, MCPB `uv` runtime).
+  Double-click to install; Claude Desktop sets up Python and the package. Keys are optional.
+- **Skill ZIP:** `decisioncraft-skill.zip` carries the library itself, for Claude (Customize >
+  Skills, with Code execution) and ChatGPT Skills. It runs in the host's sandbox with no key, pip
+  or network; the host's model writes the map and Decisioncraft checks and draws it. Built by
+  `scripts/build-skill-zip.py`, tested by `scripts/test-skill-zip.py`.
+- **Install, three ways:** the page and README now say exactly what to do for a coding agent,
+  Claude Desktop, or a Skills host, and that chat-only apps can't run it yet.
+
+### No surprise bills inside an agent
+
+- Inside Claude Code, Codex or Amplifier with no explicit model choice, `map` lets the agent
+  draw the map with its own model instead of quietly billing `ANTHROPIC_API_KEY` or
+  `OPENAI_API_KEY`. Other model steps there say which key they bill. `doctor` reports which
+  applies. Hosts can declare themselves with `DECISIONCRAFT_HOST`, or turn this off with
+  `DECISIONCRAFT_HOST=none`.
+
+### Shorter README, tested triggers
+
+- The README keeps install, a first map, which model answers, the three depths and the examples;
+  the reference sections moved to `docs/GUIDE.md`.
+- `docs/HARNESS-TESTS.md` now logs false positives: coding questions in Claude Code and Codex
+  that correctly did not trigger the skill.
+- The product page title fits narrow phones.
+
 ## 0.2.1 (2026-10-02)
 
 ### Small fixes

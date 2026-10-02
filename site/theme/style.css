@@ -1165,3 +1165,17 @@ p+p {
 
 .product-image video { display: block; height: auto; }
 .demo-actions { display: flex; align-items: center; gap: 18px; flex-shrink: 0; }
+
+/* Decisioncraft local addition: install choices in a band under the hero. */
+.install-band { padding-top: 0; }
+.install-band .eyebrow { margin-bottom: 0; }
+.install-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; margin-top: 12px; }
+.install-cell { min-width: 0; display: flex; flex-direction: column; }
+.install-cell .copy-region { margin: 0; flex: 1; display: flex; flex-direction: column; }
+.install-cell .code-box { flex: 1; margin: 0; }
+.install-cell .code-box pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.install-cell .status-message:empty { display: none; }
+.install-note { margin: 8px 0 0; font-size: 14px; }
+@media (max-width: 900px) { .install-options { grid-template-columns: 1fr; } }
+/* The product name is one long word: keep it inside narrow phones. */
+@media (max-width: 520px) { .tool-hero h1 { font-size: 16vw; overflow-wrap: anywhere; } }

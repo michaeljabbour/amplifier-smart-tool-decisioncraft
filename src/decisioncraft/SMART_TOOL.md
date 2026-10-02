@@ -1,7 +1,7 @@
 ---
 smart_tool_format: 1
 name: decisioncraft
-version: 0.2.1
+version: 0.2.2
 description: Point it at anything (a codebase, a folder of notes, a page or a topic) and get a map of how it works today, how it could work, the gaps as user stories with 'done when' checks, and a note from every role. It also helps someone weigh a choice at the right depth, from a quick side-by-side in the chat to a full team review. Use for 'map this codebase', 'show me how X works', 'as-is and to-be', 'where are the gaps', 'turn these notes into a process map', 'review this process', and whenever someone is weighing options without saying decision, such as 'should I', 'torn between', 'pros and cons', 'which is better', 'renew or buy', 'keep or replace', 'help me think this through', or comparing offers, quotes or vendors. Not for factual questions or trivial picks.
 use_cases:
   - Point it at a codebase, a folder of notes or a topic and see how it works today, how it could work, and the gaps as user stories
@@ -218,11 +218,18 @@ plain word rules, and both use a model only if you name one (`--complete-cmd` or
 
 ## Which model answers
 
-`map`, `draft` and `perspectives` need a model. **With an API key set, nothing else is
-needed:** `decisioncraft map ./repo --open` picks the model itself and says which on stderr.
-The order, first that is set wins: `--provider`/`--model`, then `DECISIONCRAFT_PROVIDER` /
-`DECISIONCRAFT_MODEL`, then `decisioncraft config set provider|model ...` (a small file in
-your config folder), then whichever key is set, Anthropic first. Defaults: Anthropic
+`map`, `draft` and `perspectives` need a model. The order, first that applies wins, and the
+command says which on stderr:
+
+1. An explicit choice: `--provider`/`--model`, then `DECISIONCRAFT_PROVIDER` /
+   `DECISIONCRAFT_MODEL`, then `decisioncraft config set provider|model ...` (a small file in
+   your config folder).
+2. The agent harness it runs inside (Claude Code, Codex, Amplifier, detected from their
+   environment, or declared with `DECISIONCRAFT_HOST=name`; `DECISIONCRAFT_HOST=none` turns
+   this off): `map` takes the `--starter` route so the agent draws the map with its own model
+   and **no API key is billed**. Other model steps there use the key and print a billing note.
+   Over MCP the host's model is asked through sampling first.
+3. Whichever API key is set, Anthropic first. **This is billed to that key.** Defaults: Anthropic
 `claude-sonnet-5-5`, trying `claude-opus-5-5` once if a draft still has problems after a
 repair; OpenAI `gpt-5.5` (and `gpt-5.5-pro` once, if your account has it). `decisioncraft
 doctor` names the model that will answer; `doctor --live` makes one tiny real call to each.

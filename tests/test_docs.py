@@ -68,9 +68,9 @@ def test_skill_manifest_and_help_share_one_description():
 
 def test_readme_tells_a_newcomer_which_model_answers():
     readme = (ROOT / "README.md").read_text()
-    first = readme.index("## First run")
-    assert first < readme.index("## Point it at anything")
-    section = readme[first:readme.index("## Point it at anything")]
+    assert readme.index("## Install") < readme.index("## Which model answers") < readme.index("## Point it at anything")
+    first = readme.index("## Which model answers")
+    section = readme[readme.index("## Install"):readme.index("## Point it at anything")]
     for must in ("ANTHROPIC_API_KEY", "OPENAI_API_KEY", "DECISIONCRAFT_PROVIDER", "--complete-cmd", "--starter",
                  "decisioncraft doctor"):
         assert must in section
