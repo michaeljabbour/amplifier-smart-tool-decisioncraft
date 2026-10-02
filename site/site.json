@@ -44,7 +44,7 @@
     ]
   ],
   "prompt": "Use Decisioncraft to help us decide whether to open on Sundays. Read decisioncraft --help, draft a model from the notes in ./notes with the customer-journey template, check it with validate, then render the canvas and open it for review.",
-  "install": "uv tool install \"amplifier-smart-tool-decisioncraft[smart] @ git+https://github.com/decisioncraft/amplifier-smart-tool-decisioncraft\"\ndecisioncraft --help",
+  "install": "uv tool install \"amplifier-smart-tool-decisioncraft[smart] @ git+https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft\"\ndecisioncraft --help",
   "prerequisites": "Python 3.11 or later. Canvases are single HTML files that open in any current browser, offline.",
   "model_note": "Drafting a model and adding role notes need separately configured Anthropic or OpenAI access. Checking, drawing, comparing and merging reviews need no model.",
   "guide": "src/decisioncraft/SMART_TOOL.md",

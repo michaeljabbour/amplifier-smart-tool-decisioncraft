@@ -35,7 +35,7 @@ where people read notes and answer.
 ## Install
 
 ```sh
-uv tool install "amplifier-smart-tool-decisioncraft[smart] @ git+https://github.com/decisioncraft/amplifier-smart-tool-decisioncraft"
+uv tool install "amplifier-smart-tool-decisioncraft[smart] @ git+https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft"
 decisioncraft --help
 ```
 

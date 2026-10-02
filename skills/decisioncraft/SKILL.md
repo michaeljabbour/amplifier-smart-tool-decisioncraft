@@ -8,7 +8,7 @@ description: Map how a problem works, gather every point of view, and decide tog
 Install:
 
 ```sh
-uv tool install "amplifier-smart-tool-decisioncraft[smart] @ git+https://github.com/decisioncraft/amplifier-smart-tool-decisioncraft"
+uv tool install "amplifier-smart-tool-decisioncraft[smart] @ git+https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft"
 ```
 
 Then run `decisioncraft --help` and follow it. Each capability has its own help:
