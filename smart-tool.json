@@ -1,0 +1,5 @@
+{
+  "manifest": "src/decisioncraft/SMART_TOOL.md",
+  "cli_argv": ["python3", "bin/decisioncraft.py"],
+  "deterministic_smoke": ["manifest"]
+}
