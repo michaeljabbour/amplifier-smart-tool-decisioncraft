@@ -1,8 +1,10 @@
 """The public library. Every capability lives here; the CLI only reads files and prints.
 
 Deterministic: manifest, templates, roles, new, starter, example, example_names, doctor,
-summary, validate, render, words, questions, merge, diff, session, discover, handoff.
-Model-backed: draft, perspectives.
+summary, validate, render, words, questions, merge, diff, session, discover, handoff,
+modes, triage, quick (with scores), interview_step, interview_questions.
+Model-backed: draft, perspectives, review_notes; quick and triage read free text with a
+model only when one is passed.
 
 To chain capabilities, call these functions from Python rather than piping CLI output:
 results are ordinary return values (dicts, lists and strings).
@@ -21,12 +23,35 @@ from .doctor import doctor
 from .examples import example, example_names
 from .starter import starter
 from .stats import summary
+from .modes import MODES, quick, triage
+from . import interview as _interview
 
 __all__ = [
     "manifest", "templates", "roles", "new", "validate", "render", "words", "questions",
     "merge", "diff", "draft", "perspectives", "review_notes", "notes_to_ask", "session", "discover", "handoff",
     "starter", "example", "example_names", "doctor", "summary",
+    "modes", "triage", "quick", "interview_step", "interview_questions",
 ]
+
+
+def modes() -> dict:
+    """The ways Decisioncraft can help: none (just answer), quick, guided and team."""
+    return MODES
+
+
+def interview_step(directory, answer=None, *, question: str = "", kind=None, reset: bool = False) -> dict:
+    """One interview step in a folder: record `answer`, return the next question or finish.
+
+    Finishing writes model.json and material/README.txt into the folder.
+    """
+    if reset:
+        return _interview.start(directory, question=question, kind=kind)
+    return _interview.step(directory, answer, question=question, kind=kind)
+
+
+def interview_questions() -> dict:
+    """The interview's question bank, by set (personal, team, system)."""
+    return _interview.question_bank()
 
 
 def manifest() -> dict:

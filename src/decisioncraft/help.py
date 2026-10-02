@@ -54,6 +54,72 @@ CAPABILITIES: dict[str, dict] = {
         "example": "decisioncraft mcp", "result": "Standard tools for discovery, map shapes, validation, review, waiting for completion and agent handoff.",
         "fails": "The optional mcp extra is not installed (exit 3, says what to install).",
     },
+    "triage": {
+        "kind": "deterministic",
+        "summary": "Say how much help a choice needs: just answer, quick, guided or team.",
+        "when": "First, whenever someone seems to be weighing options, even if they never say "
+        "'decision'. It never builds files. Pass what you know (cost, how easy to undo, who is "
+        "affected, deadline) and/or their own words with --text.",
+        "args": [
+            ("--text", "The person's own words; plain word rules fill in what they can."),
+            ("--cost", "Money, time or effort at stake: a number of dollars or words (small, large)."),
+            ("--reversible", "easy, some cost or hard."),
+            ("--people", "just me, family, team, several groups, or a count."),
+            ("--deadline", "Days, or words like today, this week, next month."),
+            ("--provider / --model / --complete-cmd", "Optional: a model reads --text more carefully first."),
+        ],
+        "example": 'decisioncraft triage --text "my lease is up, renew or buy?" --json',
+        "result": "{mode: none|quick|guided|team, label, does, why[], alternative, stakes, missing[] "
+        "(questions worth asking), offer (a sentence to offer help without taking over), next[]}. "
+        "A message that is not a choice (a factual question) comes back as none.",
+        "fails": "Answers that are not an object (exit 1).",
+    },
+    "quick": {
+        "kind": "deterministic",
+        "summary": "Score a few options against what matters: a table, a lean and one thing to check.",
+        "when": "Quick mode: a real choice that can be settled in the conversation. No files. "
+        "Deterministic when you pass options and scores; with only --text it needs a model to read "
+        "the options out of the person's words.",
+        "args": [
+            ("--option", "An option (repeat). Include doing nothing if it is real."),
+            ("--criterion", "Something that matters (repeat), most important first; prefix "
+             "'must:' for a must-have or 'nice:' for a nice-to-have."),
+            ("--score", "OPTION=CRITERION=1..5 (repeat), or --scores FILE with "
+             "{option: {criterion: score}}."),
+            ("--scores", "A JSON file of scores."),
+            ("--question", "The choice, for the heading."),
+            ("--text", "The person's words, read by a model when no options are given."),
+            ("--provider / --model / --complete-cmd", "The model for --text."),
+        ],
+        "example": 'decisioncraft quick --option "Renew the lease" --option "Buy it" '
+        '--criterion "must:monthly cost" --criterion "reliability" '
+        '--score "Renew the lease=monthly cost=3" --score "Buy it=monthly cost=4" --json',
+        "result": "{options ranked with percent and any failed must-haves, table (Markdown), lean "
+        "{option, reason, close_call}, check_first {text, why}, ask[] (what to ask when scores are "
+        "missing)}. A lean, not a verdict.",
+        "fails": "Fewer than two options, a score outside 1 to 5 or for an unknown option (exit 1); "
+        "--text with no options and no model (exit 1).",
+    },
+    "interview": {
+        "kind": "deterministic",
+        "summary": "Guided mode: one question at a time, then a starter model in the folder.",
+        "when": "When triage says guided or team. Ask the person each question in your own words, "
+        "pass their answer back with --answer, and repeat until done. At a terminal with no "
+        "--answer it runs the whole interview.",
+        "args": [
+            ("--dir", "The decision folder (state is kept in interview.json there)."),
+            ("--answer", "The person's answer to the question last returned."),
+            ("--question", "The choice in their words, to start (skips the first question)."),
+            ("--kind", "personal, team or system (default: chosen from the first answer)."),
+            ("--next", "Just show the pending question again."),
+            ("--reset", "Start the interview again in this folder."),
+        ],
+        "example": 'decisioncraft interview --dir car --question "renew my lease or buy?" --json',
+        "result": "{done: false, question {id, ask, why, kind, choices?, suggested?}, progress "
+        "{asked, remaining}, mode_so_far} or, when finished, {done: true, mode, why, model_path, "
+        "files, next[]} after writing model.json and material/README.txt.",
+        "fails": "A folder that can't be written (exit 3); an interview file from something else (exit 1).",
+    },
     "discover": {
         "kind": "deterministic", "summary": "Four opening questions about the choice, for a host to ask.",
         "when": "At the start of a decision, before drawing or drafting.",
@@ -293,10 +359,13 @@ CAPABILITIES: dict[str, dict] = {
 }
 
 DESCRIPTION = (
-    "Map how a problem works, gather every point of view, and decide together. "
-    "Builds a zoomable, offline HTML canvas and a plain-text version from a "
-    "decision model. Use when a decision affects several groups and each should "
-    "be heard, with a record of why it was decided, before anyone chooses."
+    'Helps someone weigh a choice at the right depth: a quick side-by-side in the cha'
+    't, a short interview that ends in a map to open, or a full map a whole team revi'
+    'ews with notes from every point of view. Use when a person is weighing options, '
+    'even if they never say \'decision\': "should I...", "torn between", "pros and cons'
+    '", "which is better", "renew or buy", "keep or replace", "help me think this thr'
+    'ough", comparing job offers, plans, quotes or vendors, or a team changing how so'
+    'mething works. Not for factual questions or trivial picks.'
 )
 
 REQUIRES = [

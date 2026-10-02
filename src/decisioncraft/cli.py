@@ -25,9 +25,10 @@ from .stats import describe, summary
 from .term import Term, interactive
 
 WIDTH = 80
-MODEL_BACKED = {"draft", "perspectives"}
+MODEL_BACKED = {"draft", "perspectives"}  # quick and triage call a model only when one is named
 GROUPS = [
     ("Start here", ["example", "new", "render", "doctor"]),
+    ("Talk a choice through", ["triage", "quick", "interview"]),
     ("Review and compare", ["session", "questions", "merge", "diff", "words", "validate", "handoff"]),
     ("Draft with a model (costs tokens)", ["draft", "perspectives"]),
     ("For agents and hosts", ["discover", "templates", "roles", "manifest", "mcp"]),
@@ -131,6 +132,7 @@ def start_screen() -> str:
     rows = [
         ("decisioncraft example medical --open", "open a worked example"),
         ("decisioncraft new", "start your own decision, step by step"),
+        ('decisioncraft triage --text "..."', "how much help does this choice need?"),
         ("decisioncraft render model.json --open", "draw a model you can share"),
         ("decisioncraft doctor", "check your setup"),
     ]
@@ -231,6 +233,48 @@ def build() -> SkillParser:
     g = c.add_argument_group("What to check")
     g.add_argument("--dir", default=".", help="Folder you plan to write into (default: here).")
     g.add_argument("--complete-cmd", metavar="CMD", help="A host command to look up (not run).")
+
+
+    # Talk a choice through
+    def _ask_model(c):
+        g = c.add_argument_group("A model to read --text (optional)")
+        g.add_argument("--provider", choices=["anthropic", "openai"], help="Use this vendor's SDK and API key.")
+        g.add_argument("--model", metavar="NAME", help="Model name for --provider.")
+        g.add_argument("--complete-cmd", metavar="CMD",
+                       help="Route the call through your own command ({system, prompt} JSON on stdin).")
+
+    c = cmd("triage", ('decisioncraft triage --cost 30000 --reversible hard --people family --json',))
+    g = c.add_argument_group("What you know (all optional)")
+    g.add_argument("--text", default="", help="The person's own words.")
+    g.add_argument("--cost", help="Money, time or effort at stake (dollars, or small/large).")
+    g.add_argument("--reversible", help="easy, some cost or hard.")
+    g.add_argument("--people", help="just me, family, team, several groups, or a count.")
+    g.add_argument("--deadline", help="Days, or words like today, this week, next month.")
+    _ask_model(c)
+
+    c = cmd("quick", ('decisioncraft quick --from car/model.json --scores scores.json',
+                      'decisioncraft quick --text "renew the lease or buy?" --complete-cmd "my-host complete"'))
+    g = c.add_argument_group("The choice")
+    g.add_argument("--option", action="append", default=[], metavar="NAME", help="An option (repeat).")
+    g.add_argument("--criterion", action="append", default=[], metavar="NAME",
+                   help="Something that matters (repeat), most important first; must: or nice: prefix.")
+    g.add_argument("--score", action="append", default=[], metavar="O=C=N", help="OPTION=CRITERION=1..5 (repeat).")
+    g.add_argument("--scores", metavar="FILE", help="JSON file: {option: {criterion: score}}.")
+    g.add_argument("--from", dest="from_model", metavar="FILE",
+                   help="Take options and what matters from a model's comparison (for example after interview).")
+    g.add_argument("--question", default="", help="The choice, for the heading.")
+    g.add_argument("--text", default="", help="The person's words, read by a model when no options are given.")
+    _ask_model(c)
+
+    c = cmd("interview", ('decisioncraft interview --dir car --answer "renew, buy, or wait" --json',
+                          "decisioncraft interview --dir car"))
+    g = c.add_argument_group("The interview")
+    g.add_argument("--dir", required=True, help="The decision folder (keeps interview.json).")
+    g.add_argument("--answer", help="The answer to the question last returned.")
+    g.add_argument("--question", default="", help="The choice in the person's words, to start.")
+    g.add_argument("--kind", choices=["personal", "team", "system"], help="Which question set (default: chosen for you).")
+    g.add_argument("--next", action="store_true", help="Show the pending question again.")
+    g.add_argument("--reset", action="store_true", help="Start again in this folder.")
 
     # Review and compare
     c = cmd("session")
@@ -533,6 +577,28 @@ def do_new(run: Run) -> Out:
                 exit_code=E.USAGE, field="--question",
             )
         from .starter import slug, title_from
+
+        if not template and not roles:
+            # The guided interview: one question at a time, then the starter folder.
+            from . import interview as iv
+
+            run.term.say(run.term.paint("Start a new decision", "bold") + ". A few questions, one at a time; "
+                         "press Enter to skip one.")
+            run.term.say("")
+            while not question:
+                question = run.ask("What are you trying to decide? One sentence is fine")
+            folder = folder or run.ask("Folder to create", slug(question))
+            r = iv.run_interactive(Path(folder).expanduser(), run.ask, run.term.say, question=question)
+            if r.get("mode") == "none":
+                run.term.say(r["message"])
+                return Out(data=r, text="")
+            run.term.say("")
+            run.term.say(f"Created {_q(folder)}: model.json and material/README.txt. "
+                         f"Suggested mode: {lib.modes()[r['mode']]['label']}.")
+            for n in r.get("next", []):
+                run.term.say(f"  next: {n}")
+            files = [{"path": f, "kind": "model" if f.endswith(".json") else "readme"} for f in r["files"]]
+            return Out(data=r, files=files, next=r.get("next", []), text="")
 
         run.term.say(run.term.paint("Start a new decision", "bold") + " (press Enter to accept the [default]).")
         run.term.say("")
@@ -969,6 +1035,128 @@ def do_simple(run: Run) -> Out:
     raise AssertionError(cmd)
 
 
+def _text_complete(run: Run):
+    """A model for reading free text, only when the caller named one."""
+    a = run.args
+    if getattr(a, "complete_cmd", None) or getattr(a, "provider", None):
+        kwargs, _ = _complete_kwargs(run, name_attr="model")
+        if "complete" in kwargs:
+            return kwargs["complete"]
+        from .intelligence import provider_complete
+
+        return provider_complete(kwargs["provider"], kwargs.get("model"))
+    return None
+
+
+def do_triage(run: Run) -> Out:
+    a = run.args
+    answers = {k: getattr(a, k) for k in ("cost", "reversible", "people", "deadline") if getattr(a, k)}
+    r = lib.triage(answers, text=a.text, complete=_text_complete(run) if a.text else None)
+    text = None
+    if run.pretty:
+        t = run.term
+        lines = [t.paint(f"{r['label']}", "bold") + f": {r['does']}"]
+        if r["why"]:
+            lines.append("Why: " + "; ".join(r["why"]) + ".")
+        if r["alternative"]:
+            lines.append(f"If the deadline can move: {lib.modes()[r['alternative']]['label']}.")
+        for m in r["missing"]:
+            lines.append(f"Worth asking: {m['question']}")
+        lines.append(r["offer"])
+        text = "\n".join(textwrap.fill(x, width=WIDTH, subsequent_indent="  ") for x in lines) + "\n"
+    return Out(data=r, text=text, next=r["next"])
+
+
+def _parse_scores(items: list[str]) -> list[dict]:
+    out = []
+    for item in items:
+        parts = item.rsplit("=", 2)
+        if len(parts) != 3:
+            raise ToolError("invalid_input", f"--score {item!r} should look like OPTION=CRITERION=4.",
+                            field="--score", exit_code=E.USAGE, hint='For example: --score "Buy it=reliability=4"')
+        try:
+            n = float(parts[2])
+        except ValueError:
+            raise ToolError("invalid_input", f"--score {item!r}: the score must be a number from 1 to 5.",
+                            field="--score", exit_code=E.USAGE) from None
+        out.append({"option": parts[0].strip(), "criterion": parts[1].strip(), "score": n})
+    return out
+
+
+def do_quick(run: Run) -> Out:
+    a = run.args
+    options, criteria, scores = list(a.option), list(a.criterion), _parse_scores(a.score)
+    question = a.question
+    if a.from_model:
+        model = run.load(a.from_model)
+        comp = model.get("comparison") or {}
+        question = question or model.get("question", "")
+        options = options or [o.get("title") for o in comp.get("options", []) if o.get("title")]
+        criteria = criteria or [{"label": c["label"], "importance": c.get("importance")}
+                                for c in comp.get("criteria", []) if c.get("label")]
+    if a.scores:
+        loaded = run.load(a.scores)
+        if isinstance(loaded, dict):
+            loaded = [{"option": o, "criterion": c, "score": v} for o, row in loaded.items() for c, v in (row or {}).items()]
+        scores = scores + list(loaded)
+    complete = _text_complete(run) if a.text and not options else None
+    if a.text and not options and complete is None:
+        raise ToolError("missing_argument", "Give the options with --option, or a model to read them from --text.",
+                        field="--option", exit_code=E.USAGE,
+                        hint='For example: --option "Renew" --option "Buy", or add --complete-cmd "my-host complete".')
+    if not options:
+        raise ToolError("missing_argument", "A quick comparison needs at least two options.", field="--option",
+                        exit_code=E.USAGE, hint='Add --option "A" --option "B" (doing nothing can be one).')
+    r = lib.quick(options, criteria, scores or None, question=question, text=a.text, complete=complete)
+    text = None
+    if run.pretty:
+        lines = [run.term.paint(r["question"], "bold")] if r["question"] else []
+        if r["table"]:
+            lines += [r["table"], ""]
+        if r["lean"]:
+            lines.append("Lean: " + r["lean"]["reason"])
+        if r["check_first"]:
+            lines.append("Check first: " + r["check_first"]["text"] + " " + r["check_first"]["why"])
+        lines += ["Ask: " + q for q in r["ask"]]
+        lines.append(r["note"])
+        text = "\n".join(lines) + "\n"
+    return Out(data=r, text=text)
+
+
+def do_interview(run: Run) -> Out:
+    a = run.args
+    folder = Path(a.dir).expanduser()
+    if a.answer is None and not a.next and not a.reset and run.can_ask:
+        from . import interview as iv
+
+        run.term.say(run.term.paint("A few questions, one at a time.", "bold") + " Press Enter to skip one.")
+        r = iv.run_interactive(folder, run.ask, run.term.say, question=a.question, kind=a.kind)
+    else:
+        try:
+            if a.next and not a.reset:
+                from . import interview as iv
+
+                state = iv.load(folder)
+                r = lib.interview_step(folder, None, question=a.question, kind=a.kind) if state is None \
+                    else iv.step(folder, None)
+            else:
+                r = lib.interview_step(folder, a.answer, question=a.question, kind=a.kind, reset=a.reset)
+        except PermissionError:
+            raise ToolError("no_write_access", f"Can't write to {folder}.", file=str(folder), exit_code=E.SETUP,
+                            hint="Choose a folder you can write to with --dir.") from None
+    files = [{"path": f, "kind": "model" if f.endswith(".json") else "readme"} for f in r.get("files", [])]
+    text = None
+    if run.pretty:
+        if r["done"]:
+            text = (f"Done. Wrote {_q(r['model_path'])}. Suggested mode: {lib.modes()[r['mode']]['label']}.\n"
+                    + "".join(f"  next: {n}\n" for n in r.get("next", [])))
+        else:
+            q = r["question"]
+            text = f"{q['ask']}\n  ({q['why']})\n" + "".join(f"  {i}. {c}\n" for i, c in enumerate(q.get("choices", []), 1)) \
+                + f"Answer with: decisioncraft interview --dir {_q(folder)} --answer \"...\"\n"
+    return Out(data=r, text=text, files=files, next=r.get("next", []))
+
+
 def do_mcp(run: Run) -> None:
     import importlib.util
 
@@ -988,6 +1176,7 @@ HANDLERS = {
     "diff": do_diff, "validate": do_validate, "handoff": do_handoff, "draft": do_draft,
     "perspectives": do_perspectives, "discover": do_simple, "templates": do_simple,
     "roles": do_simple, "manifest": do_simple, "mcp": do_mcp,
+    "triage": do_triage, "quick": do_quick, "interview": do_interview,
 }
 
 
