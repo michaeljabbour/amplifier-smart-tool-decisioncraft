@@ -1,0 +1,78 @@
+import json
+from pathlib import Path
+
+import pytest
+
+import decisioncraft as dc
+from decisioncraft.model import ModelError, require_valid
+
+EXAMPLES = Path(__file__).resolve().parent.parent / "examples"
+MODELS = sorted(EXAMPLES.glob("*/model.json"))
+
+
+def load(p):
+    return json.loads(Path(p).read_text(encoding="utf-8"))
+
+
+def test_four_examples_exist():
+    assert {p.parent.name for p in MODELS} == {"business", "technical", "engineering", "medical"}
+
+
+@pytest.mark.parametrize("path", MODELS, ids=lambda p: p.parent.name)
+def test_examples_have_no_errors(path):
+    errors = [p for p in dc.validate(load(path)) if p["level"] == "error"]
+    assert errors == []
+
+
+def test_every_template_is_used_by_an_example():
+    used = {m["template"] for p in MODELS for m in load(p)["maps"]}
+    assert used == {t["id"] for t in dc.templates()}
+
+
+@pytest.mark.parametrize("template", [t["id"] for t in dc.templates()])
+def test_new_model_from_each_template_is_valid(template):
+    m = dc.new(template, "Title", "What should we do?")
+    assert [p for p in dc.validate(m) if p["level"] == "error"] == []
+
+
+def test_unknown_template_is_refused():
+    with pytest.raises(ModelError):
+        dc.new("nope", "T", "Q?")
+
+
+def test_validate_catches_broken_links():
+    m = load(EXAMPLES / "business" / "model.json")
+    m["notes"][0]["anchor"] = "missing-box"
+    m["notes"][1]["role"] = "nobody"
+    m["evidence"][0]["source"] = "S99"
+    m["gaps"][0]["impact"] = 9
+    messages = " ".join(p["message"] for p in dc.validate(m) if p["level"] == "error")
+    assert "unknown box" in messages
+    assert "unknown role" in messages
+    assert "unknown source" in messages
+    assert "1 to 5" in messages
+
+
+def test_validate_catches_duplicate_ids():
+    m = load(EXAMPLES / "technical" / "model.json")
+    m["notes"][1]["id"] = m["notes"][0]["id"]
+    assert any("used twice" in p["message"] for p in dc.validate(m))
+
+
+def test_validate_warns_about_filler_words_and_missing_evidence():
+    m = dc.new("decision-chain", "T", "Q?")
+    m["summary"] = "We will leverage a seamless approach."
+    probs = dc.validate(m)
+    assert any(p["level"] == "warning" and "leverage" in p["message"] for p in probs)
+
+
+def test_require_valid_raises_with_every_problem():
+    with pytest.raises(ModelError) as e:
+        require_valid({"format": "decisioncraft/1"})
+    assert len(e.value.problems) >= 2
+
+
+def test_default_roles_cover_the_room():
+    ids = {r["id"] for r in dc.roles()}
+    assert {"designer", "analyst", "engineer", "owner", "security", "voice", "agent", "finance"} <= ids
+    assert all(r.get("asks") for r in dc.roles())
