@@ -110,6 +110,9 @@ On failure:
 | `diff` | `{added, removed, changed}` |
 | `handoff` | the handoff (see workflow.v1.md) |
 | `draft`, `perspectives` | the model |
+| `triage` | `{format: "decisioncraft-triage/1", mode: none/quick/guided/team, is_choice, label, does, why: [text], alternative: mode or null, stakes: {cost 0-3, reversible 0-2, people 0-3, deadline_days, score}, read_from_text, missing: [{id, question}], offer, next: [command]}` |
+| `quick` | `{format: "decisioncraft-quick/1", question, options: [{id, title, total, percent, fails_must: [label], unknown: [label]}] (ranked; options failing a must-have last), criteria: [{id, label, importance: must/important/nice, weight}], scores: {option: {criterion: {score, why}}}, table (Markdown), lean: {option, title, reason, close_call} or null, check_first: {text, why} or null, ask: [text], note, offer_next}` |
+| `interview` | Not finished: `{format: "decisioncraft-interview/1", done: false, set: personal/team/system, question: {id, ask, why, kind: text/list/choice, choices?, suggested?, hint?}, progress: {asked, remaining, of}, mode_so_far, known}`. Finished: `{done: true, set, mode, why, model_path (null when mode is none), files, answers, next}`. `files` in the envelope lists model.json and material/README.txt when written. |
 | `perspectives --notes` | `{dry_run, asked: [{note, text, on, roles}], replies_added, review}`; `review` is the answers file with replies added (absent with `--dry-run`) |
 | `manifest`, `templates`, `roles`, `discover` | the same data the library returns |
 
@@ -139,4 +142,4 @@ Without `--json`, these commands print the same JSON objects unwrapped, as befor
 |---|---|
 | `NO_COLOR` | No colour. |
 | `DECISIONCRAFT_NO_BROWSER` | `--open` says where the file is instead of opening a browser (for tests and servers). |
-| `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` | Used only by `--provider` on `draft` and `perspectives`. |
+| `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` | Used only by `--provider` on `draft` and `perspectives`, and on `triage` and `quick` when they read `--text` with a model. |

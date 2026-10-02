@@ -1,7 +1,9 @@
 # Decisioncraft
 
-Decisioncraft helps a mixed group make one decision well. It maps how a problem works
-today and what is planned, puts the evidence beside every claim, and gathers notes from
+Decisioncraft helps people make a choice well, at the depth it deserves: a scored table in
+the chat for a small one, a few questions and a map for a bigger one, and for a decision
+that affects several groups, a full map. It maps how a problem works today and what is
+planned, puts the evidence beside every claim, and gathers notes from
 every point of view, each ending in a question. The result is one offline file people can
 review without training, and a short, ranked list of what to decide.
 
@@ -31,6 +33,32 @@ review without training, and a short, ranked list of what to decide.
 The canvas is one HTML file. It works offline, makes no requests, and opens with a
 numbered list of views, a "Walk me through it" tour, labelled zoom buttons, and a panel
 where people read notes and answer.
+
+## Talk a choice through
+
+Most choices don't need a map. `triage` says how much help one needs, from four plain
+things: how much is at stake, how easy it is to undo, who is affected, and the deadline.
+
+```sh
+decisioncraft triage --text "my lease is up in March, renew it or just buy the car?"
+# Guided: ask a few questions, then draw a map...
+decisioncraft interview --dir car            # one question at a time, then car/model.json
+decisioncraft quick --option "Renew" --option "Buy" --criterion "must:monthly cost" \
+  --criterion "reliability" --score "Renew=monthly cost=3" --score "Buy=monthly cost=4"
+# a small table, a lean ("a close call") and the one thing to check first
+```
+
+| Mode | For | What happens |
+|---|---|---|
+| Just answer | small, easy to undo, only you | nothing to build |
+| Quick | a real choice that fits in a chat | a scored table, a lean, one check; no files |
+| Guided | costly or hard to undo | a short interview, then a map to open |
+| Team | several groups affected | the full map, every role's notes, reviews |
+
+Agents find this through the Agent Skill in `skills/decisioncraft/` and `decisioncraft
+--help`; MCP hosts get the `decisioncraft_triage`, `decisioncraft_quick` and
+`decisioncraft_interview_next` tools and the `decide`, `compare_options`,
+`what_could_go_wrong`, `regret_test` and `review_canvas` prompts.
 
 ## Install
 
