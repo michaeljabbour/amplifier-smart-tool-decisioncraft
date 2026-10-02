@@ -127,7 +127,10 @@ def test_invalid_comparisons_and_wrong_reviews_are_rejected():
         )
     review = blank_review(model)
     review["model_fingerprint"] = "wrong"
-    with pytest.raises(ValueError, match="belong"):
+    with pytest.raises(ValueError, match="earlier version"):
+        dc.handoff(model, review)
+    review["model"] = "Another decision"
+    with pytest.raises(ValueError, match="This review is for"):
         dc.handoff(model, review)
 
 

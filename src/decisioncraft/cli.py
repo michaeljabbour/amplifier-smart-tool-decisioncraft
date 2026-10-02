@@ -8,6 +8,8 @@ errors included, and the exit code always matches. See contracts/cli.v1.md.
 from __future__ import annotations
 
 import argparse
+import re
+import difflib
 import json
 import os
 import sys
@@ -77,9 +79,32 @@ class SkillParser(argparse.ArgumentParser):
     def format_help(self):
         return root_help() if self._root else super().format_help()
 
+    def _sub(self, name: str):
+        for action in self._actions:
+            if isinstance(action, argparse._SubParsersAction):
+                return action.choices.get(name)
+        return None
+
     def error(self, message):
         where = self.prog
-        hint = f"Run: {where} -h" if where != "decisioncraft" else "Run: decisioncraft -h"
+        if self._root:
+            # Unknown options are reported by the top-level parser; name the command they belong to.
+            cmd = next((x for x in sys.argv[1:] if not x.startswith("-") and self._sub(x)), None)
+            sub = self._sub(cmd) if cmd else None
+            if sub is not None:
+                where = sub.prog
+                bad = re.findall(r"(--?[\w-]+)", message.split(":", 1)[-1]) if "unrecognized" in message else []
+                known = [o for act in sub._actions for o in act.option_strings]
+                # Common slips first (other commands use these names), then close spellings.
+                usual = {"--out": ["--dir"], "--output": ["--out", "--dir"], "--options": ["--option"],
+                         "--criteria": ["--criterion"], "--scores": ["--score"], "--text": ["--question"],
+                         "--folder": ["--dir"], "--file": ["--out"]}
+                close = [[u for u in usual.get(b, []) if u in known][:1]
+                         or difflib.get_close_matches(b, known, n=1, cutoff=0.75) for b in bad]
+                guesses = [f"{b} → {c[0]}" for b, c in zip(bad, close) if c]
+                if guesses:
+                    message += " (did you mean " + ", ".join(guesses) + "?)"
+        hint = f"Run: {where} -h"
         if _JSON_MODE:
             err = ToolError("usage", f"{where}: {message}", hint=hint, exit_code=E.USAGE)
             sys.stdout.write(json.dumps(_envelope(_command_from(where), err=err), ensure_ascii=False) + "\n")
@@ -293,9 +318,10 @@ def build() -> SkillParser:
     g = c.add_argument_group("The interview")
     g.add_argument("--dir", required=True, help="The decision folder (keeps interview.json).")
     g.add_argument("--answer", help="The answer to the question last returned.")
-    g.add_argument("--question", default="", help="The choice in the person's words, to start.")
+    g.add_argument("--question", "--text", dest="question", default="",
+                   help="The choice in the person's words, to start (--text works too).")
     g.add_argument("--kind", choices=["personal", "team", "system"], help="Which question set (default: chosen for you).")
-    g.add_argument("--next", action="store_true", help="Show the pending question again.")
+    g.add_argument("--next", action="store_true", help="Show the pending question again (with --answer, record it first).")
     g.add_argument("--reset", action="store_true", help="Start again in this folder.")
 
     # Review and compare
@@ -906,7 +932,41 @@ def do_merge(run: Run) -> Out:
         f = run.write(Path(a.out), json.dumps(merged, indent=2, ensure_ascii=False), "merged")
         run.term.say(f"Wrote {a.out} ({len(reviews)} review(s) merged)")
         return Out(data=merged, files=[f], text="")
-    return Out(data=merged)
+    return Out(data=merged, text=_merge_text(merged, model) if run.pretty else None)
+
+
+def _merge_text(m: dict, model: dict | None = None) -> str:
+    """The merged view in words, for a person at a terminal (the JSON stays for agents)."""
+    lines = [f"{len(m.get('reviewers', []))} reviewers: " + ", ".join(m.get("reviewers", []))]
+    if m.get("stale_reviews"):
+        lines.append("Made for an earlier version of the model: " + ", ".join(m["stale_reviews"]))
+    qs = m.get("questions") or {}
+    split = [(k, v) for k, v in qs.items() if v.get("split") or (v.get("agree") and v.get("change"))]
+    lines.append(f"\nQuestions: {len(qs)} answered or voted on, {len(split)} where reviewers disagree.")
+    for k, v in sorted(qs.items(), key=lambda kv: (-(kv[1].get("dots") or 0), kv[0]))[:12]:
+        mark = "  disagree" if (k, v) in split else ""
+        dots = v.get("dots", 0)
+        lines.append(f"  {k}: {v.get('agree', 0)} agree, {v.get('change', 0)} change, {v.get('unsure', 0)} unsure, "
+                     f"{dots} dot{'' if dots == 1 else 's'}{mark}")
+        for c in (v.get("comments") or [])[:2]:
+            lines.append(textwrap.fill(f"{c.get('who')}: {c.get('text')}", width=WIDTH, initial_indent="      ",
+                                       subsequent_indent="      "))
+    conflicts = [(k, v["conflict"]) for k, v in (m.get("decisions") or {}).items() if v.get("conflict")]
+    if conflicts:
+        lines.append("\nDecisions with different answers: "
+                     + "; ".join(f"{k} ({', '.join(c)})" for k, c in conflicts))
+    if m.get("weight_split"):
+        names = {c.get("id"): c.get("name") for c in (model or {}).get("criteria") or [] if isinstance(c, dict)}
+        lines.append("\nWeights reviewers set differently (0 to 5):")
+        for cid in m["weight_split"]:
+            who = ", ".join(f"{w.get('who')} {w.get('weight')}" for w in (m.get("weights") or {}).get(cid, []))
+            lines.append(f"  {names.get(cid) or cid}: {who}")
+    notes = m.get("notes") or []
+    if notes:
+        replies = sum(len(n.get("replies") or []) for n in notes)
+        lines.append(f"Reviewer notes: {len(notes)}, with {replies} expert replies.")
+    lines.append("\nSee it on the canvas: decisioncraft render MODEL --reviews FILES --open. Full detail: add --json.")
+    return "\n".join(lines) + "\n"
 
 
 def do_diff(run: Run) -> Out:
@@ -934,7 +994,22 @@ def do_handoff(run: Run) -> Out:
         f = run.write(Path(a.out), json.dumps(result, indent=2, ensure_ascii=False), "handoff")
         run.term.say(f"Wrote {a.out}")
         return Out(data=result, files=[f], text="")
-    return Out(data=result)
+    text = None
+    if run.pretty:
+        lines = [run.term.paint(result.get("decision", ""), "bold")]
+        stories = result.get("user_stories") or []
+        lines.append(f"\nUser stories: {len(stories)}")
+        lines += [textwrap.fill(f"- {u.get('story')}", width=WIDTH, subsequent_indent="  ") for u in stories[:10]]
+        open_q = result.get("unresolved_questions") or []
+        lines.append(f"\nStill open: {len(open_q)} questions")
+        lines += [textwrap.fill(f"- {q.get('id')}: {q.get('question')}", width=WIDTH, subsequent_indent="  ")
+                  for q in open_q[:8]]
+        if result.get("missing"):
+            lines.append("\nBefore deciding:")
+            lines += [f"- {x}" for x in result["missing"]]
+        lines.append("\nSave everything with --out FILE (the proposed map is inside), or add --json.")
+        text = "\n".join(lines) + "\n"
+    return Out(data=result, text=text)
 
 
 def _complete_kwargs(run: Run, *, name_attr: str) -> tuple[dict, str]:
@@ -1079,6 +1154,10 @@ def _text_complete(run: Run):
 def do_triage(run: Run) -> Out:
     a = run.args
     answers = {k: getattr(a, k) for k in ("cost", "reversible", "people", "deadline") if getattr(a, k)}
+    if not (a.text or "").strip() and not answers:
+        raise ToolError("missing_argument", "Tell triage about the choice: its words with --text, or what you know "
+                        "with --cost, --reversible, --people or --deadline.", field="--text", exit_code=E.USAGE,
+                        hint='For example: decisioncraft triage --text "should I renew my lease or buy used?"')
     r = lib.triage(answers, text=a.text, complete=_text_complete(run) if a.text else None)
     text = None
     if run.pretty:
@@ -1152,12 +1231,19 @@ def do_quick(run: Run) -> Out:
         if isinstance(loaded, dict):
             loaded = [{"option": o, "criterion": c, "score": v} for o, row in loaded.items() for c, v in (row or {}).items()]
         scores = scores + list(loaded)
+    if a.text and not options:
+        # Plain words often name the options already ("pizza or tacos"): no model needed.
+        from .interview import options_from_text
+
+        options = options_from_text(a.text)
+        question = question or a.text.strip()
     complete = _text_complete(run) if a.text and not options else None
     if a.text and not options and complete is None:
-        raise ToolError("missing_argument", "Give the options with --option, or a model to read them from --text.",
+        raise ToolError("missing_argument", "Couldn't tell the options apart in --text. Name them with --option.",
                         field="--option", exit_code=E.USAGE,
-                        hint='For example: --option "Renew" --option "Buy", or add --complete-cmd "my-host complete".')
-    if not options:
+                        hint='For example: --option "Renew" --option "Buy". Or let a model read the text: '
+                             'add --provider anthropic (or openai), or --complete-cmd "my-host complete".')
+    if not options and complete is None:
         raise ToolError("missing_argument", "A quick comparison needs at least two options.", field="--option",
                         exit_code=E.USAGE, hint='Add --option "A" --option "B" (doing nothing can be one).')
     r = lib.quick(options, criteria, scores or None, question=question, text=a.text, complete=complete)
@@ -1186,7 +1272,7 @@ def do_interview(run: Run) -> Out:
         r = iv.run_interactive(folder, run.ask, run.term.say, question=a.question, kind=a.kind)
     else:
         try:
-            if a.next and not a.reset:
+            if a.next and not a.reset and a.answer is None:
                 from . import interview as iv
 
                 state = iv.load(folder)
@@ -1348,10 +1434,25 @@ def _report(run: Run, command: str, err: ToolError, *, event=None) -> None:
 
 
 def main(argv=None) -> int:
+    try:
+        return _main(argv)
+    except BrokenPipeError:
+        # The reader went away (for example `| head`): stop quietly, as other command-line tools do.
+        try:
+            os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
+        except OSError:
+            pass
+        return E.OK
+
+
+def _main(argv=None) -> int:
     global _JSON_MODE
     argv = list(sys.argv[1:] if argv is None else argv)
     _JSON_MODE = "--json" in argv[: argv.index("--")] if "--" in argv else "--json" in argv
     parser = build()
+    if _JSON_MODE and "--version" in argv:
+        _print_json(_envelope(None, data={"version": VERSION}))
+        return E.OK
     if not argv:
         sys.stdout.write(start_screen())
         return E.OK
