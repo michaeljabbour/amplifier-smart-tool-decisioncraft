@@ -502,6 +502,7 @@ function story() {
   }).join("");
   el.innerHTML = `<button class="hide" data-hide>Hide list</button>
     <div class="small">The decision</div><p class="q">${gl(MODEL.question, true)}</p>
+    ${MODEL.reading ? `<details class="reading"><summary>How to read this</summary><p>${gl(MODEL.reading, true)}</p></details>` : ""}
     <button class="walkbtn" data-walk>Walk me through it</button>
     <h2>Views</h2><ol>${views}</ol>
     <h2>Deciding</h2><div class="more">
@@ -525,6 +526,7 @@ function story() {
 /* ---------- walk-through ---------- */
 function steps() {
   const out = [{title:"The decision", text:MODEL.question + (MODEL.summary ? " " + MODEL.summary : ""), go:() => { showMap(0); S.journey = -1; applyFocus(); story(); fit(); }}];
+  if (MODEL.reading) out.push({title:"How to read this", text:MODEL.reading, go:() => { showMap(0); S.journey = -1; applyFocus(); story(); fit(); }});
   MODEL.maps.forEach((m, mi) => {
     const kind = KIND[m.template];
     out.push({title:m.title, text:m.intro || "", go:() => { showMap(mi); S.journey = -1; applyFocus(); story(); fit(); }});

@@ -58,49 +58,57 @@
       "id": "business",
       "eyebrow": "For a business decision",
       "title": "A bakery weighs a monthly box.",
-      "description": "Three shops, six customer chats, a year of figures and one staff meeting. The map follows a subscriber's month and the path from what customers said to a pilot plan.",
+      "description": "Three shops, customer chats, 64 survey slips, a waste log and the till supplier's notes. Six journeys follow a subscriber's month and the work behind the counter, then trace the idea from what customers said to a pilot plan.",
       "image": "docs/images/business-poster.png",
       "video": "docs/images/business-demo.mp4",
       "width": 1440,
       "height": 900,
       "alt": "The bakery example: a customer journey across five phases, with notes counted on each step.",
-      "caption": "Screen recording. Fictional business, people and figures."
+      "caption": "Screen recording. Fictional business, people and figures.",
+      "link": "examples/business.html",
+      "link_text": "Open the example canvas"
     },
     {
       "id": "technical",
       "eyebrow": "For a technical decision",
-      "title": "A web team rethinks file uploads.",
-      "description": "Large uploads time out and the storage bill keeps growing. The map shows how an upload works today, the proposed change, and an opportunity tree of options with quick tests.",
+      "title": "A web team moves its file uploads.",
+      "description": "An incident review, a month of upload numbers, support tickets and a new provider's terms. Six journeys show uploads, downloads, deletes, a file move and failures across the system, with an options tree beside them.",
       "image": "docs/images/technical-poster.png",
       "video": "docs/images/technical-demo.mp4",
       "width": 1440,
       "height": 900,
       "alt": "The uploads example: two journeys across customer, web app, servers, database, background jobs and storage.",
-      "caption": "Screen recording. Fictional team and figures."
+      "caption": "Screen recording. Fictional team and figures.",
+      "link": "examples/technical.html",
+      "link_text": "Open the example canvas"
     },
     {
       "id": "engineering",
       "eyebrow": "For an engineering decision",
-      "title": "A council chooses: repair or replace a footbridge.",
-      "description": "An inspection, early costs and a public drop-in. The map traces the decision from findings to outcome, and what closing the bridge would mean for the people who cross it.",
+      "title": "A town decides on a footbridge.",
+      "description": "An inspection, crossing counts, an access audit, quotes for a way across and a shops survey. The canvas traces the decision, compares three options from committee to reopening, and follows a resident through a closure.",
       "image": "docs/images/engineering-poster.png",
       "video": "docs/images/engineering-demo.mp4",
       "width": 1440,
       "height": 900,
       "alt": "The footbridge example: a decision chain from source to outcome, with planned items marked by dashed borders.",
-      "caption": "Screen recording. Fictional bridge, council and figures."
+      "caption": "Screen recording. Fictional bridge, council and figures.",
+      "link": "examples/engineering.html",
+      "link_text": "Open the example canvas"
     },
     {
       "id": "medical",
       "eyebrow": "For a decision in care",
-      "title": "A ward changes how patients go home.",
-      "description": "An audit, patient and carer feedback and a staff huddle. The map follows a patient's way home and the ward's discharge day. This is about how a team organises its work; it is not medical advice.",
+      "title": "A ward changes how it sends people home.",
+      "description": "A worked example about how a ward organises its work, not medical advice. Seven journeys follow a patient and carer home and the ward's evening list, medicines, discharge day and follow-up calls. Everything is invented.",
       "image": "docs/images/medical-poster.png",
       "video": "docs/images/medical-demo.mp4",
       "width": 1440,
       "height": 900,
       "alt": "The ward example: a patient's journey home, today and with the proposed changes.",
-      "caption": "Screen recording. Invented data; no real patients."
+      "caption": "Screen recording. Invented data; no real patients.",
+      "link": "examples/medical.html",
+      "link_text": "Open the example canvas"
     }
   ]
 }

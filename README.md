@@ -77,12 +77,15 @@ merged = dc.merge([json.load(open(p)) for p in ["a.json", "b.json"]], model)
 Each folder in `examples/` holds the input material, the model, the rendered canvas and a
 plain-text version. All names, quotes and figures are invented.
 
-| Example | The decision | Templates |
-|---|---|---|
-| [business](examples/business/) | Should a three-shop bakery offer a monthly box? Includes two reviewers' answers and the merged canvas. | customer journey, decision chain |
-| [technical](examples/technical/) | Move file uploads to a new storage provider, change how uploads reach storage, or both? Includes an earlier version to show what changed. | system journeys, opportunity tree |
-| [engineering](examples/engineering/) | Repair, replace, or replace a footbridge with a wider one? | decision chain, service blueprint |
-| [medical](examples/medical/) | How should a ward change the way it sends patients home, so fewer come back? About how a team organises its work. **Not medical advice; no patient data.** | customer journey, service blueprint |
+| Example | The decision | Templates | Size |
+|---|---|---|---|
+| [business](examples/business/) | Should a three-shop bakery offer a monthly box? Includes two reviewers' answers and the merged canvas. | customer journey, service blueprint, decision chain | 6 journeys, 44 steps, 6 gaps, 32 notes, 7 sources |
+| [technical](examples/technical/) | Move file uploads to a new storage provider, change how uploads reach storage, or both? Includes an earlier version to show what changed. | system journeys, opportunity tree | 6 journeys, 46 steps, 6 gaps, 33 notes, 7 sources |
+| [engineering](examples/engineering/) | Repair, replace, or replace a footbridge with a wider one? | decision chain, system journeys, service blueprint | 7 journeys, 51 steps, 6 gaps, 32 notes, 8 sources |
+| [medical](examples/medical/) | How should a ward change the way it sends patients home, so fewer come back? About how a team organises its work. **Not medical advice; no patient data.** | customer journey, service blueprint | 7 journeys, 57 steps, 6 gaps, 32 notes, 7 sources |
+
+Each example opens with a short "How to read this" in the list on the left (the optional
+`reading` field in the model). Live copies of the four canvases are on the product page.
 
 The models were written by hand to show the format; `draft` produces the same shape from
 your own material. Rebuild every output with `python3 scripts/build-examples.py`.

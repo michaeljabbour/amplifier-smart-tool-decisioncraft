@@ -5,6 +5,7 @@ A JSON object with `"format": "decisioncraft/1"`.
 | Field | Meaning |
 |---|---|
 | `title`, `question`, `summary` | What the decision is, in plain words. `question` is required. |
+| `reading` | Optional: one paragraph on how to read this particular canvas. |
 | `checked` | `{date, note}`: when the model was last checked against its sources. |
 | `roles` | Who speaks: `{id, label, color, asks, jobs[]}`. Defaults apply when empty. |
 | `glossary` | `{term: meaning}`. The canvas explains each term where it appears. |

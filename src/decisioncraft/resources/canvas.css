@@ -226,3 +226,6 @@ body.z-far .techname{font-size:calc(12px * var(--inv))}
 .notebadge{display:inline-block;font-size:11.5px;font-weight:700;border-radius:6px;padding:1px 7px;background:#1d1d1b;color:#fff}
 .notebadge.must{background:var(--must)}
 body.z-far .box .meta .notebadge{font-size:calc(11.5px * var(--inv))}
+#story .reading{margin:0 0 10px;font-size:13.5px;line-height:1.45}
+#story .reading summary{cursor:pointer;color:#2f5bd3;font-weight:600}
+#story .reading p{margin:6px 0 0}

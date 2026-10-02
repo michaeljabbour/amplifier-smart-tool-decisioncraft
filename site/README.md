@@ -5,9 +5,13 @@ lives in `site.json`. `site/theme/` is a versioned copy of the family theme (ver
 0.1.0, MIT licensed; see `site/theme/LICENSE`), so a build does not depend on a moving
 remote theme or an online service.
 
-One local change to the copy: `site/theme/family.json` registers this page under the key
-`decisioncraft`, because the theme looks up each page's repository there. Its `owner` is
-a placeholder until the repository has a public home; set it before publishing.
+Two local changes to the copy:
+
+- `site/theme/family.json` registers this page under the key `decisioncraft`, because the
+  theme looks up each page's repository there.
+- `site/theme/build.py`: a capability demo may set `link` and `link_text` to add a link
+  next to "Watch full size". The page uses it to open each example canvas, which the
+  publish step copies to `examples/<name>.html`.
 
 ## Build and preview
 

@@ -65,6 +65,9 @@ def words(model: dict, merged: dict | None = None) -> str:
     if model.get("summary"):
         w("")
         w(model["summary"])
+    if model.get("reading"):
+        w("")
+        w(f"**How to read this:** {model['reading']}")
     checked = model.get("checked") or {}
     if checked.get("date"):
         w("")
