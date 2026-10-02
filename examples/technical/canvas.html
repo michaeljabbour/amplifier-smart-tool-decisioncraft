@@ -462,10 +462,15 @@ body.z-far #world .startj,body.z-far #world2 .startj{display:none}
 /* chain: a column for how it was done before, and bands that run beside the stages */
 .beforecell{position:absolute;border-radius:12px;background:#eef2fa;border:1px dashed #b9c6e6;padding:12px 14px;color:#2c3a5a;font-size:13.5px;z-index:2}
 .beforecell p{margin:0}
-.box.band{background:linear-gradient(180deg,#fbf9ff,#f4f0ff);border:1px solid #d9cff7;border-left:6px solid var(--purple);overflow:visible}
+.box.band{background:#fdfcff;border:1px solid #e3dcf8;border-left:0;overflow:visible;padding-left:22px;
+  background-image:linear-gradient(90deg,var(--purple) 0 5px,transparent 5px),repeating-linear-gradient(180deg,transparent 0 22px,rgba(115,80,224,.035) 22px 23px)}
 .box.band h4{font-size:15.5px}
+.box.band .t{display:block;-webkit-line-clamp:unset;overflow:visible}
 .bandchips{position:absolute;left:0;right:0;top:0;bottom:0;pointer-events:none}
-.bandchip{position:absolute;right:10px;font-size:11.5px;font-weight:700;color:#4c3a99;background:#fff;border:1px solid #d9cff7;border-radius:999px;padding:3px 9px;white-space:nowrap;max-width:60%;overflow:hidden;text-overflow:ellipsis}
+.bandchip{position:absolute;left:-1px;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#3d2f86;background:#fff;
+  border:1.5px solid #cdbff5;border-left:0;border-radius:0 999px 999px 0;padding:3px 11px 3px 9px;white-space:nowrap;max-width:85%;overflow:hidden;text-overflow:ellipsis;
+  box-shadow:0 1px 3px rgba(60,40,140,.08)}
+.bandchip::before{content:"";width:9px;height:9px;border-radius:3px;background:var(--yellow);border:1px solid var(--yellow-edge);flex:0 0 auto}
 svg.links path.bandlink{stroke:#a493e6;stroke-width:1.6;stroke-dasharray:4 5}
 .techcheck{color:#3b4a63;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px}
 ul.design{margin:4px 0 8px;padding-left:18px}
@@ -1391,8 +1396,12 @@ function fitRow(key) {
 }
 function fit() { if (S.journey >= 0 && !sbsJourneys()) fitRow("j" + S.journey); else fitTo(bounds); }
 function centerOn(el) {
+  if (Z < 0.75) {
+    // zooming in can rebuild the drawing (text sizes change), so find the box again after
+    Z = 0.9; apply();
+    el = (el.dataset.k && world.querySelector(`[data-k="${el.dataset.k}"]`)) || el;
+  }
   const x = parseFloat(el.style.left) + el.offsetWidth / 2, y = parseFloat(el.style.top) + el.offsetHeight / 2;
-  if (Z < 0.75) Z = 0.9;
   const [cx, cy] = viewCenter();
   X = cx - pane().x - x * Z; Y = cy - y * Z; apply();
 }

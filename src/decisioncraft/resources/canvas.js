@@ -891,8 +891,12 @@ function fitRow(key) {
 }
 function fit() { if (S.journey >= 0 && !sbsJourneys()) fitRow("j" + S.journey); else fitTo(bounds); }
 function centerOn(el) {
+  if (Z < 0.75) {
+    // zooming in can rebuild the drawing (text sizes change), so find the box again after
+    Z = 0.9; apply();
+    el = (el.dataset.k && world.querySelector(`[data-k="${el.dataset.k}"]`)) || el;
+  }
   const x = parseFloat(el.style.left) + el.offsetWidth / 2, y = parseFloat(el.style.top) + el.offsetHeight / 2;
-  if (Z < 0.75) Z = 0.9;
   const [cx, cy] = viewCenter();
   X = cx - pane().x - x * Z; Y = cy - y * Z; apply();
 }
