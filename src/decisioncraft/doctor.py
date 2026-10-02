@@ -36,11 +36,12 @@ def _writable(folder: Path) -> bool:
         return False
 
 
-def doctor(*, directory: str = ".", complete_cmd: str | None = None) -> dict:
+def doctor(*, directory: str = ".", complete_cmd: str | None = None, live: bool = False) -> dict:
     """Check Python, optional packages, provider keys, host-model routing and write access.
 
     directory: where you plan to write canvases and models (default: the current folder).
     complete_cmd: a --complete-cmd you plan to use; its program is looked up, not run.
+    live: also make one tiny real call to each provider that has a key (costs a fraction of a cent).
     Returns {"checks": [...], "ready": {path: bool}, "summary": str}.
     """
     checks: list[dict] = []
@@ -87,7 +88,7 @@ def doctor(*, directory: str = ".", complete_cmd: str | None = None) -> dict:
                 fixes.append(f"export {env}=...")
             add(
                 f"provider_{pkg}", "warn",
-                f"--provider {pkg} is not ready: missing {' and '.join(missing)}. Only draft and perspectives need it.",
+                f"--provider {pkg} is not ready: missing {' and '.join(missing)}. Only map, draft and perspectives need it.",
                 "; ".join(fixes),
             )
 
@@ -115,6 +116,37 @@ def doctor(*, directory: str = ".", complete_cmd: str | None = None) -> dict:
             "Check one with: decisioncraft doctor --complete-cmd 'your-command'",
         )
 
+    # Which model answers when no --provider is given, and why.
+    from .intelligence import ProviderError, config_path, provider_complete, resolve
+
+    answer = None
+    try:
+        r = resolve()
+        if sdks.get(r["provider"]):
+            answer = r
+            add("model", "ok", f"With no flags, {r['provider']} {r['model']} answers ({r['why']}). "
+                f"Change it with --provider/--model or: decisioncraft config set model NAME")
+        else:
+            add("model", "warn", f"{r['provider']} is chosen ({r['why']}) but not ready.",
+                f"uv tool install --force '{EXTRAS}[smart]'")
+    except ProviderError as e:
+        add("model", "warn", f"No model answers by default: {e}",
+            "export ANTHROPIC_API_KEY=...  (or OPENAI_API_KEY), or use --complete-cmd")
+    if live:
+        for pkg in ("anthropic", "openai"):
+            if not sdks.get(pkg):
+                continue
+            try:
+                name = resolve(pkg)["model"]
+                reply = provider_complete(pkg, name, max_tokens=64)("Reply with the single word: ok", "ok?")
+                add(f"live_{pkg}", "ok", f"Live call to {pkg} {name} worked (replied {reply.strip()[:20]!r}).")
+            except Exception as e:  # noqa: BLE001 - report any failure plainly
+                sdks[pkg] = False
+                add(f"live_{pkg}", "fail", f"Live call to {pkg} failed: {str(e)[:200]}",
+                    f"Check the key and model, or pin another: decisioncraft config set model NAME ({config_path()})")
+        if answer and not sdks.get(answer["provider"]):
+            answer = None
+
     mcp = _pkg("mcp")
     if mcp:
         add("mcp", "ok", f"mcp {mcp} installed: decisioncraft mcp can serve MCP hosts")
@@ -128,12 +160,16 @@ def doctor(*, directory: str = ".", complete_cmd: str | None = None) -> dict:
         "draft_with_anthropic": sdks["anthropic"],
         "draft_with_openai": sdks["openai"],
         "draft_with_complete_cmd": routing_ready,
+        "draft_by_default": bool(answer),
         "mcp": bool(mcp),
     }
     if failed:
         text = "Some things need fixing before you start (marked fix)."
-    elif not (ready["draft_with_anthropic"] or ready["draft_with_openai"] or routing_ready):
+    elif not (answer or routing_ready):
         text = "Ready to draw, review and compare. To draft with a model, set up a provider or --complete-cmd."
+    elif answer:
+        text = (f"Ready, including drafting with a model: {answer['provider']} {answer['model']}. "
+                "Try: decisioncraft map ./your-repo --open")
     else:
-        text = "Ready, including drafting with a model."
+        text = "Ready, including drafting through your --complete-cmd."
     return {"checks": checks, "ready": ready, "summary": text}

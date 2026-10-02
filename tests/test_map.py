@@ -116,7 +116,7 @@ def test_cli_map_dry_run_and_draw(tmp_path):
 
 def test_cli_map_errors():
     none = cli("map", str(REPO), "--json")
-    assert none.returncode == 2 and json.loads(none.stdout)["error"]["code"] == "missing_argument"
+    assert none.returncode == 3 and json.loads(none.stdout)["error"]["code"] == "provider_not_configured"
     url = cli("map", "https://example.com", "--complete-cmd", "true", "--json")
     assert url.returncode == 1 and json.loads(url.stdout)["error"]["field"] == "--page"
     roles = cli("map", str(REPO), "--roles", "nobody", "--dry-run", "--json")

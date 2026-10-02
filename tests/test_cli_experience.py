@@ -147,7 +147,7 @@ def test_render_watch_redraws(tmp_path):
     (["validate", "INVALID"], 1, "invalid_model"),
     (["no-such-command"], 2, "usage"),
     (["render"], 2, "usage"),
-    (["draft", "NOTE", "--question", "Q?"], 2, "missing_argument"),
+    (["draft", "NOTE", "--question", "Q?"], 3, "provider_not_configured"),
     (["draft", "NOTE", "--question", "Q?", "--provider", "anthropic"], 3, "provider_not_configured"),
     (["draft", "NOTE", "--question", "Q?", "--complete-cmd", "FAIL"], 4, "model_call_failed"),
 ])

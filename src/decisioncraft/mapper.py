@@ -398,7 +398,8 @@ def map_starter(target: str, *, roles: list[str] | None = None, question: str = 
 
 def map_target(target: str, *, roles: list[str] | None = None, question: str = "", answers: dict | None = None,
                page_text: str = "", budget: int = 120_000, per_role: int = 2, provider: str | None = None,
-               model: str | None = None, complete=None, allow_network: bool = False) -> dict:
+               model: str | None = None, complete=None, allow_network: bool = False, progress=None,
+               escalate=None) -> dict:
     """Model-backed. Gather material from a target and draft an as-is / to-be map with notes.
 
     Returns {model, plan, notes_added}. The model has display.notes_on_map set and a checked
@@ -431,13 +432,21 @@ def map_target(target: str, *, roles: list[str] | None = None, question: str = "
     chosen = map_roles(roles)
     brief = {"format": "decisioncraft-brief/1",
              "answers": {"decision": q, "why": BRIEF_INTENT, "visual": "How the work changes, today and planned"}}
+    say = progress or (lambda _t: None)
+    if complete is None:
+        complete, auto = intelligence._resolve_complete(provider, model, None)
+        escalate = escalate or auto
+    say(f"Read {len(g['read'])} file(s), {sum(len(m['text']) for m in material):,} characters.")
+    say("Step 1 of 2: drawing today's way, the planned way, and the gaps with user stories ...")
     drafted = intelligence.draft(material, template=_template_for(kind), question=q, roles=chosen,
-                                 brief=brief, provider=provider, model=model, complete=complete,
-                                 date=g["checked"]["date"], max_material_chars=budget + 4000)
+                                 brief=brief, complete=complete, escalate=escalate, progress=say,
+                                 date=g["checked"]["date"], max_material_chars=budget + 4000,
+                                 defer_notes=True)
+    say(f"Step 1 done: {len(drafted.get('maps', []))} map(s), {len(drafted.get('gaps', []))} gap(s).")
     before = len(drafted.get("notes", []))
-    if before < len(chosen):
-        drafted = intelligence.perspectives(drafted, material=material, roles=chosen, per_role=per_role,
-                                            provider=provider, model_name=model, complete=complete)
+    say(f"Step 2 of 2: a note from each of {len(chosen)} roles, a few at a time ...")
+    drafted = intelligence.perspectives(drafted, material=material, roles=chosen, per_role=per_role,
+                                        complete=complete, escalate=escalate, progress=say)
     drafted["checked"] = g["checked"]
     drafted.setdefault("display", {})
     drafted["display"]["notes_on_map"] = True
