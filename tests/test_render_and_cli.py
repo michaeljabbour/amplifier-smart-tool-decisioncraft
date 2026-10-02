@@ -182,7 +182,8 @@ def test_model_backed_paths_need_an_explicit_provider(tmp_path):
         "anthropic",
         ok=False,
     )
-    assert r.returncode == 1 and "ANTHROPIC_API_KEY" in r.stderr
+    # exit 3: something must be set up first (contracts/cli.v1.md)
+    assert r.returncode == 3 and "ANTHROPIC_API_KEY" in r.stderr
     r = run(
         "draft", str(note), "--template", "decision-chain", "--question", "Q?", ok=False
     )
@@ -233,7 +234,8 @@ def test_complete_cmd_failure_is_a_clean_error(tmp_path):
         f'{sys.executable} -c "import sys; sys.exit(1)"',
         ok=False,
     )
-    assert r.returncode == 1 and "--complete-cmd failed" in r.stderr
+    # exit 4: the model call failed
+    assert r.returncode == 4 and "--complete-cmd failed" in r.stderr
 
 
 def test_neither_provider_nor_complete_cmd_is_a_clean_error(tmp_path):
@@ -242,8 +244,9 @@ def test_neither_provider_nor_complete_cmd_is_a_clean_error(tmp_path):
     r = run(
         "draft", str(note), "--template", "decision-chain", "--question", "Q?", ok=False
     )
+    # exit 2: the command line is missing a choice
     assert (
-        r.returncode == 1 and "--provider" in r.stderr and "--complete-cmd" in r.stderr
+        r.returncode == 2 and "--provider" in r.stderr and "--complete-cmd" in r.stderr
     )
 
 
