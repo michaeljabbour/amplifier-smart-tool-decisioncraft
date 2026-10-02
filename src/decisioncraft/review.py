@@ -101,7 +101,7 @@ def _note_target(model: dict, anchor) -> dict:
     if target is None:
         return {"kind": "unknown", "title": str(anchor), "text": ""}
     return {"kind": "gap" if anchor in gaps else "box",
-            "title": target.get("title") or target.get("label") or target.get("text") or str(anchor),
+            "title": target.get("title") or target.get("name") or target.get("label") or target.get("text") or str(anchor),
             "text": target.get("text", "") if target.get("title") else target.get("summary", "") or target.get("why", "")}
 
 
@@ -182,6 +182,15 @@ def check_review(review: dict) -> list[str]:
     for k, v in (dots if isinstance(dots, dict) else {}).items():
         if type(v) is not int or v < 0:
             problems.append(f"Dots on {k} must be a whole number, 0 or more.")
+    weights = review.get("weights")
+    if weights is not None and not isinstance(weights, dict):
+        problems.append("Weights must be an object keyed by criterion id.")
+    for k, v in (weights if isinstance(weights, dict) else {}).items():
+        if isinstance(v, bool) or not isinstance(v, (int, float)) or not 0 <= v <= 5:
+            problems.append(f"Weight for {k} must be a number from 0 to 5.")
+    whatifs = review.get("whatifs")
+    if whatifs is not None and (not isinstance(whatifs, list) or any(not isinstance(x, str) for x in whatifs)):
+        problems.append("What-ifs must be a list of what-if ids.")
     decisions = review.get("decisions")
     if decisions is not None and not isinstance(decisions, dict):
         problems.append("Decisions must be an object keyed by decision id.")
@@ -248,6 +257,7 @@ def merge(reviews: list[dict], model: dict | None = None) -> dict:
         "questions": {},
         "decisions": {},
         "notes": [],
+        "weights": {},
     }
     for i, r in enumerate(reviews):
         who = (r.get("reviewer") or "").strip() or f"Reviewer {i + 1}"
@@ -277,6 +287,8 @@ def merge(reviews: list[dict], model: dict | None = None) -> dict:
             q["dots"] += d
         for n in note_threads(r):
             merged["notes"].append({**n, "who": who})
+        for cid, wt in (r.get("weights") or {}).items():
+            merged["weights"].setdefault(cid, []).append({"who": who, "weight": wt})
         for did, fields in (r.get("decisions") or {}).items():
             d = merged["decisions"].setdefault(did, {})
             for k, v in fields.items():
@@ -284,6 +296,14 @@ def merge(reviews: list[dict], model: dict | None = None) -> dict:
                     d.setdefault(k, []).append({"who": who, "value": v})
     for q in merged["questions"].values():
         q["split"] = sum(1 for c in CHOICES if q[c]) > 1
+    # Weights people disagree on by a point or more (on the 0-5 scale), widest first.
+    merged["weight_split"] = sorted(
+        (cid for cid, vals in merged["weights"].items()
+         if len(vals) > 1 and max(v["weight"] for v in vals) - min(v["weight"] for v in vals) >= 1),
+        key=lambda cid: -(max(v["weight"] for v in merged["weights"][cid]) - min(v["weight"] for v in merged["weights"][cid])),
+    )
+    if not merged["weights"]:
+        del merged["weights"], merged["weight_split"]
     for did, d in merged["decisions"].items():
         d["conflict"] = sorted(
             k

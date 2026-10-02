@@ -25,6 +25,15 @@ Saved from the canvas with "Share my answers", or made with `review.blank_review
 }
 ```
 
+### A reviewer's own weights and what-ifs (optional)
+
+When the model has a scoring table, `"weights": {"<criterion id>": 0-5}` holds the weights
+this reviewer set with Change the weights (only when they differ from the model's). When the
+model has a cost map, `"whatifs": ["<what-if id>", ...]` lists the what-ifs they had switched
+on. `merge` collects weights as `weights: {"<criterion id>": [{"who", "weight"}]}` and lists
+criteria where reviewers differ by a point or more in `weight_split`, widest first; the
+canvas marks those rows "Reviewers disagree" and the text version lists them.
+
 ### Reviewers' rough notes and the experts' replies (optional)
 
 `notes` holds a reviewer's own sticky notes, added in the canvas on any box, gap, story

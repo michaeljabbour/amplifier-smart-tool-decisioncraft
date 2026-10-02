@@ -31,7 +31,8 @@ def words(model: dict, merged: dict | None = None) -> str:
     def notes_for(anchor, indent=""):
         for n in notes_by_anchor.get(anchor, []):
             role = roles.get(n.get("role"), {}).get("label", n.get("role"))
-            w(f"{indent}- **{role} note ({URGENCY[n.get('urgency', 'info')]}): {n['title']}.** "
+            end = "" if str(n['title']).rstrip()[-1:] in ".?!" else "."
+            w(f"{indent}- **{role} note ({URGENCY[n.get('urgency', 'info')]}): {n['title']}{end}** "
               f"{n.get('body', '')}")
             if n.get("recommend"):
                 w(f"{indent}  We suggest: {n['recommend']}")
@@ -147,6 +148,10 @@ def words(model: dict, merged: dict | None = None) -> str:
                 if band.get("stages"):
                     w("  Touches: " + ", ".join(stage_names.get(s, s) for s in band["stages"]) + ".")
                 notes_for(band["id"])
+        elif kind == "scoring":
+            _scoring_words(model, w, notes_for, merged)
+        elif kind == "costs":
+            _cost_words(model, w, notes_for)
         else:
             levels = m.get("levels") or TEMPLATES[m["template"]]["levels"]
 
@@ -159,6 +164,23 @@ def words(model: dict, merged: dict | None = None) -> str:
 
             w("")
             walk(m["root"], 0)
+
+    framing = model.get("framing") or {}
+    if framing.get("premortem") or framing.get("regret"):
+        w("")
+        w("## Before you decide")
+        if framing.get("premortem"):
+            w("")
+            w("**A year later this went badly. Why?** (a pre-mortem)")
+            w("")
+            for r in framing["premortem"]:
+                w(f"- {r}")
+        if framing.get("regret"):
+            w("")
+            w("**How will it feel later?** (10-10-10)")
+            w("")
+            for when, text in framing["regret"].items():
+                w(f"- In {when}: {text}")
 
     if model.get("gaps"):
         w("")
@@ -314,3 +336,122 @@ def words(model: dict, merged: dict | None = None) -> str:
         for job in r.get("jobs", []):
             w(f"  - Job to be done: {job}")
     return "\n".join(out).rstrip() + "\n"
+
+
+def _table(w, head, rows):
+    w("")
+    w("| " + " | ".join(head) + " |")
+    w("|" + "|".join("---" for _ in head) + "|")
+    for r in rows:
+        w("| " + " | ".join(str(c) for c in r) + " |")
+
+
+def _scoring_words(model, w, notes_for, merged=None):
+    from .choice import scoring
+    result = scoring(model)
+    options = [o for o in model.get("options", []) if isinstance(o, dict)]
+    criteria = [c for c in model.get("criteria", []) if isinstance(c, dict)]
+    rows = {r["option"]: r for r in result["options"]}
+    cell = {(s.get("option"), s.get("criterion")): s for s in model.get("scores", []) if isinstance(s, dict)}
+    musts = [c for c in criteria if c.get("kind") == "must"]
+    scored = [c for c in criteria if c.get("kind", "scored") == "scored"]
+    w("")
+    w("### The options")
+    for o in options:
+        status = f" ({STATUSES[o['status']]}{': ' + o['status_reason'] if o.get('status_reason') else ''})" if o.get("status") in STATUSES else ""
+        w(f"- **{o.get('name', o['id'])}**{status}: {o.get('summary', '')}")
+        notes_for(o["id"], "  ")
+    if musts:
+        w("")
+        w("### Must-haves")
+        mark = lambda v: "meets" if v is True else "FAILS" if v is False else "not checked"
+        _table(w, ["Must-have", *[o.get("name", o["id"]) for o in options]],
+               [[c["name"], *[mark(cell.get((o["id"], c["id"]), {}).get("meets")) for o in options]] for c in musts])
+        for c in musts:
+            for o in options:
+                s = cell.get((o["id"], c["id"]), {})
+                if s.get("meets") is False:
+                    w(f"- {o.get('name')} fails \"{c['name']}\": {s.get('note', 'no reason given')}")
+    if scored:
+        w("")
+        w("### Scores (1 to 5), weighted")
+        _table(w, ["What matters (weight)", *[o.get("name", o["id"]) for o in options]],
+               [[f"{c['name']} ({c.get('weight', 0):g})", *[cell.get((o["id"], c["id"]), {}).get("value", "–") for o in options]]
+                for c in scored]
+               + [["**Weighted total**", *[("out: fails a must-have" if rows[o["id"]]["fails"] else f"{rows[o['id']]['total']:.1f}") for o in options]]])
+        lead = next((o for o in options if o["id"] == result["leader"]), None)
+        if lead:
+            w("")
+            w(f"Top of the table: **{lead.get('name')}**." + (" It is a close call: the top totals are within a quarter of a point, so treat them as level." if result["close_call"] else ""))
+        names = {o["id"]: o.get("name", o["id"]) for o in options}
+        crit = {c["id"]: c["name"] for c in criteria}
+        if result["flips"]:
+            w("")
+            w("What would change the winner:")
+            for f in result["flips"]:
+                w("- " + flip_sentence(f, names, crit))
+        split = (merged or {}).get("weight_split") or []
+        if split:
+            w("")
+            w("Weights reviewers disagree on:")
+            for cid in split:
+                vals = ", ".join(f"{v['who']} {v['weight']:g}" for v in merged["weights"][cid])
+                w(f"- {crit.get(cid, cid)}: {vals}.")
+        for c in criteria:
+            notes_for(c["id"], "")
+
+
+def flip_sentence(f, names, crit) -> str:
+    if f["kind"] == "weight":
+        return (f"If {crit[f['criterion']]} mattered {'more' if f['to'] > f['from'] else 'less'} "
+                f"(weight {f['from']:g} to {f['to']:g}), {names[f['new_leader']]} would come out on top.")
+    return (f"If {names[f['of']]} scored {f['to']} instead of {f['from']} on {crit[f['criterion']]}, "
+            f"{names[f['new_leader']]} would come out on top.")
+
+
+def _cost_words(model, w, notes_for):
+    from .choice import cost_over_time, describe_crossings, money, scoring
+    result = cost_over_time(model)
+    if not result:
+        return
+    cur = result["currency"]
+    names = result["names"]
+    h = result["horizon_years"]
+    years = [y for y in (1, 3, 5, h) if y <= h]
+    years = sorted(set(years))
+    costs = model.get("costs", {})
+    if costs.get("assumptions"):
+        w("")
+        w(f"Assumptions: {costs['assumptions']}")
+    fails = {r["option"] for r in scoring(model)["options"] if r["fails"]} if model.get("criteria") else set()
+    w("")
+    w("### Real cost so far (money spent, plus loan owed, minus what it is worth)")
+    _table(w, ["Option", *[f"After {y} year{'s' if y > 1 else ''}" for y in years], "Loan or lease payment"],
+           [[names[o] + (" (fails a must-have)" if o in fails else ""), *[money(result["at_years"][o][y], cur) for y in years],
+             money(result["series"][o]["payment"], cur) if result["series"][o]["payment"] else "–"] for o in result["order"]])
+    eligible = [o for o in result["ranking"] if o not in fails]
+    if eligible:
+        best = eligible[0]
+        w("")
+        w(f"Cheapest over {h} years{' among options that meet every must-have' if fails else ''}: **{names[best]}**.")
+        lines = [ln for ln in describe_crossings({**result, "crossings": [c for c in result["crossings"] if c["cheaper"] not in fails and c["dearer"] not in fails]}, None, 8)]
+        if lines:
+            w("")
+            w("Where the cheaper option changes:")
+            for ln in lines:
+                w(f"- {ln}")
+    w("")
+    w("### Where the money goes")
+    for o in result["order"]:
+        parts = ", ".join(f"{p['label'].split(' (')[0].lower()} {money(p['amount'], cur)}" for p in result["breakdown"][o][:5])
+        w(f"- **{names[o]}:** {parts}.")
+    whatifs = [x for x in model.get("whatifs", []) if isinstance(x, dict)]
+    if whatifs:
+        w("")
+        w("### What if")
+        for x in whatifs:
+            r = cost_over_time(model, [x["id"]])
+            el = [o for o in r["ranking"] if o not in fails]
+            w(f"- **{x['label']}:** cheapest becomes {names[el[0]] if el else '–'}; "
+              + "; ".join(f"{names[o]} {money(r['at_years'][o][h], cur)}" for o in r["order"]) + f" after {h} years.")
+            notes_for(x["id"], "  ")

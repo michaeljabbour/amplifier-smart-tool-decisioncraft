@@ -20,6 +20,7 @@ def test_four_examples_exist():
         "technical",
         "engineering",
         "medical",
+        "personal-car",
     }
 
 
@@ -31,7 +32,8 @@ def test_examples_have_no_errors(path):
 
 def test_every_template_is_used_by_an_example():
     used = {m["template"] for p in MODELS for m in load(p)["maps"]}
-    assert used == {t["id"] for t in dc.templates()}
+    # personal-decision is a starting set of maps, not a map template of its own
+    assert used == {t["id"] for t in dc.templates() if t["kind"] != "set"}
 
 
 @pytest.mark.parametrize("template", [t["id"] for t in dc.templates()])

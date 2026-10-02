@@ -20,6 +20,13 @@ A JSON object with `"format": "decisioncraft/1"`.
 | `decisions` | `{id, question, notes[], options[], owner, status, due, decided_by, decision}`. Status: open, decided, deferred. |
 | `outcomes` | `{id, measure, baseline, target, result, checked, becomes_evidence}`. |
 | `dots`, `freshness_days` | Optional: dots per reviewer (default 5); age in days before a box is flagged (default 60). |
+| `display` | Optional: how the canvas first opens. `{notes_on_map: true/false (default false), start_view: today/planned/changes (default changes)}`. A reviewer's later choice in View wins and is remembered. |
+| `options` | Optional: the choices being weighed, `{id, name, summary, status, status_reason, color}`. Used by the scoring and cost maps. |
+| `criteria` | Optional: `{id, name, kind (scored/must), weight 0-5 (scored only, whole or half), measure}`. A must-have has no weight: an option meets it or it is out. |
+| `scores` | Optional: `{option, criterion, value 1-5}` for scored criteria, `{option, criterion, meets true/false}` for must-haves, each with `note` and `evidence[]`. |
+| `costs` | Optional: `{horizon_years 1-10, currency, cash_return, assumptions, options{option id: {upfront[{label, amount, kind, tags[]}], items[{label, kind, yearly (number or list by year), tags[]}], loan{amount, apr, months}, value[today, end of year 1, ...]}}}`. Kinds: purchase, lease, financing, insurance, energy, maintenance, tax, membership, other. |
+| `whatifs` | Optional: `{id, label, multiply{key: factor}}`. A key matches a cost's kind, one of its tags, or `value` (what the thing is worth). |
+| `framing` | Optional: `{premortem[sentences], regret{"10 minutes": text, "10 months": text, "10 years": text}}`. Shown under Before you decide. |
 
 An optional note `author` records who wrote it. Do not infer a person from a role.
 Model-backed notes identify the AI assistant; missing authors are shown as missing.
@@ -42,6 +49,25 @@ remain available in the detail panel even when both endpoints cannot be drawn to
   optional `before_label`, and optional `bands[{id, title, text, status, kind, detail, stages[], evidence[]}]`. An item:
   `{id, title, text, status, when (today|planned|both), replaces, detail, checked, evidence[]}`.
 - **Tree** (`opportunity-tree`): `levels[]` and `root{id, title, text, status, children[]}`.
+- **Scoring table** (`scoring-table`): no fields of its own; it draws the model's `options`,
+  `criteria` and `scores`. Must-haves come first; an option failing one is shown as "Fails a
+  must-have" and left out of the ranking. Totals are weighted averages on the 1-5 scale,
+  shown to one decimal. Top totals within 0.25 are called a close call. "What would change
+  the winner" lists the smallest single change that puts another option on top: a weight
+  moved within 0 to 5 in half steps, or one score moved by one point. Reviewers can set
+  their own weights; they are saved in the review file and `merge` shows disagreements.
+- **Cost over time** (`cost-over-time`): no fields of its own; it draws `costs` and
+  `whatifs`. Real cost at month m = money spent so far (upfront, running costs spread evenly
+  over each year, loan payments) + loan still owed − what it is worth (straight line between
+  year-end values, times any `value` factor) + what the upfront cash could have earned at
+  `cash_return`. Where two options' lines cross, the cheaper option changes; crossings with
+  an option that fails a must-have are drawn dashed and left out of the sentences.
+
+`personal-decision` is a starting set, not a map template: `new --template personal-decision`
+makes a light chain (source, evidence, decision, outcome), a today-and-after journey, a
+scoring table and a cost map, with personal roles (Money, Practical expert, Safety, People
+affected, Future you, Environment, Market and resale, Devil's advocate). Notes may anchor to
+options, criteria and what-ifs as well as boxes and gaps.
 
 ### Optional detail on lanes, boxes, stages and gaps
 

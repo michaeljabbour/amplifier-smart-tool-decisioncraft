@@ -85,6 +85,25 @@ DEFAULT_ROLES = [
     },
 ]
 
+PERSONAL_ROLES = [
+    {"id": "money", "label": "Money", "color": "#2f7d4f",
+     "asks": "What does it really cost over the years, and what does the monthly number hide?"},
+    {"id": "practical", "label": "Practical expert", "color": "#4f7fd8",
+     "asks": "What tends to go wrong with this choice, and what does it take to keep it working?"},
+    {"id": "safety", "label": "Safety", "color": "#d1543f",
+     "asks": "Is anyone put at risk, and is the safest option out of reach for a good reason?"},
+    {"id": "people", "label": "People affected", "color": "#d99a1e",
+     "asks": "Who else lives with this choice every day, and what do they need?"},
+    {"id": "future", "label": "Future you", "color": "#8a5cd6",
+     "asks": "Will this still suit you in a few years, and how easy is it to change course?"},
+    {"id": "environment", "label": "Environment", "color": "#1f9aa6",
+     "asks": "What does each option use up, and is there a lighter way to get the same result?"},
+    {"id": "market", "label": "Market and resale", "color": "#7a7a72",
+     "asks": "What is it worth later, and is now a good or bad time to buy or sell?"},
+    {"id": "devil", "label": "Devil's advocate", "color": "#b5568c",
+     "asks": "What if the question itself is wrong? Is there an option nobody has named?"},
+]
+
 TEMPLATES = {
     "system-journeys": {
         "kind": "journeys",
@@ -197,7 +216,29 @@ TEMPLATES = {
         "then ideas for each, then the quick tests that would prove an idea.",
         "levels": ["Outcome", "Need or pain", "Idea", "Quick test"],
     },
+    "scoring-table": {
+        "kind": "scoring",
+        "title": "Score the options",
+        "about": "Each column is an option and each row is something that matters, weighted by "
+        "how much. Must-haves come first: an option that fails one is out, whatever its score.",
+    },
+    "cost-over-time": {
+        "kind": "costs",
+        "title": "Cost over time",
+        "about": "What each option really costs so far, month by month: money spent, plus any "
+        "loan still owed, minus what you could sell it for. Where lines cross, the cheaper "
+        "option changes.",
+    },
+    "personal-decision": {
+        "kind": "set",
+        "title": "A personal decision",
+        "about": "For a choice between a few clear options, such as a car, a home or a job: "
+        "the chain from what you know to what you decide, today against the change, a "
+        "scoring table and cost over time.",
+    },
 }
+
+MAP_KINDS = ("journeys", "chain", "tree", "scoring", "costs")
 
 ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 
@@ -252,8 +293,12 @@ def new_model(template: str, title: str, question: str, *, date: str = "") -> di
             ]
         )
     t = TEMPLATES[template]
+    if t["kind"] == "set":
+        return _personal_model(title, question, date)
     m = {"id": "m1", "template": template, "title": t["title"], "intro": t["about"]}
-    if t["kind"] == "journeys":
+    if t["kind"] in ("scoring", "costs"):
+        pass
+    elif t["kind"] == "journeys":
         m["lanes"] = copy.deepcopy(t["lanes"])
         m["journeys"] = []
     elif t["kind"] == "chain":
@@ -281,6 +326,39 @@ def new_model(template: str, title: str, question: str, *, date: str = "") -> di
         "notes": [],
         "decisions": [],
         "outcomes": [],
+    }
+
+
+def _personal_model(title: str, question: str, date: str) -> dict:
+    """A personal decision: a light chain, today against the change, scores and costs."""
+    chain = TEMPLATES["decision-chain"]
+    keep = {"source", "evidence", "decision", "outcome"}
+    stages = [dict(s, items=[]) for s in copy.deepcopy(chain["stages"]) if s["id"] in keep]
+    for st, verb in zip(stages, ["backs up", "informs", "leads to", ""]):
+        st["verb"] = verb
+    maps = [
+        {"id": "m-chain", "template": "decision-chain", "title": "From what you know to what you decide",
+         "intro": "Each stage is one step from what you found out to what you chose and whether it worked.",
+         "stages": stages},
+        {"id": "m-journey", "template": "customer-journey", "title": "Living with it: today and after the change",
+         "intro": "What day-to-day life looks like now, and what changes with the proposed choice.",
+         "lanes": [{"id": "decide", "label": "Decide", "sub": "Finding out and choosing"},
+                   {"id": "switch", "label": "Switch over", "sub": "Paperwork and handover"},
+                   {"id": "live", "label": "Day to day", "sub": "Living with it"},
+                   {"id": "later", "label": "Later", "sub": "Selling, renewing, ending"}],
+         "journeys": []},
+        {"id": "m-scores", "template": "scoring-table", "title": TEMPLATES["scoring-table"]["title"],
+         "intro": TEMPLATES["scoring-table"]["about"]},
+        {"id": "m-costs", "template": "cost-over-time", "title": TEMPLATES["cost-over-time"]["title"],
+         "intro": TEMPLATES["cost-over-time"]["about"]},
+    ]
+    return {
+        "format": FORMAT, "title": title, "question": question, "summary": "",
+        "checked": {"date": date, "note": ""}, "roles": copy.deepcopy(PERSONAL_ROLES),
+        "glossary": {}, "sources": [], "evidence": [], "maps": maps,
+        "options": [], "criteria": [], "scores": [],
+        "costs": {"horizon_years": 5, "currency": "USD", "cash_return": 0, "options": {}},
+        "whatifs": [], "gaps": [], "notes": [], "decisions": [], "outcomes": [],
     }
 
 
@@ -325,12 +403,25 @@ def iter_boxes(model: dict):
                 yield m, band
         root = m.get("root")
         stack = [root] if isinstance(root, dict) else []
+        if m.get("template") == "scoring-table" and m is _first_of(maps, "scoring-table"):
+            for key in ("options", "criteria"):
+                for x in _as_list(model.get(key)):
+                    if isinstance(x, dict):
+                        yield m, x
+        if m.get("template") == "cost-over-time" and m is _first_of(maps, "cost-over-time"):
+            for x in _as_list(model.get("whatifs")):
+                if isinstance(x, dict):
+                    yield m, x
         while stack:
             n = stack.pop()
             yield m, n
             children = n.get("children")
             if isinstance(children, list):
                 stack.extend(c for c in children if isinstance(c, dict))
+
+
+def _first_of(maps, template):
+    return next((m for m in maps if isinstance(m, dict) and m.get("template") == template), None)
 
 
 def _as_list(value) -> list:
@@ -480,8 +571,16 @@ def validate(model: dict) -> list[dict]:
         if m.get("when", "both") not in ("today", "planned", "both"):
             err(f"{mp}.when", "Map applies today, to the proposal, or to both.")
         t = TEMPLATES.get(m.get("template"))
-        if not t:
-            err(f"{mp}.template", f"Unknown template {m.get('template')!r}.")
+        if not t or t["kind"] == "set":
+            err(f"{mp}.template", f"Unknown map template {m.get('template')!r}."
+                + (" personal-decision is a starting set of maps, not one map." if t else ""))
+            continue
+        if t["kind"] in ("scoring", "costs"):
+            if t["kind"] == "scoring":
+                if not model.get("options") or not model.get("criteria"):
+                    warn(mp, "The scoring map is empty until the model has options and criteria.")
+            elif not (isinstance(model.get("costs"), dict) and model["costs"].get("options")):
+                warn(mp, "The cost map is empty until the model has costs for each option.")
             continue
         if t["kind"] == "journeys":
             lanes = _as_list(m.get("lanes"))
@@ -577,6 +676,32 @@ def validate(model: dict) -> list[dict]:
                     check_evidence(n.get("evidence"), f"{np_}.evidence")
                     for ci, c in enumerate(_as_list(n.get("children"))):
                         stack.append((c, f"{np_}.children[{ci}]"))
+
+    display = model.get("display")
+    if display is not None:
+        if not isinstance(display, dict):
+            err("display", "Display must be a JSON object, like {\"notes_on_map\": true}.")
+        else:
+            if "notes_on_map" in display and not isinstance(display["notes_on_map"], bool):
+                err("display.notes_on_map", "notes_on_map is true or false.")
+            if display.get("start_view", "changes") not in ("today", "planned", "changes"):
+                err("display.start_view", "start_view is today, planned or changes.")
+            for k in display:
+                if k not in ("notes_on_map", "start_view"):
+                    warn(f"display.{k}", f"Unknown display setting {k!r}; it is ignored.")
+
+    from .choice import check_choice, has_choice
+    if has_choice(model):
+        for i, o in enumerate(_as_list(model.get("options"))):
+            if isinstance(o, dict):
+                claim(o.get("id"), f"options[{i}]")
+        for i, c in enumerate(_as_list(model.get("criteria"))):
+            if isinstance(c, dict):
+                claim(c.get("id"), f"criteria[{i}]")
+        for i, wi in enumerate(_as_list(model.get("whatifs"))):
+            if isinstance(wi, dict):
+                claim(wi.get("id"), f"whatifs[{i}]")
+        out.extend(check_choice(model, evidence_ids))
 
     if "comparison" in model:
         from .comparison import check_comparison
