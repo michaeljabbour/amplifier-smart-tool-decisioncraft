@@ -1,0 +1,371 @@
+{
+  "format": "decisioncraft/1",
+  "title": "Making Decisioncraft easier to use",
+  "question": "What would make this review useful enough for your next decision?",
+  "summary": "You found overlapping boxes, a hard-to-find save action, and questions that could not be answered with Agree. We have changed the layout and review flow. Now we need your judgment on what still feels awkward. Browser checks pass; this review is the next human check.",
+  "checked": {
+    "date": "2026-10-01",
+    "note": "Prepared from the repository owner review and local code checks. Proposed improvements have not yet been accepted by the owner."
+  },
+  "roles": [
+    {
+      "id": "designer",
+      "label": "Designer",
+      "color": "#e86a92",
+      "asks": "Will people understand this and find their way without help?"
+    },
+    {
+      "id": "analyst",
+      "label": "Analyst",
+      "color": "#4f7fd8",
+      "asks": "Is it clear what must be true, for whom, and how we will measure it?"
+    },
+    {
+      "id": "engineer",
+      "label": "Engineer",
+      "color": "#2f9e6a",
+      "asks": "What do we build first, what could break, and how do we test it?"
+    },
+    {
+      "id": "owner",
+      "label": "Product owner",
+      "color": "#8a5cd6",
+      "asks": "What is in the first version, what do we cut, and what does success look like?"
+    },
+    {
+      "id": "security",
+      "label": "Security and privacy",
+      "color": "#d1543f",
+      "asks": "Who can see what, what do we keep, and what happens if it leaks?"
+    },
+    {
+      "id": "voice",
+      "label": "Customer voice",
+      "color": "#d99a1e",
+      "asks": "Would the people we serve choose this, and would they need a manual?"
+    },
+    {
+      "id": "agent",
+      "label": "AI agent teammate",
+      "color": "#1f9aa6",
+      "asks": "What can an agent do on its own, and what needs a person's OK?"
+    },
+    {
+      "id": "finance",
+      "label": "Finance",
+      "color": "#7a7a72",
+      "asks": "What does it cost to build and run, and when does it pay back?"
+    }
+  ],
+  "glossary": {},
+  "sources": [
+    {
+      "id": "owner-review",
+      "title": "What the repository owner reported",
+      "kind": "observation",
+      "date": "2026-10-01",
+      "ref": "Owner feedback during the first review"
+    },
+    {
+      "id": "purpose",
+      "title": "What Decisioncraft is meant to do",
+      "kind": "document",
+      "date": "2026-10-01",
+      "ref": "docs/VISION.md"
+    },
+    {
+      "id": "design",
+      "title": "How we are improving the review",
+      "kind": "document",
+      "date": "2026-10-01",
+      "ref": "docs/REVIEW-DESIGN.md"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "E1",
+      "source": "owner-review",
+      "kind": "quote",
+      "text": "There's no submit button, save button, or export, so that piece is a little bit confusing",
+      "voice": true
+    },
+    {
+      "id": "E2",
+      "source": "owner-review",
+      "kind": "quote",
+      "text": "The way that the evidence and decision-making support are currently happening doesn't really mimic the real-world feel of interacting with a human",
+      "voice": true
+    },
+    {
+      "id": "E3",
+      "source": "purpose",
+      "kind": "quote",
+      "text": "People read, answer and decide.",
+      "voice": false
+    },
+    {
+      "id": "E4",
+      "source": "design",
+      "kind": "quote",
+      "text": "A person should be able to understand the choice, give a useful answer, check what\nwas recorded, and know who will act on it.",
+      "voice": false
+    }
+  ],
+  "maps": [
+    {
+      "id": "m1",
+      "template": "opportunity-tree",
+      "title": "From a confusing review to a useful conversation",
+      "intro": "The changes work in browser checks. Your next review will show whether they feel natural.",
+      "levels": [
+        "Outcome",
+        "Need or pain",
+        "Idea",
+        "Quick test"
+      ],
+      "root": {
+        "id": "goal",
+        "title": "A review you can finish without help",
+        "text": "Understand, answer, check, and share.",
+        "status": "planned",
+        "children": [
+          {
+            "id": "understand",
+            "title": "Understand the choice",
+            "text": "A diagram alone did not make the next step clear.",
+            "status": "partial",
+            "evidence": [
+              "E2",
+              "E4"
+            ],
+            "children": [
+              {
+                "id": "change-understand",
+                "title": "What we changed",
+                "text": "Start with the decision and a short explanation.",
+                "status": "partial",
+                "evidence": [
+                  "E2",
+                  "E4"
+                ],
+                "children": [
+                  {
+                    "id": "check-understand",
+                    "title": "What we need to learn",
+                    "text": "Can you explain the choice in your own words?",
+                    "status": "planned",
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "answer",
+            "title": "Give a useful answer",
+            "text": "Agree did not answer questions that asked for a specific choice.",
+            "status": "partial",
+            "evidence": [
+              "E2",
+              "E3"
+            ],
+            "children": [
+              {
+                "id": "change-answer",
+                "title": "What we changed",
+                "text": "Ask one question at a time and accept a written answer.",
+                "status": "partial",
+                "evidence": [
+                  "E2",
+                  "E3"
+                ],
+                "children": [
+                  {
+                    "id": "check-answer",
+                    "title": "What we need to learn",
+                    "text": "Can you answer without guessing what the question means?",
+                    "status": "planned",
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "check",
+            "title": "Check the reasoning",
+            "text": "Source details made the discussion feel unlike a human conversation.",
+            "status": "partial",
+            "evidence": [
+              "E2",
+              "E4"
+            ],
+            "children": [
+              {
+                "id": "change-check",
+                "title": "What we changed",
+                "text": "Explain why the question matters; let you inspect sources when needed.",
+                "status": "partial",
+                "evidence": [
+                  "E2",
+                  "E4"
+                ],
+                "children": [
+                  {
+                    "id": "check-check",
+                    "title": "What we need to learn",
+                    "text": "Can you tell what is known and what still needs judgment?",
+                    "status": "planned",
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "finish",
+            "title": "Finish and share",
+            "text": "Saving was hidden in a menu, and the next step was unclear.",
+            "status": "partial",
+            "evidence": [
+              "E1",
+              "E4"
+            ],
+            "children": [
+              {
+                "id": "change-finish",
+                "title": "What we changed",
+                "text": "Keep Save my answers visible and show who receives the file.",
+                "status": "partial",
+                "evidence": [
+                  "E1",
+                  "E4"
+                ],
+                "children": [
+                  {
+                    "id": "check-finish",
+                    "title": "What we need to learn",
+                    "text": "Can you finish and share without asking for instructions?",
+                    "status": "planned",
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "gaps": [],
+  "notes": [
+    {
+      "id": "R1",
+      "role": "designer",
+      "anchor": "understand",
+      "title": "Which part of this review still feels hardest to use?",
+      "question": "Which part of this review still feels hardest to use?",
+      "body": "Your first review needed extra instructions. We want to remove the remaining friction, rather than add more explanation.",
+      "recommend": "Tell us where you hesitated and what you expected to happen.",
+      "answer_type": "text",
+      "urgency": "must",
+      "evidence": [
+        "E1",
+        "E2"
+      ]
+    },
+    {
+      "id": "R2",
+      "role": "analyst",
+      "anchor": "check",
+      "title": "What would you need to see before trusting a suggested next step?",
+      "question": "What would you need to see before trusting a suggested next step?",
+      "body": "A useful recommendation needs a reason you can assess. File names and test results alone do not establish that it is the right choice.",
+      "recommend": "Look for a clear reason, the source behind it, and any important uncertainty.",
+      "answer_type": "text",
+      "urgency": "should",
+      "evidence": [
+        "E2",
+        "E4"
+      ]
+    },
+    {
+      "id": "R3",
+      "role": "owner",
+      "anchor": "finish",
+      "title": "What should happen after you save your answers?",
+      "question": "What should happen after you save your answers?",
+      "body": "The current file is downloaded for you to send to the decision owner or attach to an agent chat. Nothing is sent automatically.",
+      "recommend": "The owner should compare responses, resolve open questions and record the decision.",
+      "answer_type": "text",
+      "urgency": "should",
+      "evidence": [
+        "E1",
+        "E3"
+      ]
+    },
+    {
+      "id": "R4",
+      "role": "voice",
+      "anchor": "answer",
+      "title": "Which real decision would you try with this next?",
+      "question": "Which real decision would you try with this next?",
+      "body": "We have tested the controls. We still need a real decision to learn whether the review helps people reach a useful conclusion.",
+      "recommend": "Choose a small decision with clear alternatives and no sensitive material.",
+      "answer_type": "text",
+      "urgency": "must",
+      "evidence": [
+        "E3",
+        "E4"
+      ]
+    },
+    {
+      "id": "R5",
+      "role": "owner",
+      "anchor": "answer",
+      "title": "Who should make the final decision for that trial?",
+      "question": "Who should make the final decision for that trial?",
+      "body": "Reviewers contribute their views. Someone still needs to take responsibility for the final choice.",
+      "recommend": "Name a role that can make the choice and explain the reason.",
+      "answer_type": "text",
+      "urgency": "must",
+      "evidence": [
+        "E3"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D1",
+      "question": "Is this review ready to try on a real decision?",
+      "notes": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ],
+      "options": [
+        "Try it on one real decision",
+        "Fix the remaining friction first"
+      ],
+      "owner": "Repository owner",
+      "status": "open",
+      "due": "",
+      "decided_by": "",
+      "decision": ""
+    }
+  ],
+  "outcomes": [
+    {
+      "id": "O1",
+      "measure": "A reviewer finishes and shares useful answers without instructions",
+      "baseline": "The first review needed help finding how to save and what to do next.",
+      "target": "One observed review completed without help.",
+      "result": "",
+      "checked": "",
+      "becomes_evidence": ""
+    }
+  ],
+  "reading": "Start with Questions to decide. Read the short introduction, then answer one question at a time. You can inspect sources or a possible approach when helpful. Check your answers, then save a file to share. Your earlier responses remain in the separate next-steps review."
+}

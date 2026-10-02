@@ -156,7 +156,7 @@ body.z-far .jindex .mini{font-size:calc(13px * var(--inv))}
 #top .primary{background:#fff6dc;border-color:#e9cf86;font-weight:600}
 #top .count{display:inline-block;min-width:1.6em;padding:0 6px;margin-left:5px;border-radius:9px;background:rgba(0,0,0,.07);font-size:12px}
 #menu{position:fixed;z-index:45;background:#fff;border:1px solid var(--line);border-radius:10px;padding:6px;
-  box-shadow:0 8px 28px rgba(0,0,0,.14);display:none;min-width:270px}
+  box-shadow:0 8px 28px rgba(0,0,0,.14);display:none;min-width:270px;max-height:calc(100vh - 70px);overflow-y:auto}
 #menu.open{display:block}
 #menu button{display:flex;justify-content:space-between;gap:12px;width:100%;text-align:left;border:0;background:none;padding:9px 10px;border-radius:6px}
 #menu button:hover{background:var(--soft)}
@@ -229,3 +229,108 @@ body.z-far .box .meta .notebadge{font-size:calc(11.5px * var(--inv))}
 #story .reading{margin:0 0 10px;font-size:13.5px;line-height:1.45}
 #story .reading summary{cursor:pointer;color:#2f5bd3;font-weight:600}
 #story .reading p{margin:6px 0 0}
+
+/* Review actions stay visible and say where the file goes. */
+.save-primary,#top .save-primary{background:var(--accent);color:#fff;border:1px solid var(--accent);border-radius:8px;padding:7px 11px;font-weight:600}
+#top .save-primary:hover{background:#2448a8}
+.review-next{border:1px solid var(--line);background:#f3f6fd;border-radius:9px;padding:12px;margin-bottom:16px}
+.answer-label{display:block;font-weight:600;margin-top:10px}
+.review-answer{white-space:pre-wrap;border-left:3px solid var(--accent);padding-left:8px}
+
+.review-nav{display:flex;gap:8px;justify-content:space-between;margin:20px 0 12px}
+.review-nav button{border:1px solid var(--line);border-radius:8px;padding:8px 12px}
+.support{margin:14px 0}
+.support summary{cursor:pointer;color:var(--accent);font-weight:600}
+.decision-question{font-size:19px;font-weight:600;line-height:1.35}
+
+.short-label{display:none}
+@media(max-width:720px){
+  #top{gap:5px;padding:6px}
+  #top .title,#top .wide-label,#top .count,#tkeys{display:none}
+  #top .short-label{display:inline}
+  #top button{padding:6px 8px;font-size:13px}
+  #hint{left:10px;right:10px;max-width:none}
+}
+
+#paper-review{display:none}
+@media print{
+  body.print-review{height:auto;overflow:visible;background:#fff}
+  body.print-review > *{display:none!important}
+  body.print-review #paper-review{display:block!important;padding:16px}
+  #paper-review article{break-inside:avoid;margin:24px 0}
+  #paper-review h2{font-size:17px}
+  .paper-space{height:90px;border-bottom:1px solid #ccc}
+}
+
+.recommendation{background:#f3f6fd;border-left:3px solid var(--accent);padding:10px 12px;margin:12px 0}
+.recommendation p{margin:4px 0 0}
+
+#story .workflow button{padding:12px 9px;font-weight:600}
+#story .more button[aria-current="true"]{background:#eaf0ff;border-color:#9fb4ee;color:#244ca6}
+
+/* Display controls have names on hover or focus, and a visible switch state. */
+#top .display-controls{display:flex;gap:5px;align-items:center}
+#top .icon-control{position:relative;width:36px;height:36px;padding:5px 6px 9px}
+.icon-control svg{display:block;width:22px;height:22px}
+#top .icon-control[aria-pressed="true"]{background:#eaf0ff;color:#244ca6;border-color:#9fb4ee}
+.toggle-state{position:absolute;bottom:3px;left:13px;width:11px;height:4px;border-radius:4px;background:#aaa}
+[aria-pressed="true"] .toggle-state{background:#244ca6}
+.control-tip{display:none;position:absolute;top:calc(100% + 9px);right:0;background:#1d1d1b;color:#fff;
+  font-size:12px;padding:6px 9px;border-radius:6px;pointer-events:none;z-index:60}
+.icon-control:hover .control-tip,.icon-control:focus-visible .control-tip{display:block}
+.word-meanings dt{font-weight:700;margin-top:16px}
+.word-meanings dd{margin:4px 0 0}
+@media(max-width:720px){#top .display-controls{gap:3px}#top .icon-control{width:32px;padding:5px 4px 9px}}
+
+/* Keep space for the drawing when details are open. */
+body.panel-open #panel{width:clamp(320px,30vw,460px)}
+body.panel-open #story{width:240px}
+body.panel-open #zoom{right:calc(clamp(320px,30vw,460px) + 24px)}
+.customer-step{border-top:4px solid #5b78b9}
+.timeline-title{background:#eef3ff;border-color:#b9c9ea}
+.links .customer-flow{stroke:#5b78b9;stroke-width:2}
+#story .seg button{padding:6px 4px}
+@media(max-width:1100px){body.panel-open #story{display:none}body.panel-open #storytab{display:block}}
+@media(max-width:720px){body.panel-open #panel{width:calc(100vw - 20px)}body.panel-open #zoom{display:none}}
+
+/* A stage spine anchors the work; proposals and feedback have distinct styles. */
+.box.stage{background:#f9d46b;border-color:#e5bd51;color:#3a2a00}
+.box.stage h3{font-size:23px;font-weight:600}
+.box.stage.first-stage{background:#7652d9;color:#fff;border-color:#7652d9}
+.box.stage.first-stage p{color:#fff}
+.box.planned-new{background:#effaf8;border-color:#81c9c1}
+.links .connection path{stroke:#7652d9;stroke-width:1.8;fill:none;opacity:.55}
+.links .connection.evidence path{stroke:#4675ba}
+.links .connection.feedback path{stroke:#c54d46;stroke-dasharray:6 4}
+.links .connection.active path{opacity:1;stroke-width:2.5}
+body.connection-focus .box:not(.connected){opacity:.4}
+.connection-description{border-left:3px solid #7652d9;padding-left:8px}
+.connection-description.evidence{border-color:#4675ba}
+.connection-description.feedback{border-color:#c54d46}
+@media(max-width:720px){#top .display-controls{flex:1;min-width:0;overflow-x:auto}#top .icon-control{flex-shrink:0}}
+
+#view-version{border:1px solid var(--line);border-radius:8px;background:#fff;padding:7px;font-size:13px;min-width:88px}
+@media(max-width:720px){body.panel-open #panel{top:auto;height:48vh}#top .display-controls select{flex-shrink:0}}
+
+@media(min-width:721px) and (max-width:1100px){body.panel-open.show-navigation #story{display:block}}
+
+/* Paper notes stay beside the work, with space for each person's perspective. */
+.notecard{border-radius:3px 3px 12px 3px;border:1px solid rgba(70,55,20,.12);padding:14px 14px 12px;
+  box-shadow:0 2px 2px rgba(0,0,0,.05),2px 7px 13px rgba(0,0,0,.13);transform:rotate(var(--note-tilt,0deg))}
+.notecard::before{top:-5px;bottom:auto;left:calc(50% - 22px);width:44px;height:12px;
+  background:rgba(255,255,255,.55)!important;transform:rotate(-3deg);border:1px solid rgba(255,255,255,.6)}
+.notecard::after{content:"";position:absolute;right:0;bottom:0;width:12px;height:12px;
+  background:linear-gradient(135deg,transparent 48%,rgba(0,0,0,.09) 50%,rgba(255,255,255,.7));border-radius:0 0 10px 0}
+.notecard:hover,.notecard:focus-visible{transform:none;box-shadow:2px 10px 18px rgba(0,0,0,.18)}
+.notecard .who{text-transform:none;letter-spacing:0;font-size:12px}
+.notecard h5{font-size:15px;line-height:1.3;margin:7px 0}
+.notecard .q{line-height:1.45}
+#role-strip{position:fixed;top:64px;z-index:29;display:flex;align-items:center;gap:7px;width:max-content;
+  max-width:calc(100vw - 24px);overflow-x:auto;background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:10px;padding:6px 9px}
+#role-strip[hidden]{display:none}
+#role-strip button{display:flex;align-items:center;gap:6px;white-space:nowrap;border:1px solid var(--line);border-radius:7px;background:#faf9f5;padding:4px 8px}
+#role-strip button[aria-pressed="true"]{background:#eef0ff;border-color:#b8b4dc}
+#role-strip button[aria-pressed="false"]{color:var(--muted);opacity:.7}
+.paper-swatch{width:14px;height:14px;border:1px solid;box-shadow:1px 2px 2px rgba(0,0,0,.12);transform:rotate(-5deg)}
+.role-caption{font-size:12px;color:var(--muted);white-space:nowrap}
+@media print{#role-strip{display:none!important}}

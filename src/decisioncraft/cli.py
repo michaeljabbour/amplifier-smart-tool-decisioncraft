@@ -111,8 +111,14 @@ def build() -> SkillParser:
             help=f"[{CAPABILITIES[name]['kind']}] " + CAPABILITIES[name]["summary"],
         )
 
-    for name in ("manifest", "templates", "roles"):
+    for name in ("manifest", "templates", "roles", "mcp"):
         cap(name)
+    c = cap("discover")
+    c.add_argument("--question", default="")
+    c = cap("handoff")
+    c.add_argument("model")
+    c.add_argument("review")
+    c.add_argument("--out")
     c = cap("new")
     c.add_argument("--template", required=True)
     c.add_argument("--title", required=True)
@@ -130,6 +136,14 @@ def build() -> SkillParser:
             c.add_argument("--since")
         if name != "questions":
             c.add_argument("--out")
+    c = cap("session")
+    c.add_argument("model")
+    c.add_argument("--dir", required=True)
+    c.add_argument("--review")
+    c.add_argument("--source-root", default=".")
+    c.add_argument("--prepared-by", default="")
+    c.add_argument("--open", action="store_true")
+    c.add_argument("--until-finished", action="store_true")
     c = cap("merge")
     c.add_argument("model")
     c.add_argument("reviews", nargs="+")
@@ -138,8 +152,9 @@ def build() -> SkillParser:
     c.add_argument("old")
     c.add_argument("new")
     c = cap("draft")
+    c.add_argument("--brief")
     c.add_argument("material", nargs="+")
-    c.add_argument("--template", required=True)
+    c.add_argument("--template", default="auto")
     c.add_argument("--question", required=True)
     c.add_argument("--title", default="")
     c.add_argument("--date", default="")
@@ -177,6 +192,13 @@ def main(argv=None) -> int:
             _emit(
                 lib.new(args.template, args.title, args.question, args.date), args.out
             )
+        elif cmd == "mcp":
+            from .mcp_server import serve
+            serve()
+        elif cmd == "discover":
+            _emit(lib.discover(args.question), None)
+        elif cmd == "handoff":
+            _emit(lib.handoff(_load(args.model), _load(args.review)), args.out)
         elif cmd == "validate":
             problems = lib.validate(_load(args.model))
             _emit(problems, None)
@@ -196,6 +218,30 @@ def main(argv=None) -> int:
             else:
                 require_valid(model)
                 _emit(lib.questions(model, merged), None)
+        elif cmd == "session":
+            active = lib.session(_load(args.model), args.dir,
+                                 review=_load(args.review) if args.review else None,
+                                 source_root=args.source_root, prepared_by=args.prepared_by)
+            active.close_on_finish = args.until_finished
+            try:
+                _emit(active.info(), None)
+                sys.stdout.flush()
+                if args.open:
+                    import webbrowser
+                    webbrowser.open(active.url)
+                if args.until_finished:
+                    active.wait()
+                    _emit(active.status(), None)
+                else:
+                    while True:
+                        active.wait(1)
+                        if active.wait(0):
+                            import time
+                            time.sleep(1)
+            except KeyboardInterrupt:
+                pass
+            finally:
+                active.close()
         elif cmd == "merge":
             model = _load(args.model)
             _emit(lib.merge([_load(r) for r in args.reviews], model), args.out)
@@ -208,6 +254,7 @@ def main(argv=None) -> int:
                 question=args.question,
                 title=args.title,
                 date=args.date,
+                brief=_load(args.brief) if args.brief else None,
                 model=args.model,
                 **_complete_kwargs(args),
             )
@@ -227,6 +274,6 @@ def main(argv=None) -> int:
         for p in e.problems:
             print(f"  {p.get('path', '')}: {p['message']}", file=sys.stderr)
         return _fail("the model has problems (listed above).")
-    except (ProviderError, ValueError) as e:
+    except (ProviderError, ValueError, OSError) as e:
         return _fail(str(e))
     return 0

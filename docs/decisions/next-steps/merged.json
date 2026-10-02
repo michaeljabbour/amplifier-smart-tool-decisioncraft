@@ -1,0 +1,74 @@
+{
+  "format": "decisioncraft-merged/1",
+  "reviewers": [
+    "Repository owner"
+  ],
+  "stale_reviews": [],
+  "questions": {
+    "N1": {
+      "agree": 1,
+      "change": 0,
+      "unsure": 0,
+      "dots": 0,
+      "comments": [],
+      "split": false
+    },
+    "N2": {
+      "agree": 1,
+      "change": 0,
+      "unsure": 0,
+      "dots": 0,
+      "comments": [],
+      "split": false
+    },
+    "N3": {
+      "agree": 1,
+      "change": 0,
+      "unsure": 0,
+      "dots": 0,
+      "comments": [],
+      "split": false
+    },
+    "N4": {
+      "agree": 0,
+      "change": 0,
+      "unsure": 1,
+      "dots": 0,
+      "comments": [],
+      "split": false
+    },
+    "N5": {
+      "agree": 1,
+      "change": 0,
+      "unsure": 0,
+      "dots": 0,
+      "comments": [],
+      "split": false
+    },
+    "N6": {
+      "agree": 1,
+      "change": 0,
+      "unsure": 0,
+      "dots": 0,
+      "comments": [],
+      "split": false
+    },
+    "N7": {
+      "agree": 1,
+      "change": 0,
+      "unsure": 0,
+      "dots": 0,
+      "comments": [],
+      "split": false
+    },
+    "N8": {
+      "agree": 1,
+      "change": 0,
+      "unsure": 0,
+      "dots": 0,
+      "comments": [],
+      "split": false
+    }
+  },
+  "decisions": {}
+}

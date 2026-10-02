@@ -1,3 +1,303 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data: blob:">
+<meta name="generator" content="decisioncraft">
+<title>Making Decisioncraft easier to use</title>
+<style>
+:root{
+  --bg:#f5f4f0; --dot:#d6d3cb; --ink:#1d1d1b; --ink2:#46453f; --muted:#6a6862; --line:#d9d6ce;
+  --panel:#ffffff; --soft:#efede7; --accent:#2f5bd3; --accent-ink:#ffffff;
+  --works:#1f7a4a; --partial:#9a5b00; --missing:#b3261e; --planned:#0d6e74;
+  --must:#b3261e; --should:#9a5b00; --info:#4a5a72;
+  --z:1; --inv:1;
+  font-synthesis:none;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);
+  font:14px/1.42 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+button,select,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+/* canvas */
+#viewport{position:fixed;inset:0;cursor:grab;touch-action:none}
+body.dots #viewport{background-image:radial-gradient(var(--dot) 1.1px,transparent 1.1px);background-size:22px 22px}
+#viewport.dragging{cursor:grabbing}
+#world{position:absolute;left:0;top:0;transform-origin:0 0}
+svg.links{position:absolute;left:0;top:0;overflow:visible;pointer-events:none;z-index:1}
+svg.links path{fill:none;stroke:#9a978f;stroke-width:2}
+svg.links path.hot{stroke:var(--accent);stroke-width:3}
+svg.links text{font-size:15px;font-weight:600;fill:#5d5b55;paint-order:stroke;stroke:var(--bg);stroke-width:4px}
+
+.box{position:absolute;border-radius:10px;background:var(--panel);border:1px solid var(--line);padding:10px 12px;
+  box-shadow:0 1px 2px rgba(0,0,0,.05);cursor:pointer;transition:opacity .15s,box-shadow .15s;overflow:hidden;z-index:2}
+.box:hover{box-shadow:0 4px 16px rgba(0,0,0,.12)}
+.box.sel{outline:3px solid var(--accent);outline-offset:2px}
+.box h3,.box h4{margin:0 0 4px;font-size:15px;line-height:1.25}
+.box p{margin:0;color:var(--ink2)}
+.box .t{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
+.box .meta{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+body.dim .box.inj:not(.hot){opacity:.28}
+body.dim .notecard.inj:not(.hot){opacity:.28}
+
+.lanehead{position:absolute;font-weight:700;font-size:15px;color:var(--ink)}
+.lanehead small{display:block;font-weight:400;color:var(--muted);font-size:12.5px}
+.lanebg{position:absolute;z-index:0;background:rgba(255,255,255,.45);border-radius:14px;border:1px dashed #e0ddd5}
+.label{position:absolute;white-space:nowrap;color:var(--muted);font-size:12px;letter-spacing:.06em;text-transform:uppercase;font-weight:600}
+.maptitle{position:absolute;font-size:34px;font-weight:800;letter-spacing:-.01em;line-height:1.1}
+.mapintro{position:absolute;color:var(--ink2);font-size:15px;max-width:760px}
+.stamp{position:absolute;white-space:nowrap;font-size:12px;font-weight:700;color:#fff;background:#3b4a63;border-radius:6px;padding:3px 8px}
+
+.jhead{background:#fbfaf6}
+.jhead .n,.step .n{display:inline-grid;place-items:center;min-width:24px;height:24px;border-radius:12px;
+  background:var(--ink);color:#fff;font-size:12px;font-weight:700;margin-right:6px;padding:0 6px}
+.step{display:flex;flex-direction:column}
+.step .row1{display:flex;align-items:flex-start;gap:6px}
+.stage{background:#f6d77b;border-color:#e2bf55;display:flex;flex-direction:column;justify-content:center}
+.stage h3{font-size:19px}
+.stage p{color:#3d3200}
+.item.planned-new{border:2px dashed var(--planned)}
+.tree-node{background:#fff}
+.tree-node.l0{background:#1d1d1b;color:#fff;border-color:#1d1d1b}
+.tree-node.l0 p{color:#ddd}
+
+.pill{display:inline-block;font-size:11.5px;font-weight:700;border-radius:999px;padding:1px 8px;color:#fff;white-space:nowrap}
+.pill.works{background:var(--works)} .pill.partial{background:var(--partial)}
+.pill.missing{background:var(--missing)} .pill.planned{background:var(--planned)}
+.chip{display:inline-block;font-size:11.5px;border-radius:6px;padding:1px 6px;background:var(--soft);color:var(--ink2);white-space:nowrap}
+.chip.new{background:#dff3e6;color:#145c36;font-weight:700}
+.chip.changed{background:#fff0c9;color:#6b4800;font-weight:700}
+.chip.stale{background:#f4e1df;color:#7d1d16}
+.chip.moment{background:#ece4fb;color:#4b2a8a;font-weight:700}
+.chip.pain{background:#fde6e3;color:#8a1f16}
+.feel{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:3px;vertical-align:middle}
+.feel.good{background:#2f9e6a}.feel.ok{background:#d9a21e}.feel.bad{background:#d1543f}
+
+/* notes: a column beside each row, sized so they never cover any box */
+.notecard{position:absolute;z-index:2;border-radius:8px;padding:8px 10px 9px 12px;cursor:pointer;
+  border:1px solid rgba(0,0,0,.08);box-shadow:0 1px 2px rgba(0,0,0,.05);overflow:hidden;transition:opacity .15s}
+.notecard:hover{box-shadow:0 4px 14px rgba(0,0,0,.12)}
+.notecard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--info)}
+.notecard.must::before{background:var(--must)} .notecard.should::before{background:var(--should)}
+.notecard .who{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ink2)}
+.notecard .urg{font-size:11px;font-weight:700;margin-left:6px}
+.notecard.must .urg{color:var(--must)} .notecard.should .urg{color:var(--should)} .notecard.info .urg{color:var(--info)}
+.notecard h5{margin:3px 0 3px;font-size:13.5px;line-height:1.25}
+.notecard .q{font-size:12.5px;color:var(--ink2);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
+.morenotes{position:absolute;z-index:2;border:1px dashed #b9b5aa;background:rgba(255,255,255,.7);border-radius:8px;
+  padding:6px 10px;font-size:12.5px;color:var(--ink2);cursor:pointer}
+
+/* far zoom: keep the main words readable, drop the small print */
+body.z-far .box .meta > :not(.notebadge),body.z-far .box p.sub,body.z-far .notecard .q,body.z-far .notecard .who{display:none}
+body.z-far .box .t,body.z-far .box h3,body.z-far .box h4,body.z-far .notecard h5{font-size:calc(14px * var(--inv));line-height:1.15}
+body.z-far .box .t{-webkit-line-clamp:2}
+
+.term{border-bottom:1px dotted currentColor;cursor:help}
+#gloss{position:fixed;z-index:60;max-width:300px;background:#1d1d1b;color:#fff;border-radius:8px;padding:8px 10px;
+  font-size:13px;display:none;pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.2)}
+#gloss b{display:block;margin-bottom:2px}
+
+/* side panel */
+#panel{position:fixed;top:64px;right:10px;bottom:10px;width:min(460px,calc(100vw - 20px));z-index:35;background:#fff;
+  border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 34px rgba(0,0,0,.14);display:none;flex-direction:column}
+#panel.open{display:flex}
+#panel header{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
+#panel header h2{margin:0;font-size:17px;flex:1}
+#panel header button{border:1px solid var(--line);background:#fff;border-radius:8px;min-width:32px;min-height:32px}
+#panel .body{overflow:auto;padding:12px 14px 20px}
+#panel h3{font-size:14px;margin:16px 0 6px}
+#panel h3:first-child{margin-top:0}
+#panel p{margin:4px 0}
+.card{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0;background:#fff}
+.card.must{border-left:5px solid var(--must)} .card.should{border-left:5px solid var(--should)} .card.info{border-left:5px solid var(--info)}
+.quote{border-left:3px solid #c9c4b6;padding:2px 0 2px 10px;margin:6px 0;color:var(--ink2);font-style:italic}
+.quote .src{display:block;font-style:normal;font-size:12px;color:var(--muted);margin-top:2px}
+.quote.voice{border-left-color:#d99a1e}
+.answer{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+.answer button,.mini{border:1px solid var(--line);background:#fff;border-radius:7px;padding:3px 9px;min-height:28px}
+.answer button[aria-pressed="true"]{background:#e6ecfb;border-color:#9fb4ee;font-weight:600}
+.dots{display:inline-flex;align-items:center;gap:4px;margin-left:auto}
+.dots .n{min-width:1.5em;text-align:center;font-weight:700}
+textarea,input[type=text],input[type=date],select.field{width:100%;border:1px solid var(--line);border-radius:7px;padding:6px 8px;margin-top:4px;background:#fff}
+textarea{min-height:52px;resize:vertical}
+.row{display:flex;gap:8px;align-items:center}
+.row > *{flex:1}
+.tally{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--soft);margin:6px 0 2px}
+.tally i{display:block;height:100%}
+.tally .a{background:#2f9e6a}.tally .c{background:#d1543f}.tally .u{background:#c9c4b6}
+.small{font-size:12.5px;color:var(--muted)}
+.badge{display:inline-block;font-size:11px;font-weight:700;border-radius:5px;padding:1px 6px;background:var(--soft)}
+.badge.split{background:#fde6e3;color:#8a1f16}
+.meter{display:inline-flex;gap:2px;vertical-align:middle}
+.meter i{width:8px;height:8px;border-radius:50%;background:#dcd8cf}
+.meter i.on{background:var(--ink2)}
+.rolerow{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--soft)}
+.rolerow input{margin-top:4px;width:18px;height:18px}
+.swatch{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.legend span{margin-right:10px;white-space:nowrap}
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#1d1d1b;color:#fff;border-radius:8px;
+  padding:8px 14px;z-index:70;display:none}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:12px;top:60px;z-index:80;background:#fff;padding:6px 10px;border-radius:6px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+@media print{
+  #bar,#panel,#more,#toast,#gloss{display:none !important}
+  html,body{overflow:visible;height:auto;background:#fff}
+  #viewport{position:static;background:none !important}
+  #world{position:relative}
+  .box,.notecard{box-shadow:none;break-inside:avoid}
+}
+
+.jindex{cursor:default;background:#fbfaf6}
+.jindex .meta{gap:6px}
+body.z-far .jindex .mini{font-size:calc(13px * var(--inv))}
+
+/* ---------- chrome: one quiet top bar ---------- */
+#top{position:fixed;left:0;right:0;top:0;height:52px;z-index:30;display:flex;align-items:center;gap:8px;
+  padding:0 12px;background:rgba(255,255,255,.97);border-bottom:1px solid var(--line);white-space:nowrap}
+#top .title{font-weight:700;font-size:15px;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto;min-width:0}
+#top button{flex:0 0 auto;border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 11px;min-height:34px}
+#top button:hover{background:var(--soft)}
+#top .primary{background:#fff6dc;border-color:#e9cf86;font-weight:600}
+#top .count{display:inline-block;min-width:1.6em;padding:0 6px;margin-left:5px;border-radius:9px;background:rgba(0,0,0,.07);font-size:12px}
+#menu{position:fixed;z-index:45;background:#fff;border:1px solid var(--line);border-radius:10px;padding:6px;
+  box-shadow:0 8px 28px rgba(0,0,0,.14);display:none;min-width:270px}
+#menu.open{display:block}
+#menu button{display:flex;justify-content:space-between;gap:12px;width:100%;text-align:left;border:0;background:none;padding:9px 10px;border-radius:6px}
+#menu button:hover{background:var(--soft)}
+#menu .state{color:var(--muted);font-size:12.5px}
+#menu hr{border:0;border-top:1px solid var(--soft);margin:4px 0}
+
+/* ---------- left story list ---------- */
+#story{position:fixed;left:0;top:52px;bottom:0;width:320px;z-index:25;background:#fbfaf7;border-right:1px solid var(--line);
+  overflow:auto;padding:14px 14px 30px}
+body.nostory #story{display:none}
+#storytab{position:fixed;left:10px;top:62px;z-index:26;display:none;border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 11px}
+body.nostory #storytab{display:block}
+#story .q{font-size:15px;font-weight:600;line-height:1.35;margin:2px 0 10px}
+#story .walkbtn{width:100%;background:#2f5bd3;color:#fff;border:0;border-radius:9px;padding:10px;font-weight:600;font-size:15px}
+#story .walkbtn:hover{background:#2a50bb}
+#story .hide{border:0;background:none;color:var(--muted);font-size:12.5px;padding:4px 0;float:right}
+#story h2{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
+#story ol{list-style:none;margin:0;padding:0}
+#story li{margin:0}
+#story .view{display:block;width:100%;text-align:left;border:1px solid transparent;background:none;border-radius:8px;padding:8px 9px;margin:2px 0}
+#story .view:hover{background:#fff;border-color:var(--line)}
+#story .view[aria-current="true"]{background:#fff;border-color:#9fb4ee}
+#story .view b{display:block;font-size:14.5px}
+#story .view span{display:block;font-size:12.5px;color:var(--muted);line-height:1.35}
+#story .sub{padding-left:14px;border-left:2px solid var(--line);margin:2px 0 8px 12px}
+#story .sub .view b{font-size:13.5px;font-weight:600}
+#story .num{display:inline-block;min-width:1.7em;color:var(--muted);font-weight:700}
+#story .seg{display:flex;margin:4px 0 6px 12px}
+#story .seg button{flex:1;border:1px solid var(--line);background:#fff;padding:6px;font-size:13px}
+#story .seg button:first-child{border-radius:8px 0 0 8px}
+#story .seg button:last-child{border-radius:0 8px 8px 0;border-left:0}
+#story .seg button[aria-pressed="true"]{background:#e6ecfb;border-color:#9fb4ee;font-weight:600}
+#story .more button{display:block;width:100%;text-align:left;border:1px solid transparent;background:none;border-radius:8px;padding:7px 9px}
+#story .more button:hover{background:#fff;border-color:var(--line)}
+
+/* ---------- zoom, walk-through, hint ---------- */
+#zoom{position:fixed;right:14px;bottom:14px;z-index:28;display:flex;flex-direction:column;gap:6px}
+body.panel-open #zoom{right:494px}
+#zoom button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 12px;min-width:128px;text-align:left;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+#zoom button:hover{background:var(--soft)}
+#walk{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:32;width:min(560px,calc(100vw - 40px));
+  background:#1d1d1b;color:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 10px 30px rgba(0,0,0,.25);display:none}
+body:not(.nostory) #walk{left:calc(50% + 160px)}
+body.panel-open #walk{left:calc(50% - 80px)}
+#walk.open{display:block}
+#walk .step{font-size:12px;color:#c9c6bd;letter-spacing:.04em;text-transform:uppercase}
+#walk h3{margin:4px 0 4px;font-size:17px}
+#walk p{margin:0 0 10px;color:#e8e6df}
+#walk .row{display:flex;gap:8px;align-items:center}
+#walk button{white-space:nowrap;border:1px solid #55534d;background:#2c2b28;color:#fff;border-radius:8px;padding:7px 14px}
+#walk button.next{background:#fff;color:#1d1d1b;border-color:#fff;font-weight:600}
+#walk .grow{flex:1}
+#hint{position:fixed;left:340px;top:66px;z-index:31;max-width:420px;background:#fff8e1;border:1px solid #ecd48e;border-radius:10px;
+  padding:10px 12px;box-shadow:0 4px 16px rgba(0,0,0,.1);display:none}
+body.nostory #hint{left:110px}
+#hint.open{display:block}
+#hint button{margin-top:6px;border:1px solid #d9bf73;background:#fff;border-radius:7px;padding:4px 10px}
+
+/* the panel sits under the top bar */
+#panel{top:62px}
+body.panel-open #panel{display:flex}
+.techname{display:block;margin-top:4px;font:12px/1.3 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#3b4a63;
+  background:#eef1f7;border-radius:5px;padding:2px 6px;white-space:normal}
+body.z-far .techname{font-size:calc(12px * var(--inv))}
+.switch{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2)}
+.switch input{width:18px;height:18px}
+.notebadge{display:inline-block;font-size:11.5px;font-weight:700;border-radius:6px;padding:1px 7px;background:#1d1d1b;color:#fff}
+.notebadge.must{background:var(--must)}
+body.z-far .box .meta .notebadge{font-size:calc(11.5px * var(--inv))}
+#story .reading{margin:0 0 10px;font-size:13.5px;line-height:1.45}
+#story .reading summary{cursor:pointer;color:#2f5bd3;font-weight:600}
+#story .reading p{margin:6px 0 0}
+
+/* Review actions stay visible and say where the file goes. */
+.save-primary,#top .save-primary{background:var(--accent);color:#fff;border:1px solid var(--accent);border-radius:8px;padding:7px 11px;font-weight:600}
+#top .save-primary:hover{background:#2448a8}
+.review-next{border:1px solid var(--line);background:#f3f6fd;border-radius:9px;padding:12px;margin-bottom:16px}
+.answer-label{display:block;font-weight:600;margin-top:10px}
+.review-answer{white-space:pre-wrap;border-left:3px solid var(--accent);padding-left:8px}
+
+.review-nav{display:flex;gap:8px;justify-content:space-between;margin:20px 0 12px}
+.review-nav button{border:1px solid var(--line);border-radius:8px;padding:8px 12px}
+.support{margin:14px 0}
+.support summary{cursor:pointer;color:var(--accent);font-weight:600}
+.decision-question{font-size:19px;font-weight:600;line-height:1.35}
+
+.short-label{display:none}
+@media(max-width:720px){
+  #top{gap:5px;padding:6px}
+  #top .title,#top .wide-label,#top .count,#tkeys{display:none}
+  #top .short-label{display:inline}
+  #top button{padding:6px 8px;font-size:13px}
+  #hint{left:10px;right:10px;max-width:none}
+}
+
+#paper-review{display:none}
+@media print{
+  body.print-review{height:auto;overflow:visible;background:#fff}
+  body.print-review > *{display:none!important}
+  body.print-review #paper-review{display:block!important;padding:16px}
+  #paper-review article{break-inside:avoid;margin:24px 0}
+  #paper-review h2{font-size:17px}
+  .paper-space{height:90px;border-bottom:1px solid #ccc}
+}
+
+.recommendation{background:#f3f6fd;border-left:3px solid var(--accent);padding:10px 12px;margin:12px 0}
+.recommendation p{margin:4px 0 0}
+
+</style>
+</head>
+<body class="dots">
+<a class="skip" href="#story">Skip to the list of views</a>
+<header id="top"></header>
+<div id="menu" role="menu"></div>
+<aside id="story" aria-label="What is in this decision"></aside>
+<button id="storytab" type="button">Show list</button>
+<main id="viewport" aria-label="Decision map. Use Tab to move between boxes and Enter to open one."><div id="world"></div></main>
+<aside id="panel" aria-live="polite"></aside>
+<div id="zoom" role="group" aria-label="Zoom">
+  <button id="zin" type="button">+ Zoom in</button>
+  <button id="zout" type="button">− Zoom out</button>
+  <button id="zfit" type="button">Fit to screen</button>
+</div>
+<section id="walk" aria-live="polite" aria-label="Walk-through"></section>
+<div id="hint" role="note"></div>
+<div id="gloss" role="tooltip"></div>
+<div id="toast" role="status"></div>
+<script type="application/json" id="dc-model">{"format":"decisioncraft/1","title":"Making Decisioncraft easier to use","question":"What would make this review useful enough for your next decision?","summary":"You found overlapping boxes, a hard-to-find save action, and questions that could not be answered with Agree. We have changed the layout and review flow. Now we need your judgment on what still feels awkward. Browser checks pass; this review is the next human check.","checked":{"date":"2026-10-01","note":"Prepared from the repository owner review and local code checks. Proposed improvements have not yet been accepted by the owner."},"roles":[{"id":"designer","label":"Designer","color":"#e86a92","asks":"Will people understand this and find their way without help?"},{"id":"analyst","label":"Analyst","color":"#4f7fd8","asks":"Is it clear what must be true, for whom, and how we will measure it?"},{"id":"engineer","label":"Engineer","color":"#2f9e6a","asks":"What do we build first, what could break, and how do we test it?"},{"id":"owner","label":"Product owner","color":"#8a5cd6","asks":"What is in the first version, what do we cut, and what does success look like?"},{"id":"security","label":"Security and privacy","color":"#d1543f","asks":"Who can see what, what do we keep, and what happens if it leaks?"},{"id":"voice","label":"Customer voice","color":"#d99a1e","asks":"Would the people we serve choose this, and would they need a manual?"},{"id":"agent","label":"AI agent teammate","color":"#1f9aa6","asks":"What can an agent do on its own, and what needs a person's OK?"},{"id":"finance","label":"Finance","color":"#7a7a72","asks":"What does it cost to build and run, and when does it pay back?"}],"glossary":{},"sources":[{"id":"owner-review","title":"What the repository owner reported","kind":"observation","date":"2026-10-01","ref":"Owner feedback during the first review"},{"id":"purpose","title":"What Decisioncraft is meant to do","kind":"document","date":"2026-10-01","ref":"docs/VISION.md"},{"id":"design","title":"How we are improving the review","kind":"document","date":"2026-10-01","ref":"docs/REVIEW-DESIGN.md"}],"evidence":[{"id":"E1","source":"owner-review","kind":"quote","text":"There's no submit button, save button, or export, so that piece is a little bit confusing","voice":true},{"id":"E2","source":"owner-review","kind":"quote","text":"The way that the evidence and decision-making support are currently happening doesn't really mimic the real-world feel of interacting with a human","voice":true},{"id":"E3","source":"purpose","kind":"quote","text":"People read, answer and decide.","voice":false},{"id":"E4","source":"design","kind":"quote","text":"A person should be able to understand the choice, give a useful answer, check what\nwas recorded, and know who will act on it.","voice":false}],"maps":[{"id":"m1","template":"opportunity-tree","title":"From a confusing review to a useful conversation","intro":"The changes work in browser checks. Your next review will show whether they feel natural.","levels":["Outcome","Need or pain","Idea","Quick test"],"root":{"id":"goal","title":"A review you can finish without help","text":"Understand, answer, check, and share.","status":"planned","children":[{"id":"understand","title":"Understand the choice","text":"A diagram alone did not make the next step clear.","status":"partial","evidence":["E2","E4"],"children":[{"id":"change-understand","title":"What we changed","text":"Start with the decision and a short explanation.","status":"partial","evidence":["E2","E4"],"children":[{"id":"check-understand","title":"What we need to learn","text":"Can you explain the choice in your own words?","status":"planned","children":[]}]}]},{"id":"answer","title":"Give a useful answer","text":"Agree did not answer questions that asked for a specific choice.","status":"partial","evidence":["E2","E3"],"children":[{"id":"change-answer","title":"What we changed","text":"Ask one question at a time and accept a written answer.","status":"partial","evidence":["E2","E3"],"children":[{"id":"check-answer","title":"What we need to learn","text":"Can you answer without guessing what the question means?","status":"planned","children":[]}]}]},{"id":"check","title":"Check the reasoning","text":"Source details made the discussion feel unlike a human conversation.","status":"partial","evidence":["E2","E4"],"children":[{"id":"change-check","title":"What we changed","text":"Explain why the question matters; let you inspect sources when needed.","status":"partial","evidence":["E2","E4"],"children":[{"id":"check-check","title":"What we need to learn","text":"Can you tell what is known and what still needs judgment?","status":"planned","children":[]}]}]},{"id":"finish","title":"Finish and share","text":"Saving was hidden in a menu, and the next step was unclear.","status":"partial","evidence":["E1","E4"],"children":[{"id":"change-finish","title":"What we changed","text":"Keep Save my answers visible and show who receives the file.","status":"partial","evidence":["E1","E4"],"children":[{"id":"check-finish","title":"What we need to learn","text":"Can you finish and share without asking for instructions?","status":"planned","children":[]}]}]}]}}],"gaps":[],"notes":[{"id":"R1","role":"designer","anchor":"understand","title":"Which part of this review still feels hardest to use?","question":"Which part of this review still feels hardest to use?","body":"Your first review needed extra instructions. We want to remove the remaining friction, rather than add more explanation.","recommend":"Tell us where you hesitated and what you expected to happen.","answer_type":"text","urgency":"must","evidence":["E1","E2"]},{"id":"R2","role":"analyst","anchor":"check","title":"What would you need to see before trusting a suggested next step?","question":"What would you need to see before trusting a suggested next step?","body":"A useful recommendation needs a reason you can assess. File names and test results alone do not establish that it is the right choice.","recommend":"Look for a clear reason, the source behind it, and any important uncertainty.","answer_type":"text","urgency":"should","evidence":["E2","E4"]},{"id":"R3","role":"owner","anchor":"finish","title":"What should happen after you save your answers?","question":"What should happen after you save your answers?","body":"The current file is downloaded for you to send to the decision owner or attach to an agent chat. Nothing is sent automatically.","recommend":"The owner should compare responses, resolve open questions and record the decision.","answer_type":"text","urgency":"should","evidence":["E1","E3"]},{"id":"R4","role":"voice","anchor":"answer","title":"Which real decision would you try with this next?","question":"Which real decision would you try with this next?","body":"We have tested the controls. We still need a real decision to learn whether the review helps people reach a useful conclusion.","recommend":"Choose a small decision with clear alternatives and no sensitive material.","answer_type":"text","urgency":"must","evidence":["E3","E4"]},{"id":"R5","role":"owner","anchor":"answer","title":"Who should make the final decision for that trial?","question":"Who should make the final decision for that trial?","body":"Reviewers contribute their views. Someone still needs to take responsibility for the final choice.","recommend":"Name a role that can make the choice and explain the reason.","answer_type":"text","urgency":"must","evidence":["E3"]}],"decisions":[{"id":"D1","question":"Is this review ready to try on a real decision?","notes":["R1","R2","R3","R4","R5"],"options":["Try it on one real decision","Fix the remaining friction first"],"owner":"Repository owner","status":"open","due":"","decided_by":"","decision":""}],"outcomes":[{"id":"O1","measure":"A reviewer finishes and shares useful answers without instructions","baseline":"The first review needed help finding how to save and what to do next.","target":"One observed review completed without help.","result":"","checked":"","becomes_evidence":""}],"reading":"Start with Questions to decide. Read the short introduction, then answer one question at a time. You can inspect sources or a possible approach when helpful. Check your answers, then save a file to share. Your earlier responses remain in the separate next-steps review."}</script>
+<script type="application/json" id="dc-merged"></script>
+<script type="application/json" id="dc-since"></script>
+<script type="application/json" id="dc-meta">{"fingerprint":"3d6447eefe43","generator":"decisioncraft"}</script>
+<script>
 /* Decisioncraft canvas engine. Reads a decision model from #dc-model and draws it.
    No outside requests. Plain DOM, no libraries.
    The page: one quiet top bar; a numbered story list on the left; the map in the middle;
@@ -26,7 +326,7 @@ const DEFAULT_ROLES = [
 const KIND = {"system-journeys":"journeys","customer-journey":"journeys","service-blueprint":"journeys",
   "decision-chain":"chain","opportunity-tree":"tree"};
 const TREE_LEVELS = ["What we want","What needs attention","Possible next step","How we will check"];
-const MIN_Z = 0.15, MAX_Z = 2.2;
+const MIN_Z = 0.3, MAX_Z = 2.2;
 const STORY_W = 320, PANEL_W = 480, TOP_H = 52;
 
 const ROLES = (MODEL.roles && MODEL.roles.length ? MODEL.roles : DEFAULT_ROLES);
@@ -49,14 +349,13 @@ let saved = {}, storageOK = true;
 try { saved = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { saved = {}; storageOK = false; }
 const seed = SESSION ? {answers:SESSION.review.answers || {}, votes:SESSION.review.dots || {},
   decisions:SESSION.review.decisions || {}, reviewer:SESSION.review.reviewer || ""} : {};
-const S = Object.assign({map:0, mode:MODEL.maps[0].when === "planned" ? "planned" : "compare", journey:-1, tech:false, notesOnMap:false, lines:false, dots:true, story:true,
+const S = Object.assign({map:0, mode:"planned", journey:-1, tech:false, notesOnMap:false, dots:true, story:true,
   hintSeen:false, roles:Object.fromEntries(ROLES.map(r => [r.id, true])),
   answers:{}, votes:{}, decisions:{}, reviewer:""}, seed, saved);
 if (SESSION && saved.syncedVersion !== SESSION.version) Object.assign(S, seed);
 if (SESSION) { S.syncedVersion = SESSION.version; S.sessionFinished = SESSION.state === "finished"; }
 ROLES.forEach(r => { if (!(r.id in S.roles)) S.roles[r.id] = true; });
 if (S.map >= MODEL.maps.length) S.map = 0;
-let completedHandoff = SESSION && SESSION.handoff || null;
 let syncVersion = SESSION ? SESSION.version : 0, syncPromise = null, syncTimer = null;
 let syncState = SESSION ? "saved" : "", syncError = "", finishing = false;
 const snapshot = () => JSON.stringify([S.answers, S.votes, S.decisions, S.reviewer]);
@@ -80,7 +379,6 @@ async function syncReview(finish = false) {
         body:JSON.stringify({version:syncVersion, review:reviewData()})});
       const value = await response.json();
       if (!response.ok) throw new Error(value.error || "The answers could not be saved.");
-      if (value.handoff) completedHandoff = value.handoff;
       syncVersion = value.version; S.syncedVersion = syncVersion;
       try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
       lastWritten = sent; syncState = "saved"; syncError = "";
@@ -114,7 +412,6 @@ function answerDone(n) {
   return n.answer_type === "stance" ? !!a.choice : !!String(a.answer || "").trim() || a.choice === "unsure";
 }
 function updateReviewStatus() {
-  const save = $("#tsave"); if (save && SESSION && !finishing) save.textContent = S.sessionFinished ? "Read my answers" : "Finish review";
   const el = $("#review-progress");
   if (!el) return;
   const all = NOTES.filter(n => String(n.question || "").trim());
@@ -133,15 +430,14 @@ function updateReviewStatus() {
 const esc = t => String(t == null ? "" : t).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]);
 const TERMS = Object.keys(GLOSS).sort((a, b) => b.length - a.length);
 const TERM_RE = TERMS.length ? new RegExp("\\b(" + TERMS.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|") + ")\\b", "i") : null;
-function gl(text, focusable = true) {
-  if (!TERM_RE) return esc(text);
-  return String(text || "").split(TERM_RE).map((part, i) => {
-    if (!(i % 2)) return esc(part);
-    const key = TERMS.find(t => t.toLowerCase() === part.toLowerCase());
-    return `<span class="term" data-term="${esc(key)}"${focusable ? ' tabindex="0"' : ""}>${esc(part)}</span>`;
-  }).join("");
+function gl(text, focusable) {
+  const s = esc(text);
+  if (!TERM_RE) return s;
+  return s.replace(TERM_RE, m => {
+    const key = TERMS.find(t => t.toLowerCase() === m.toLowerCase());
+    return `<span class="term" data-term="${esc(key)}"${focusable ? ' tabindex="0"' : ""}>${m}</span>`;
+  });
 }
-
 const pill = s => s && STATUS[s] ? `<span class="pill ${s}">${STATUS[s]}</span>` : "";
 const days = (a, b) => (new Date(a) - new Date(b)) / 864e5;
 const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
@@ -229,7 +525,7 @@ function notePile(anchors, x, y, max, rowKey) {
     .sort((a, b) => URG_ORDER[a.urgency || "info"] - URG_ORDER[b.urgency || "info"]);
   const shown = list.slice(0, max);
   const colH = [0, 0];
-  shown.forEach((n, i) => {
+  shown.forEach(n => {
     const c = colH[0] <= colH[1] ? 0 : 1;
     const r = ROLE[n.role] || {label:n.role, color:"#888"};
     const el = place(`notecard ${n.urgency || "info"} inj`, x + c * (NOTE_W + NOTE_GAP), y + colH[c], NOTE_W,
@@ -237,7 +533,6 @@ function notePile(anchors, x, y, max, rowKey) {
        <h5>${esc(n.title)}</h5><div class="q">${esc(n.question || n.body || "")}</div>`,
       {type:"note", n}, `${r.label} note: ${n.title}`);
     el.style.background = tint(r.color);
-    el.style.setProperty("--note-tilt", [-0.7, 0.5, -0.3, 0.6][i % 4] + "deg");
     el.dataset.row = rowKey;
     colH[c] += el.offsetHeight + NOTE_GAP;
   });
@@ -278,7 +573,7 @@ function renderJourneys(m) {
     const hd = place("box jhead inj", 0, y0, J.headW,
       `<h3><span class="n">${ji + 1}</span>${gl(j.title)}</h3><p>${gl(j.summary || "")}</p>
        ${(j.creates || []).length ? `<p class="sub small"><b>What it leaves behind:</b> ${j.creates.map(esc).join(", ")}</p>` : ""}
-       ${tech(j)}<div class="meta">${badges(j)}<span class="chip">${plural((j.steps || []).length, "step")}</span></div>`,
+       <div class="meta">${badges(j)}<span class="chip">${plural((j.steps || []).length, "step")}</span></div>`,
       {type:"box", id:j.id}, `Journey ${ji + 1}: ${j.title}`);
     hd.dataset.row = "j" + ji;
     nodes[j.id] = hd;
@@ -313,90 +608,40 @@ function renderJourneys(m) {
   return {x:0, y:0, w:W, h:y};
 }
 
-/* A customer's actions run left to right, in the supplied order. */
-function renderCustomerJourney(m) {
-  const cardW = 250, gap = 64;
-  const count = Math.max(1, ...(m.journeys || []).map(j => (j.steps || []).length));
-  const timelineW = count * (cardW + gap) - gap;
-  const notesX = timelineW + 48;
-  const W = timelineW + notesWidth();
-  let y = header(m, W);
-  (m.journeys || []).forEach((j, ji) => {
-    const start = y;
-    const hd = place("box timeline-title inj", 0, y, Math.min(600, timelineW),
-      `<h3>${gl(j.title)}</h3><p>${gl(j.summary || "")}</p>${tech(j)}<div class="meta">${badges(j)}</div>`,
-      {type:"box", id:j.id}, j.title);
-    nodes[j.id] = hd; hd.dataset.row = "j" + ji;
-    y += hd.offsetHeight + 48;
-    let maxH = 0, prev = null;
-    (j.steps || []).forEach((step, i) => {
-      const x = i * (cardW + gap);
-      const lane = (m.lanes || []).find(l => l.id === step.lane);
-      place("label", x, y - 26, cardW, `${i + 1}. ${esc(lane ? lane.label : "Next step")}`);
-      const card = place("box customer-step inj", x, y, cardW,
-        `<h4>${gl(step.text)}</h4>${tech(step)}<div class="meta">${pill(step.status)}${badges(step)}</div>`,
-        {type:"box", id:step.id}, `Step ${i + 1}: ${step.text}`);
-      card.dataset.row = "j" + ji; nodes[step.id] = card;
-      maxH = Math.max(maxH, card.offsetHeight);
-      if (prev !== null) {
-        const line = link(prev + cardW, y + 30, x - 8, y + 30, "inj customer-flow");
-        line.dataset.row = "j" + ji;
-        const arrow = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        arrow.setAttribute("d", `M${x - 16},${y + 24} L${x - 8},${y + 30} L${x - 16},${y + 36}`);
-        arrow.setAttribute("class", "customer-flow"); svg.appendChild(arrow);
-      }
-      prev = x;
-    });
-    const nh = notePile([j.id, ...(j.steps || []).map(step => step.id)], notesX, start, 4, "j" + ji);
-    const h = Math.max(y - start + maxH, nh);
-    rows.push({key:"j" + ji, y:start, h, x:0, w:W});
-    y = start + h + 64;
-  });
-  return {x:0, y:0, w:W, h:y};
-}
-
 /* ---------- chain ---------- */
 const C = {stageW:300, stageH:96, itemW:250, itemGap:14, perRow:3, gap:64};
 function renderChain(m) {
-  const compare = S.mode === "compare";
   const itemsX = C.stageW + 50;
-  const perRow = compare ? 2 : C.perRow;
-  const columnW = perRow * (C.itemW + C.itemGap) - C.itemGap;
-  const versions = compare ? ["today", "planned"] : [S.mode];
-  const notesX = itemsX + versions.length * (columnW + 44) + 34;
-  const W = notesX - 34 + notesWidth();
+  const notesX = itemsX + C.perRow * (C.itemW + C.itemGap) + 34;
+  const W = itemsX + C.perRow * (C.itemW + C.itemGap) + notesWidth();
   let y = header(m, W);
   place("label", 0, y, 0, "Stage");
-  versions.forEach((version, i) => place("label", itemsX + i * (columnW + 44), y, columnW,
-    version === "today" ? "Current" : "Proposed · dashed boxes are new"));
+  place("label", itemsX, y, 0, S.mode === "planned" ? "Planned (dashed border = new)" : "What exists today");
   if (S.notesOnMap) place("label", notesX, y, 0, "Notes from each role");
   y += 30;
   let prevStage = null;
   (m.stages || []).forEach((st, si) => {
     const y0 = y;
-    const stEl = place(`box stage inj${si === 0 ? " first-stage" : ""}`, 0, y0, C.stageW,
+    const items = (st.items || []).filter(it => (it.when || "both") === "both" || it.when === S.mode);
+    const stEl = place("box stage inj", 0, y0, C.stageW,
       `<h3>${gl(st.label)}</h3><p>${gl(st.sub || "")}</p>${tech(st)}<div class="meta">${badges(st)}</div>`,
       {type:"box", id:st.id}, `Stage ${si + 1}: ${st.label}`);
     stEl.style.minHeight = C.stageH + "px";
-    stEl.dataset.row = "s" + si; nodes[st.id] = stEl;
-    let ih = 0;
-    versions.forEach((version, vi) => {
-      const items = (st.items || []).filter(it => (it.when || "both") === "both" || it.when === version);
-      const columnX = itemsX + vi * (columnW + 44);
-      let rowMax = 0, iy = y0, col = 0;
-      items.forEach(it => {
-        const el = place(`box item inj${it.when === "planned" ? " planned-new" : ""}`,
-          columnX + col * (C.itemW + C.itemGap), iy, C.itemW,
-          `<h4>${gl(it.title)}</h4><p class="t">${gl(it.text || "")}</p>${tech(it)}<div class="meta">${pill(it.status)}${badges(it)}${compare && (it.when || "both") === "both" ? '<span class="chip">Unchanged</span>' : ""}</div>`,
-          {type:"box", id:it.id}, `${compare ? version === "today" ? "Current: " : "Proposed: " : ""}${it.title}`);
-        el.dataset.row = "s" + si;
-        if (!nodes[it.id]) nodes[it.id] = el;
-        rowMax = Math.max(rowMax, el.offsetHeight);
-        if (++col === perRow) { col = 0; iy += rowMax + C.itemGap; rowMax = 0; }
-      });
-      ih = Math.max(ih, iy - y0 + rowMax);
-      if (!items.length) { place("label", columnX, y0 + 10, columnW, version === "planned" ? "Nothing proposed here" : "Nothing here today"); ih = Math.max(ih, 40); }
+    stEl.dataset.row = "s" + si;
+    nodes[st.id] = stEl;
+    let rowMax = 0, iy = y0, col = 0;
+    items.forEach(it => {
+      const el = place(`box item inj${it.when === "planned" ? " planned-new" : ""}`,
+        itemsX + col * (C.itemW + C.itemGap), iy, C.itemW,
+        `<h4>${gl(it.title)}</h4><p class="t">${gl(it.text || "")}</p>${tech(it)}<div class="meta">${pill(it.status)}${badges(it)}</div>`,
+        {type:"box", id:it.id}, it.title);
+      el.dataset.row = "s" + si;
+      nodes[it.id] = el;
+      rowMax = Math.max(rowMax, el.offsetHeight);
+      if (++col === C.perRow) { col = 0; iy += rowMax + C.itemGap; rowMax = 0; }
     });
+    let ih = iy - y0 + rowMax;
+    if (!items.length) { place("label", itemsX, y0 + 10, 0, S.mode === "planned" ? "Nothing planned here" : "Nothing here today"); ih = 40; }
     const nh = notePile([st.id, ...(st.items || []).map(i => i.id)], notesX, y0, 4, "s" + si);
     const h = Math.max(stEl.offsetHeight, ih, nh);
     rows.push({key:"s" + si, y:y0, h, x:0, w:W});
@@ -488,56 +733,7 @@ function renderTree(m) {
     (n.children || []).forEach(c => draw(c, n, bi == null ? branches.indexOf(c) : bi));
   };
   draw(m.root, null, null);
-  let bottom = Math.max(...Object.values(shifted)) + nodeH;
-  if (S.notesOnMap && notesOn(m.root.id).length) {
-    const start = Math.max(bottom, ...rows.map(row => row.y + row.h)) + 38;
-    place("label", notesX, start - 24, NOTES_W, "About the whole choice");
-    const height = notePile([m.root.id], notesX, start, 6, "root-notes");
-    rows.push({key:"root-notes", y:start, h:height, x:0, w:W});
-    bottom = start + height;
-  }
-  return {x:0, y:0, w:W, h:bottom + 60};
-}
-
-/* Named connections come from the model, never from the card positions. */
-function visibleLinks() {
-  return (MODEL.links || []).filter(l => S.mode === "compare" || (l.when || "both") === "both" || l.when === S.mode);
-}
-function drawConnections() {
-  const connections = visibleLinks().filter(l => nodes[l.from] && nodes[l.to]);
-  const right = Math.max(0, ...Object.values(nodes).map(n => parseFloat(n.style.left) + n.offsetWidth));
-  connections.forEach((connection, i) => {
-    const a = nodes[connection.from], b = nodes[connection.to];
-    const ax = parseFloat(a.style.left) + a.offsetWidth / 2, ay = parseFloat(a.style.top);
-    const bx = parseFloat(b.style.left) + b.offsetWidth / 2, by = parseFloat(b.style.top);
-    const gutter = right + 40 + i * 18;
-    const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    group.setAttribute("class", `connection ${connection.kind || "flow"}`);
-    group.dataset.from = connection.from; group.dataset.to = connection.to;
-    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    path.setAttribute("d", `M${ax},${ay} V${ay - 16} H${gutter} V${by - 16} H${bx} V${by - 2}`);
-    group.appendChild(path);
-    const arrow = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    arrow.setAttribute("d", `M${bx - 5},${by - 9} L${bx},${by - 2} L${bx + 5},${by - 9}`);
-    group.appendChild(arrow);
-    const title = document.createElementNS("http://www.w3.org/2000/svg", "title");
-    title.textContent = connection.label; group.appendChild(title);
-    svg.appendChild(group);
-  });
-  if (connections.length) bounds.w = Math.max(bounds.w, right + 70 + connections.length * 18);
-  applyConnections();
-}
-function applyConnections() {
-  const selected = current && current.kind === "box" ? current.arg : null;
-  const connected = new Set(selected ? [selected] : []);
-  visibleLinks().forEach(l => { if (l.from === selected || l.to === selected) { connected.add(l.from); connected.add(l.to); } });
-  svg.querySelectorAll(".connection").forEach(group => {
-    const relevant = selected && (group.dataset.from === selected || group.dataset.to === selected);
-    group.classList.toggle("active", !!relevant);
-    group.style.display = S.lines || relevant ? "" : "none";
-  });
-  document.body.classList.toggle("connection-focus", connected.size > 1);
-  Object.entries(nodes).forEach(([id, node]) => node.classList.toggle("connected", connected.has(id)));
+  return {x:0, y:0, w:W, h:Math.max(...Object.values(shifted)) + nodeH + 60};
 }
 
 /* ---------- render ---------- */
@@ -550,10 +746,8 @@ function layout() {
   world.appendChild(svg);
   const m = MODEL.maps[S.map];
   const kind = KIND[m.template];
-  bounds = m.template === "customer-journey" ? renderCustomerJourney(m) : kind === "journeys" ? renderJourneys(m) : kind === "chain" ? renderChain(m) : renderTree(m);
-  drawConnections();
+  bounds = kind === "journeys" ? renderJourneys(m) : kind === "chain" ? renderChain(m) : renderTree(m);
   applyFocus();
-  if (current && current.kind === "box" && nodes[current.arg]) nodes[current.arg].classList.add("sel");
 }
 function render() {
   layout();
@@ -563,8 +757,8 @@ function render() {
 
 /* ---------- pan and zoom ---------- */
 let Z = 1, X = 40, Y = 80;
-const leftEdge = () => S.story && getComputedStyle($("#story")).display !== "none" ? $("#story").getBoundingClientRect().right : 0;
-const rightEdge = () => document.body.classList.contains("panel-open") && innerWidth > 720 ? innerWidth - $("#panel").getBoundingClientRect().left : 0;
+const leftEdge = () => S.story ? STORY_W : 0;
+const rightEdge = () => document.body.classList.contains("panel-open") ? PANEL_W + 10 : 0;
 function apply() {
   world.style.transform = `translate(${X}px,${Y}px) scale(${Z})`;
   document.documentElement.style.setProperty("--z", Z);
@@ -579,17 +773,15 @@ function zoomAt(f, cx, cy) {
   const nz = Math.min(MAX_Z, Math.max(MIN_Z, Z * f));
   X = cx - (cx - X) * (nz / Z); Y = cy - (cy - Y) * (nz / Z); Z = nz; apply();
 }
-const bottomEdge = () => document.body.classList.contains("panel-open") && innerWidth <= 720 ? innerHeight - $("#panel").getBoundingClientRect().top : 0;
-const topEdge = () => S.notesOnMap && NOTES.length ? TOP_H + 50 : TOP_H;
-const viewCenter = () => [leftEdge() + (innerWidth - leftEdge() - rightEdge()) / 2, topEdge() + (innerHeight - topEdge() - bottomEdge()) / 2];
+const viewCenter = () => [leftEdge() + (innerWidth - leftEdge() - rightEdge()) / 2, TOP_H + (innerHeight - TOP_H) / 2];
 function fitTo(b) {
-  const vw = innerWidth - leftEdge() - rightEdge() - 40, vh = innerHeight - topEdge() - bottomEdge() - 40;
+  const vw = innerWidth - leftEdge() - rightEdge() - 40, vh = innerHeight - TOP_H - 40;
   let z = Math.min(vw / b.w, vh / b.h) * 0.95;
   const tall = z < MIN_Z + 0.08;
   if (tall) z = Math.min(1, Math.max(MIN_Z + 0.1, vw / b.w * 0.96));   // too tall: fit the width, start at the top
   Z = Math.min(1.3, Math.max(MIN_Z, z));
   X = leftEdge() + 20 + Math.max(0, (vw - b.w * Z) / 2) - b.x * Z;
-  Y = topEdge() + 20 + (tall ? 0 : Math.max(0, (vh - b.h * Z) / 2)) - b.y * Z;
+  Y = TOP_H + 20 + (tall ? 0 : Math.max(0, (vh - b.h * Z) / 2)) - b.y * Z;
   apply();
 }
 function fitRow(key) {
@@ -632,60 +824,29 @@ function focusRow(mi, key) { showMap(mi); S.journey = -1; persist(); applyFocus(
 function setMode(m) { S.mode = m; persist(); render(); }
 
 /* ---------- top bar ---------- */
-const ICONS = {
-  lines:'<path d="M4 6h6l4 12h6M16 14l4 4-4 4"/><circle cx="4" cy="6" r="2"/><circle cx="20" cy="18" r="2"/>',
-  notes:'<path d="M4 4h16v12H9l-5 4V4Z"/><path d="M8 8h8M8 12h5"/>',
-  tech:'<path d="M4 5h16M4 10h12M4 15h7M16 14v7M12.5 17.5h7"/>',
-  dots:'<path stroke-linecap="round" stroke-width="3" d="M5 5h.01M12 5h.01M19 5h.01M5 12h.01M12 12h.01M19 12h.01M5 19h.01M12 19h.01M19 19h.01"/>',
-  story:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M5.5 8h1M5.5 12h1"/>',
-  glossary:'<path d="M12 5v15M12 5C9 3 5 3 2 4v15c3-1 7-1 10 1 3-2 7-2 10-1V4c-3-1-7-1-10 1Z"/>'
-};
-function iconControl(action, label, on) {
-  const state = on === undefined ? "" : ` · ${on ? "On" : "Off"}`;
-  return `<button class="icon-control" data-tool="${action}" aria-label="${label}" title="${label}${state}"${on === undefined ? "" : ` aria-pressed="${on}"`}>
-    <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7">${ICONS[action]}</svg>
-    <span class="control-tip">${label}${state}</span>${on === undefined ? "" : '<span class="toggle-state" aria-hidden="true"></span>'}</button>`;
-}
 function topBar() {
-  const details = Object.values(BOX).filter(info => info.mi === S.map && info.box.detail);
+  const qn = questionList().length;
   $("#top").innerHTML = `
     <span class="title" title="${esc(MODEL.title)}">${esc(MODEL.title)}</span>
-    <div class="display-controls" role="group" aria-label="Map display">
-      ${KIND[MODEL.maps[S.map].template] === "chain" ? `<select id="view-version" aria-label="Current and proposed work">${[["compare","Compare"],["today","Current"],["planned","Proposed"]].map(([value,label]) => `<option value="${value}"${S.mode === value ? " selected" : ""}>${label}</option>`).join("")}</select>` : ""}
-      ${iconControl("story", "Left navigation", leftEdge() > 0)}
-      ${NOTES.length ? iconControl("notes", "Notes beside boxes", S.notesOnMap) : ""}
-      ${(MODEL.links || []).length ? iconControl("lines", "All connections", S.lines) : ""}
-      ${details.length ? iconControl("tech", "Extra details on the map", S.tech) : ""}
-      ${iconControl("dots", "Background dots", S.dots)}
-      ${TERMS.length ? iconControl("glossary", "Word meanings") : ""}
-    </div>
-    <button id="tsave" class="save-primary">${SESSION ? S.sessionFinished ? "Read my answers" : "Finish review" : "Save my answers"}</button>
-    <button id="tshare" aria-haspopup="true" aria-expanded="false">Tools ▾</button>`;
-  roleStrip();
-  const version = $("#view-version"); if (version) version.addEventListener("change", () => { setMode(version.value); fit(); });
-  $("#top").querySelectorAll("[data-tool]").forEach(button => button.addEventListener("click", () => { const action = button.dataset.tool; act(action); const next = $("#top [data-tool=" + action + "]"); if (next) next.focus({preventScroll:true}); }));
-  $("#tsave").addEventListener("click", () => SESSION && S.sessionFinished ? open("reviewsummary") : saveReview());
+    <button id="tq" class="primary"><span class="wide-label">Questions to decide</span><span class="short-label">Review</span><span class="count">${qn}</span></button>
+    <button id="tsave" class="save-primary">${SESSION ? "Finish review" : "Save my answers"}</button>
+    <button id="tshare" aria-haspopup="true" aria-expanded="false">More ▾</button>
+    <button id="tview" aria-haspopup="true" aria-expanded="false">View ▾</button>
+    <button id="tkeys" title="Keyboard shortcuts">? Keys</button>`;
+  $("#tq").addEventListener("click", () => open("reviewstart"));
+  $("#tsave").addEventListener("click", saveReview);
   $("#tshare").addEventListener("click", e => menu(e.currentTarget, [
-    ["walk", "Walk me through it", ""],
-    [SESSION ? "backup" : "save", SESSION ? "Download a backup copy" : "Save my answers as a file", ""],
-    ["copy", "Copy the questions as a list", ""], ["paper", "Print the questions", ""],
-    ["print", "Print this view", ""], ["roles", "Whose notes to show", ""],
-    ["key", "What the colours mean", ""], ["keys", "Keyboard shortcuts", ""],
-    ["reset", "Clear my answers on this computer", ""]]));
+    [SESSION ? "backup" : "save", SESSION ? "Download a backup copy" : "Save my answers as a file", ""], ["copy", "Copy the questions as a list", ""],
+    ["paper", "Print the questions", ""], ["print", "Print this view", ""], ["reset", "Clear my answers on this computer", ""]]));
+  $("#tview").addEventListener("click", e => menu(e.currentTarget, [
+    ["tech", "Show technical names", S.tech ? "On" : "Off"],
+    ["notes", "Show all notes on the map", S.notesOnMap ? "On" : "Off"],
+    ["roles", "Whose notes to show", `${ROLES.filter(r => S.roles[r.id] !== false).length} of ${ROLES.length}`],
+    ["story", S.story ? "Hide the list on the left" : "Show the list on the left", ""],
+    ["dots", "Background dots", S.dots ? "On" : "Off"],
+    ["key", "What the colours mean", ""], ["keys", "Keyboard shortcuts", ""]]));
+  $("#tkeys").addEventListener("click", () => open("keys"));
 }
-
-function roleStrip() {
-  let strip = $("#role-strip");
-  if (!strip) { strip = document.createElement("nav"); strip.id = "role-strip"; strip.setAttribute("aria-label", "Perspectives on the map"); document.body.appendChild(strip); }
-  const used = ROLES.filter(r => NOTES.some(n => n.role === r.id));
-  strip.hidden = !S.notesOnMap || !used.length;
-  strip.style.left = (leftEdge() + 12) + "px";
-  strip.style.right = (rightEdge() + 12) + "px";
-  strip.style.maxWidth = Math.max(60, innerWidth - leftEdge() - rightEdge() - 24) + "px";
-  strip.innerHTML = `<span class="role-caption">Perspectives</span>` + used.map(r => `<button data-map-role="${esc(r.id)}" aria-pressed="${S.roles[r.id] !== false}" title="${esc(r.label)} notes · ${S.roles[r.id] !== false ? "shown" : "hidden"}"><span class="paper-swatch" style="background:${esc(tint(r.color))};border-color:${esc(r.color)}"></span>${esc(r.label)}</button>`).join("");
-  strip.querySelectorAll("button").forEach(button => button.addEventListener("click", () => { const role = button.dataset.mapRole; S.roles[role] = S.roles[role] === false; persist(); render(); fit(); const next = $("#role-strip [data-map-role=" + CSS.escape(role) + "]"); if (next) next.focus(); }));
-}
-
 function menu(btn, items) {
   const mm = $("#menu");
   const reopen = mm.classList.contains("open") && mm._from === btn;
@@ -702,15 +863,11 @@ function menu(btn, items) {
 }
 document.addEventListener("click", e => { if (!e.target.closest("#menu,#tshare,#tview")) $("#menu").classList.remove("open"); });
 function act(a) {
-  if (a === "walk") walk(0);
-  if (a === "tech" && !Object.values(BOX).some(info => info.mi === S.map && info.box.detail)) return toast("This map has no extra box details.");
-  if (a === "lines") { S.lines = !S.lines; persist(); topBar(); applyConnections(); }
-  if (a === "glossary") open("glossary");
-  if (a === "tech") { S.tech = !S.tech; persist(); render(); if (current) open(current.kind, current.arg); fit(); toast(S.tech ? "Extra box details shown on the map" : "Extra box details hidden on the map"); }
-  if (a === "notes") { S.notesOnMap = !S.notesOnMap; persist(); render(); fit(); toast(S.notesOnMap ? "Notes shown beside the boxes" : "Notes shown as a count on each box"); }
+  if (a === "tech") { S.tech = !S.tech; persist(); render(); if (current) open(current.kind, current.arg); toast(S.tech ? "Technical names shown" : "Technical names hidden"); }
+  if (a === "notes") { S.notesOnMap = !S.notesOnMap; persist(); render(); toast(S.notesOnMap ? "Notes shown beside the boxes" : "Notes shown as a count on each box"); }
   if (a === "roles") open("roles");
-  if (a === "story") setStory(leftEdge() === 0);
-  if (a === "dots") { S.dots = !S.dots; persist(); document.body.classList.toggle("dots", S.dots); topBar(); }
+  if (a === "story") setStory(!S.story);
+  if (a === "dots") { S.dots = !S.dots; persist(); document.body.classList.toggle("dots", S.dots); }
   if (a === "key") open("key");
   if (a === "keys") open("keys");
   if (a === "save") saveReview();
@@ -724,9 +881,8 @@ function act(a) {
 }
 
 /* ---------- left story list ---------- */
-function setStory(on) { document.body.classList.toggle("show-navigation", on); S.story = on; persist(); document.body.classList.toggle("nostory", !on); story(); topBar(); fit(); }
+function setStory(on) { S.story = on; persist(); document.body.classList.toggle("nostory", !on); story(); }
 $("#storytab").addEventListener("click", () => setStory(true));
-let exploringMaps = false;
 function story() {
   const el = $("#story");
   if (!S.story) { el.innerHTML = ""; return; }
@@ -737,34 +893,24 @@ function story() {
     if (kind === "journeys") sub = (m.journeys || []).map((j, ji) => `<li><button class="view" data-j="${mi}:${ji}" aria-current="${cur && S.journey === ji}"><b><span class="num">${mi + 1}.${ji + 1}</span>${esc(j.title)}</b><span>${esc(j.summary || plural((j.steps || []).length, "step"))}</span></button></li>`).join("");
     if (kind === "chain") sub = (m.stages || []).map((st, si) => `<li><button class="view" data-row="${mi}:s${si}"><b><span class="num">${mi + 1}.${si + 1}</span>${esc(st.label)}</b><span>${esc(st.sub || "")}</span></button></li>`).join("");
     if (kind === "tree") sub = (m.root.children || []).map((b, bi) => `<li><button class="view" data-row="${mi}:b${bi}"><b><span class="num">${mi + 1}.${bi + 1}</span>${esc(b.title)}</b><span>${plural((b.children || []).length, "idea")}</span></button></li>`).join("");
-    const seg = kind === "chain" && cur ? `<div class="seg" role="group" aria-label="Current and proposed work"><button data-mode="compare" aria-pressed="${S.mode === "compare"}">Compare</button><button data-mode="today" aria-pressed="${S.mode === "today"}">Current</button><button data-mode="planned" aria-pressed="${S.mode === "planned"}">Proposed</button></div>` : "";
+    const seg = kind === "chain" && cur ? `<div class="seg" role="group" aria-label="Today or planned"><button data-mode="today" aria-pressed="${S.mode === "today"}">Today</button><button data-mode="planned" aria-pressed="${S.mode === "planned"}">Planned</button></div>` : "";
     return `<li><button class="view" data-map="${mi}" aria-current="${cur && S.journey < 0}"><b><span class="num">${mi + 1}.</span>${esc(m.title)}</b><span>${esc(m.intro || "")}</span></button>${seg}<ol class="sub">${sub}</ol></li>`;
   }).join("");
-  const qs = questionList(), done = qs.filter(q => answerDone(q.n)).length;
-  const active = current && current.kind;
   el.innerHTML = `<button class="hide" data-hide>Hide list</button>
     <div class="small">The decision</div><p class="q">${gl(MODEL.question, true)}</p>
-    <h2>Your review</h2><p class="small">${done} of ${qs.length} questions answered</p>
-    <div class="more workflow">
-      <button data-open="reviewstart" aria-current="${active === 'reviewstart'}">1. Understand the decision</button>
-      <button data-give aria-current="${active === 'review' || active === 'questions'}">2. Give your view</button>
-      <button data-open="reviewsummary" aria-current="${active === 'reviewsummary'}">3. Check your answers</button>
+    ${MODEL.reading ? `<button class="mini" data-open="reading">How to read this</button>` : ""}
+    <button class="walkbtn" data-walk>Walk me through it</button>
+    <h2>Views</h2><ol>${views}</ol>
+    <h2>Deciding</h2><div class="more">
+      <button data-open="reviewstart">Questions to decide (${questionList().length})</button>
+      ${DECISIONS.length ? `<button data-open="decisions">Decisions (${DECISIONS.length})</button>` : ""}
+      ${GAPS.length ? `<button data-open="gaps">Gaps, ranked (${GAPS.length})</button>` : ""}
+      <button data-open="evidence">Evidence and sources (${(MODEL.evidence || []).length})</button>
+      <button data-open="roles">Whose notes to show</button>
     </div>
-    <h2>Supporting material</h2><div class="more">
-      <button data-explore aria-current="${exploringMaps}">Explore the map</button>
-      ${MODEL.comparison ? `<button data-open="comparison">Compare the options</button>` : ""}
-      <button data-open="evidence">Supporting sources</button>
-      ${DECISIONS.length ? `<button data-open="decisions">Decision record</button>` : ""}
-      ${GAPS.length ? `<button data-open="gaps">Changes to consider</button>` : ""}
-      ${MODEL.reading ? `<button data-open="reading">How to read the map</button>` : ""}
-    </div>
-    ${exploringMaps ? `<h2>Map views</h2><ol>${views}</ol>` : ""}`;
+    ${MODEL.summary ? `<h2>About this decision</h2><p class="small">${gl(MODEL.summary, true)}</p>` : ""}`;
   el.querySelector("[data-hide]").addEventListener("click", () => setStory(false));
-  el.querySelector("[data-give]").addEventListener("click", () => {
-    exploringMaps = false;
-    goReview(Math.max(0, qs.findIndex(q => !answerDone(q.n))));
-  });
-  el.querySelector("[data-explore]").addEventListener("click", () => { exploringMaps = !exploringMaps; close(); story(); fit(); });
+  el.querySelector("[data-walk]").addEventListener("click", () => walk(0));
   el.querySelectorAll("[data-map]").forEach(b => b.addEventListener("click", () => { showMap(+b.dataset.map); S.journey = -1; persist(); applyFocus(); story(); fit(); }));
   el.querySelectorAll("[data-j]").forEach(b => b.addEventListener("click", () => { const [mi, ji] = b.dataset.j.split(":").map(Number); focusJourney(mi, ji); }));
   el.querySelectorAll("[data-row]").forEach(b => b.addEventListener("click", () => { const [mi, key] = b.dataset.row.split(":"); focusRow(+mi, key); }));
@@ -827,7 +973,7 @@ function endWalk() { walkAt = -1; $("#walk").classList.remove("open"); }
 function hint() {
   if (S.hintSeen) return;
   const h = $("#hint");
-  h.innerHTML = `<b>New here?</b> Press <b>Walk me through it</b> in Tools for a short tour, or click any box to read about it. ${SESSION ? "Answer questions on the right. Your answers save for your agent automatically; press Finish review when ready." : "Answer questions on the right, then press Save my answers. Send the downloaded file to the review owner."}<br><button id="hintok">Got it</button>`;
+  h.innerHTML = `<b>New here?</b> Press <b>Walk me through it</b> on the left for a short tour, or click any box to read about it. ${SESSION ? "Answer questions on the right. Your answers save for your agent automatically; press Finish review when ready." : "Answer questions on the right, then press Save my answers. Send the downloaded file to the review owner."}<br><button id="hintok">Got it</button>`;
   h.classList.add("open");
   $("#hintok").addEventListener("click", hideHint);
 }
@@ -837,22 +983,20 @@ function hideHint() { $("#hint").classList.remove("open"); if (!S.hintSeen) { S.
 let current = null;
 function open(kind, arg) {
   current = {kind, arg};
-  applyConnections();
-  story();
   const p = $("#panel");
   const [title, html] = PANELS[kind](arg);
   p.innerHTML = `<header><h2 id="ptitle">${title}</h2><button id="pclose">Close</button></header>
-    <div class="body">${html}</div>`;
-  p.classList.add("open"); document.body.classList.add("panel-open"); topBar();
+    <div class="body">${kind === "box" || kind === "note" ? `<label class="switch"><input type="checkbox" id="techsw"${S.tech ? " checked" : ""}> Show technical names</label>` : ""}${html}</div>`;
+  p.classList.add("open"); document.body.classList.add("panel-open");
   p.setAttribute("aria-labelledby", "ptitle");
   $("#pclose").addEventListener("click", close);
+  const sw = $("#techsw"); if (sw) sw.addEventListener("change", () => act("tech"));
   wirePanel(p);
-  fit();
   $("#ptitle").setAttribute("tabindex", "-1"); $("#ptitle").focus();
 }
 function close() {
   $("#panel").classList.remove("open"); document.body.classList.remove("panel-open");
-  current = null; topBar(); applyConnections(); world.querySelectorAll(".sel").forEach(x => x.classList.remove("sel")); story(); fit();
+  current = null; world.querySelectorAll(".sel").forEach(x => x.classList.remove("sel"));
 }
 
 function evidenceHtml(refs) {
@@ -898,7 +1042,7 @@ function answerHtml(n) {
     ${a.comment ? `<label class="small" for="c-${esc(n.id)}">Earlier comment</label><textarea id="c-${esc(n.id)}" data-comment="${esc(n.id)}">${esc(a.comment)}</textarea>` : ""}`;
 }
 function questionList() {
-  return NOTES.filter(n => (n.question || "").trim()).map(n => {
+  return NOTES.filter(n => (n.question || "").trim() && S.roles[n.role] !== false).map(n => {
     const mv = MERGED && MERGED.questions && MERGED.questions[n.id] || {};
     const g = GAPS.find(g => g.id === n.anchor);
     return {id:n.id, n, urgency:n.urgency || "info", dots:(mv.dots || 0) + (S.votes[n.id] || 0), impact:g ? g.impact || 0 : 0};
@@ -907,25 +1051,6 @@ function questionList() {
 const dotsLeft = () => DOT_BUDGET - Object.values(S.votes).reduce((a, b) => a + b, 0);
 
 const PANELS = {
-  comparison() {
-    const comparison = MODEL.comparison || {}, criteria = comparison.criteria || [], options = comparison.options || [];
-    const judgments = {fits:"Fits", mixed:"Tradeoff", does_not_fit:"Does not meet this", unknown:"Not yet known"};
-    const importance = {must:"Must-have", important:"Important", nice:"Nice to have"};
-    const recommendation = comparison.recommendation;
-    return ["Compare the options", `<p>${gl(comparison.why || "Agree what matters before choosing. Compare realistic options, including keeping things as they are when that is a real choice.", true)}</p>
-      <h3>What matters</h3>${criteria.length ? `<ul>${criteria.map(c => `<li><b>${esc(c.label)}</b> · ${importance[c.importance || "important"]}</li>`).join("")}</ul>` : "<p>Not agreed yet. Ask the decision owner what matters most.</p>"}
-      <h3>How we will compare</h3><p>${gl(comparison.method || "Not agreed yet. Choose a discussion, research or a small trial to match the stakes.", true)}</p>
-      ${options.length ? options.map(option => `<section class="card"><h3>${esc(option.title)}</h3><p>${gl(option.summary || "", true)}</p>${criteria.map(criterion => {
-        const evaluation = (option.evaluations || []).find(e => e.criterion === criterion.id) || {};
-        return `<p><b>${esc(criterion.label)}:</b> ${judgments[evaluation.judgment || "unknown"]}</p><p class="small">${gl(evaluation.reason || "This still needs checking.", true)}</p>${(evaluation.evidence || []).length ? `<button class="mini" data-evidence="${esc(evaluation.evidence.join(","))}">See supporting sources</button>` : ""}`;
-      }).join("")}</section>`).join("") : "<p>The alternatives have not been named yet.</p>"}
-      ${recommendation ? `<h3>Suggested choice</h3><p><b>${esc((options.find(o => o.id === recommendation.option) || {}).title || recommendation.option)}</b></p><p>${gl(recommendation.reason, true)}</p><p>Remaining risks: ${gl(recommendation.risks || "Not recorded yet.", true)}</p><p class="small">The owner still makes and records the final choice.</p>` : "<p>No choice has been recommended yet.</p>"}
-      <h3>When to check again</h3><p>${gl(comparison.review_when || "Not agreed yet. Record what would make you revisit the choice.", true)}</p>`];
-  },
-  glossary() {
-    return ["Word meanings", `<p>These meanings were supplied with this review. Select an underlined word to see its meaning beside it.</p>
-      <dl class="word-meanings">${TERMS.slice().sort().map(term => `<dt>${esc(term)}</dt><dd>${esc(GLOSS[term])}</dd>`).join("")}</dl>`];
-  },
   box(id) {
     const info = BOX[id]; const b = info.box;
     world.querySelectorAll(".sel").forEach(x => x.classList.remove("sel"));
@@ -945,11 +1070,7 @@ const PANELS = {
       ${sinceAdded.has(id) ? `<p><span class="chip new">New</span> since the last review.</p>` : ""}
       ${ch ? `<p><span class="chip changed">Changed</span> since the last review: ${ch.map(esc).join(", ")}.</p>` : ""}
       ${b.checked ? `<p class="small">Checked ${esc(b.checked)}.</p>` : ""}
-      ${visibleLinks().filter(l => l.from === id || l.to === id).length ? `<h3>Connected to this</h3>${visibleLinks().filter(l => l.from === id || l.to === id).map(l => {
-        const other = l.from === id ? l.to : l.from;
-        return `<p class="connection-description ${l.kind || "flow"}">${esc(l.label)} ${l.from === id ? "→" : "←"} <button class="mini" data-connection-to="${esc(other)}">${esc(titleOf(BOX[other].box))}</button>${S.mode === "compare" && l.when && l.when !== "both" ? ` <span class="small">(${l.when === "today" ? "current" : "proposed"})</span>` : ""}</p>`;
-      }).join("")}` : ""}
-      ${b.detail ? `<h3>More about this</h3><p>${gl(b.detail, true)}</p>` : ""}
+      ${b.detail && S.tech ? `<h3>Technical names</h3><p class="techname">${esc(b.detail)}</p>` : ""}
       ${(b.evidence || []).length ? `<h3>Evidence</h3>${evidenceHtml(b.evidence)}` : ""}
       ${gaps.length ? `<h3>Gaps here</h3>${gaps.map(g => `<button class="mini" data-open-gap="${esc(g.id)}">${esc(g.id)}: ${esc(g.title)}</button>`).join(" ")}` : ""}
       <h3>${notes.length ? `Notes from ${plural(notes.length, "role")}` : "Notes"}</h3>
@@ -973,17 +1094,8 @@ const PANELS = {
       ${(q.comments || []).map(c => `<p><b>${esc(c.who)} commented:</b> ${esc(c.text)}</p>`).join("")}
       <button class="mini" data-support-back>Back to the question</button>`];
   },
-  handoff() {
-    const result = completedHandoff;
-    if (!result) return ["Next steps", "<p>The agent will prepare the proposed stories, acceptance criteria and map from your answers.</p>"];
-    return ["Next steps for the agent", `<p>Your answers are recorded. These next steps remain proposals for the decision owner.</p>
-      ${(result.user_stories || []).map(story => `<section class="card"><h3>${esc(story.story)}</h3><b>Acceptance criteria</b>${story.acceptance_criteria.length ? `<ul>${story.acceptance_criteria.map(c => `<li>${esc(c)}</li>`).join("")}</ul>` : "<p>Not defined yet.</p>"}</section>`).join("")}
-      ${(result.missing || []).length ? `<h3>What still needs defining</h3><ul>${result.missing.map(item => `<li>${esc(item)}</li>`).join("")}</ul>` : ""}
-      ${result.proposed_model ? '<button class="save-primary" data-proposed-map>See the proposed map</button>' : "<p>The agent still needs to draft a proposed-state map.</p>"}
-      <p>Return to chat to discuss the choice and its reasons with your agent.</p>`];
-  },
   sessiondone() {
-    return ["Your answers are ready for your agent", `<p>Your answers have been saved on this computer, where the agent can read them. You do not need to download or attach a file.</p><p>Return to your agent chat. The agent receives your answers and a request to show the proposed user stories, acceptance criteria and proposed-state map, including what still needs defining. You still make the final decision.</p><button data-open-handoff>See next steps</button><button data-review-summary>${SESSION.close_on_finish ? "Read my answers" : "Check my answers"}</button>${SESSION.close_on_finish ? "<p>To change these answers, ask your agent to reopen the review.</p>" : ""}`];
+    return ["Your answers are ready for your agent", `<p>Your answers have been saved on this computer, where the agent can read them. You do not need to download or attach a file.</p><p>Return to your agent chat. The agent can read what you said, identify open questions, and propose next steps. You still make the final decision.</p><button data-review-summary>${SESSION.close_on_finish ? "Read my answers" : "Check my answers"}</button>${SESSION.close_on_finish ? "<p>To change these answers, ask your agent to reopen the review.</p>" : ""}`];
   },
   saved(filename) {
     return ["Send your saved answers", `<p>Your browser started downloading <b>${esc(filename)}</b>. If it asks where to save it, choose a folder you can find again.</p><ol><li>Send this file to the review owner, or attach it to your agent chat.</li><li>The owner combines the reviews, checks unanswered questions, and records the decision.</li><li>Keep the file so you can return to the discussion.</li></ol><p>Saving does not send anything automatically. A partial review is fine.</p><button data-return-questions>Back to my answers</button>`];
@@ -994,7 +1106,7 @@ const PANELS = {
     const next = Math.max(0, qs.findIndex(q => !answerDone(q.n)));
     return ["Let's review this decision", `<p class="decision-question">${gl(MODEL.question, true)}</p>
       ${MODEL.summary ? `<p>${gl(MODEL.summary, true)}</p>` : ""}
-      <p>We will ask ${plural(qs.length, "question")}, one at a time. Give your view in your own words. If you need more information, choose <b>Not sure yet</b>.</p>
+      <p>We will ask ${plural(qs.length, "question")}, one at a time. Give your view before reading a possible approach. If you need more information, choose <b>Not sure yet</b>.</p>
       <p>${SESSION ? "Your answers save automatically for your agent. Check them, then press Finish review and return to chat." : "Then check your answers and save a file to share."} The decision owner makes the final call.</p>
       ${done === qs.length ? `<button class="save-primary" data-review-summary>Check my answers</button>` : `<button class="save-primary" data-review-at="${next}">${done ? "Continue review" : "Answer questions"}</button>`}
       ${done < qs.length ? `<button class="mini" data-review-summary>Check my answers</button>` : ""}
@@ -1096,7 +1208,7 @@ const PANELS = {
   },
   roles() {
     const count = id => NOTES.filter(n => n.role === id).length;
-    return ["Whose notes to show", `<p class="small">These switches change the notes on the map. The review still includes every question.</p><div class="row"><button class="mini" data-roles="all">Show all</button><button class="mini" data-roles="none">Hide all</button></div>
+    return ["Whose notes to show", `<div class="row"><button class="mini" data-roles="all">Show all</button><button class="mini" data-roles="none">Hide all</button></div>
       ${ROLES.map(r => `<div class="rolerow"><input type="checkbox" id="r-${esc(r.id)}" data-role="${esc(r.id)}"${S.roles[r.id] !== false ? " checked" : ""}>
         <label for="r-${esc(r.id)}"><span class="swatch" style="background:${r.color}"></span><b>${esc(r.label)}</b> <span class="small">${plural(count(r.id), "note")}</span>
         ${r.asks ? `<br><span class="small">Always asks: ${esc(r.asks)}</span>` : ""}
@@ -1104,7 +1216,6 @@ const PANELS = {
   },
   key() {
     return ["What the colours mean", `<h3>Status of each box</h3><p class="legend">${Object.keys(STATUS).map(pill).join(" ")}</p>
-      <h3>Connections</h3><p>Arrows between steps show their order. Named connections come from this review: purple for flow, blue for supporting evidence, and red dashed lines for feedback. Selecting a box highlights its connections; their names appear in the detail panel. Use All connections to show them together.</p>
       <h3>Notes</h3><p>Each note is one role's comment and ends in a question. A box shows how many notes it has; red means at least one must be decided. The coloured edge on a note shows how urgent it is:</p>
       <p class="legend"><span><span class="swatch" style="background:var(--must)"></span>Must decide</span><span><span class="swatch" style="background:var(--should)"></span>Should decide</span><span><span class="swatch" style="background:var(--info)"></span>For information</span></p>
       <h3>Roles</h3><p class="legend">${ROLES.map(r => `<span><span class="swatch" style="background:${r.color}"></span>${esc(r.label)}</span>`).join(" ")}</p>
@@ -1114,7 +1225,7 @@ const PANELS = {
     return ["Keyboard shortcuts", `<p class="small">Everything also works with the buttons on screen. These are only shortcuts.</p>
       <ul><li><b>Tab</b> and <b>Enter</b>: move between boxes and open one</li><li><b>W</b>: walk me through it; <b>→</b> and <b>←</b>: next and back during the walk-through</li>
       <li><b>F</b>: fit to screen; <b>+</b> and <b>−</b>: zoom</li><li><b>Q</b>: questions to decide</li><li><b>T</b>: today or planned (on a chain view)</li>
-      <li><b>N</b>: show all notes on the map</li><li><b>X</b>: show extra box details on the map, when available</li><li><b>1</b> to <b>9</b>: switch view</li><li><b>Esc</b>: close the panel or menu</li></ul>
+      <li><b>N</b>: show all notes on the map</li><li><b>X</b>: show technical names</li><li><b>1</b> to <b>9</b>: switch view</li><li><b>Esc</b>: close the panel or menu</li></ul>
       <p class="small">Boxes are placed automatically. Drag empty space to move the view. Zoom with Ctrl and scroll, or pinch.</p>`];
   },
 };
@@ -1143,11 +1254,6 @@ function wirePanel(p) {
     const remaining = $("#dleft"); if (remaining) remaining.textContent = dotsLeft();
   }));
   p.querySelectorAll("[data-review-at]").forEach(b => b.addEventListener("click", () => goReview(+b.dataset.reviewAt)));
-  p.querySelectorAll("[data-open-handoff]").forEach(b => b.addEventListener("click", () => open("handoff")));
-  p.querySelectorAll("[data-proposed-map]").forEach(b => b.addEventListener("click", () => {
-    const index = MODEL.maps.findIndex(m => m.when === "planned" || m.template === "decision-chain" && (m.stages || []).some(stage => (stage.items || []).some(item => item.when === "planned")));
-    if (index >= 0) { showMap(index); setMode("planned"); close(); fit(); }
-  }));
   p.querySelectorAll("[data-review-summary]").forEach(b => b.addEventListener("click", () => open("reviewsummary")));
   p.querySelectorAll("[data-all-questions]").forEach(b => b.addEventListener("click", () => open("questions")));
   p.querySelectorAll("[data-save-review]").forEach(b => b.addEventListener("click", saveReview));
@@ -1158,10 +1264,9 @@ function wirePanel(p) {
   updateReviewStatus();
   if (SESSION && SESSION.close_on_finish && S.sessionFinished) {
     p.querySelectorAll("input,textarea,select,[data-review-at],[data-save-review],[data-ans],[data-dot],[data-priority]").forEach(el => el.disabled = true);
-    $("#tsave").disabled = false; $("#tsave").textContent = "Read my answers";
+    $("#tsave").disabled = true; $("#tsave").textContent = "Review finished";
   }
   p.querySelectorAll("[data-return-questions]").forEach(b => b.addEventListener("click", () => open("reviewsummary")));
-  p.querySelectorAll("[data-connection-to]").forEach(b => b.addEventListener("click", () => { jumpTo(b.dataset.connectionTo); open("box", b.dataset.connectionTo); }));
   p.querySelectorAll("[data-jump-to]").forEach(b => b.addEventListener("click", () => jumpTo(b.dataset.jumpTo)));
   p.querySelectorAll("[data-open-gap]").forEach(b => b.addEventListener("click", () => { open("gaps"); const c = $("#gap-" + CSS.escape(b.dataset.openGap)); if (c) c.scrollIntoView(); }));
   p.querySelectorAll("[data-open-note]").forEach(b => b.addEventListener("click", () => open("note", NOTES.find(n => n.id === b.dataset.openNote))));
@@ -1214,9 +1319,8 @@ function activate(el) {
   else if (d.type === "notes") open("notes", d);
   else if (d.type === "outcome") open("outcome", d.o);
 }
-world.addEventListener("click", e => { const term = e.target.closest(".term"); if (term) { showTerm(term); return; } const el = e.target.closest("[role=button]"); if (el && el._data) activate(el); });
+world.addEventListener("click", e => { const el = e.target.closest("[role=button]"); if (el && el._data) activate(el); });
 world.addEventListener("keydown", e => {
-  const term = e.target.closest(".term"); if (term && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); showTerm(term); return; }
   const el = e.target.closest("[role=button]");
   if (el && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); activate(el); }
 });
@@ -1247,8 +1351,6 @@ function wireTerms(root) {
 }
 world.addEventListener("mouseover", e => { const t = e.target.closest(".term"); if (t) showTerm(t); });
 world.addEventListener("mouseout", e => { if (e.target.closest(".term")) hideTerm(); });
-world.addEventListener("focusin", e => { const term = e.target.closest(".term"); if (term) showTerm(term); });
-world.addEventListener("focusout", e => { if (e.target.closest(".term")) hideTerm(); });
 
 /* ---------- share ---------- */
 function reviewData() {
@@ -1334,5 +1436,9 @@ fit();
 hint();
 if (SESSION) { hideHint(); open("reviewstart"); }
 queueSync();
-addEventListener("resize", () => { fit(); topBar(); });
+addEventListener("resize", () => apply());
 })();
+
+</script>
+</body>
+</html>

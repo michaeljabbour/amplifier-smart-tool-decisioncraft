@@ -2,16 +2,16 @@
 """Open rendered canvases in headless Chromium and check them like a first-time user.
 
 For each HTML file it checks: no console or page errors, no network requests, a single
-top bar, and that notes shown on the map never overlap a box. Then it runs five tasks a
+top bar, and no overlapping boxes or notes. Then it runs five tasks a
 first-time user should manage using only what is visible on screen (clicks on labelled
 buttons, no keyboard shortcuts):
 
   1. Take the walk-through to step 3.
   2. Open a journey or stage from the list on the left.
   3. Open a box, read its notes and answer a question there.
-  4. Open "Questions to decide" and copy them through "Share my answers".
+  4. Review the questions, copy them, and save with the visible button.
   5. Zoom in, zoom out and fit with the zoom buttons.
-Plus: show technical names from the View menu, and switch Today/Planned where offered.
+Plus: show extra box details from the bar, and switch Today/Planned where offered.
 
 Needs Playwright (`pip install playwright && playwright install chromium`); a development
 check, not a runtime dependency.
@@ -31,6 +31,11 @@ OVERLAP_JS = """
   const boxes = [...document.querySelectorAll('#world .box')].map(r);
   const notes = [...document.querySelectorAll('#world .notecard, #world .morenotes')].map(r);
   let hits = 0;
+  const cards = boxes;
+  for (let i = 0; i < cards.length; i++) for (let j = i + 1; j < cards.length; j++) {
+    const a = cards[i], b = cards[j];
+    if (a.left < b.right - 1 && a.right > b.left + 1 && a.top < b.bottom - 1 && a.bottom > b.top + 1) hits++;
+  }
   for (const n of notes) for (const b of boxes)
     if (n.left < b.right - 1 && n.right > b.left + 1 && n.top < b.bottom - 1 && n.bottom > b.top + 1) hits++;
   return hits;
@@ -66,10 +71,14 @@ def check(page, path: Path, shots: Path | None) -> tuple[list[str], list[str]]:
     if top_h > 56:
         problems.append(f"top bar is {top_h:.0f}px tall")
     shot("1-start")
+    hits = page.evaluate(OVERLAP_JS)
+    if hits:
+        problems.append(f"initial view: {hits} box or note overlaps")
 
     # 1. walk-through
     try:
-        click_text("Walk me through it")
+        click_text("Tools", "#top")
+        page.get_by_role("menuitem", name="Walk me through it").click()
         click_text("Next", "#walk")
         click_text("Next", "#walk")
         text = page.inner_text("#walk")
@@ -83,6 +92,7 @@ def check(page, path: Path, shots: Path | None) -> tuple[list[str], list[str]]:
 
     # 2. open a journey or stage from the list
     try:
+        click_text("Explore the map", "#story")
         item = page.locator("#story .sub .view").nth(1)
         label = item.inner_text().split("\n")[0]
         before = page.evaluate(TRANSFORM)
@@ -111,9 +121,9 @@ def check(page, path: Path, shots: Path | None) -> tuple[list[str], list[str]]:
         page.wait_for_timeout(200)
         if not page.is_visible("#panel"):
             raise AssertionError("panel did not open")
-        agree = page.locator("#panel [data-choice=agree]").first
-        agree.click()
-        if agree.get_attribute("aria-pressed") != "true":
+        answer = page.locator("#panel [data-answer]").first
+        answer.fill("Try one small change and check the result.")
+        if answer.input_value() != "Try one small change and check the result.":
             raise AssertionError("answer not recorded")
         shot("4-box-detail")
         click_text("Close", "#panel")
@@ -123,21 +133,23 @@ def check(page, path: Path, shots: Path | None) -> tuple[list[str], list[str]]:
 
     # 4. questions, then copy through Share my answers
     try:
-        page.locator("#top").get_by_role("button", name="Questions to decide").click()
+        page.locator("#story").get_by_role("button", name="1. Understand the decision").click()
+        page.get_by_role("button", name="See all questions", exact=True).click()
         page.wait_for_timeout(200)
         shot("5-questions")
-        page.locator("#top").get_by_role("button", name="Share my answers").click()
+        page.locator("#top").get_by_role("button", name="Tools").click()
         page.get_by_role("menuitem", name="Copy the questions as a list").click()
         page.wait_for_timeout(300)
         if "Copied" not in page.inner_text("#toast"):
             raise AssertionError("no confirmation")
         with page.expect_download(timeout=3000) as dl:
-            page.locator("#top").get_by_role("button", name="Share my answers").click()
-            page.get_by_role("menuitem", name="Save my answers as a file").click()
+            page.locator("#top").get_by_role("button", name="Save my answers", exact=True).click()
         if not dl.value.suggested_filename.endswith(".json"):
             raise AssertionError("download is not a review file")
+        if "Send your saved answers" not in page.inner_text("#panel"):
+            raise AssertionError("no next step after saving")
         click_text("Close", "#panel")
-        done.append("copied the questions and saved answers via Share my answers")
+        done.append("copied the questions and saved answers with the visible button")
     except Exception as e:  # noqa: BLE001
         problems.append(f"task 4 (questions and share): {e}")
 
@@ -155,17 +167,22 @@ def check(page, path: Path, shots: Path | None) -> tuple[list[str], list[str]]:
         for _ in range(10):
             page.get_by_role("button", name="− Zoom out").click()
         shot("6-most-zoomed-out")
+        hits = page.evaluate(OVERLAP_JS)
+        if hits:
+            problems.append(f"zoomed out: {hits} box or note overlaps")
         page.get_by_role("button", name="Fit to screen").click()
         done.append("zoomed in, out and fitted with the buttons")
     except Exception as e:  # noqa: BLE001
         problems.append(f"task 5 (zoom): {e}")
 
-    # extras: technical names, notes on the map, today/planned, each view
+    # extras: details, notes on the map, today/planned, each view
     try:
-        page.locator("#top").get_by_role("button", name="View").click()
-        page.get_by_role("menuitem", name="Show technical names").click()
-        page.locator("#top").get_by_role("button", name="View").click()
-        page.get_by_role("menuitem", name="Show all notes on the map").click()
+        detail_toggle = page.get_by_role("button", name="Extra details on the map", exact=True)
+        if detail_toggle.count():
+            detail_toggle.click()
+            assert detail_toggle.get_attribute("aria-pressed") == "true"
+            assert page.locator("#world .techname").count() > 0
+        page.get_by_role("button", name="Notes beside boxes", exact=True).click()
         page.wait_for_timeout(250)
         views = page.locator("#story > ol > li > .view").count()
         for i in range(views):
@@ -173,16 +190,15 @@ def check(page, path: Path, shots: Path | None) -> tuple[list[str], list[str]]:
             page.wait_for_timeout(250)
             hits = page.evaluate(OVERLAP_JS)
             if hits:
-                problems.append(f"view {i + 1}: {hits} note/box overlaps with notes on the map")
+                problems.append(f"view {i + 1}: {hits} box or note overlaps with notes on the map")
             shot(f"7-view{i + 1}-notes-on-map")
             if page.locator("#story [data-mode=today]").count():
                 page.locator("#story [data-mode=today]").click()
                 page.wait_for_timeout(200)
                 shot(f"7-view{i + 1}-today")
                 page.locator("#story [data-mode=planned]").click()
-        page.locator("#top").get_by_role("button", name="View").click()
-        page.get_by_role("menuitem", name="Show all notes on the map").click()
-        done.append("technical names, notes on the map and every view")
+        page.get_by_role("button", name="Notes beside boxes", exact=True).click()
+        done.append("extra details, notes on the map and every view")
     except Exception as e:  # noqa: BLE001
         problems.append(f"extras: {e}")
 

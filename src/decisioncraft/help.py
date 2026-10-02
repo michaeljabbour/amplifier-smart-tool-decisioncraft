@@ -15,6 +15,39 @@ NAME = "decisioncraft"
 VERSION = "0.1.0"
 
 CAPABILITIES: dict[str, dict] = {
+    "mcp": {
+        "kind": "deterministic", "summary": "Serve the same decision workflow to an MCP host over stdio.",
+        "when": "For any host that supports a local MCP server.", "args": [],
+        "example": "decisioncraft mcp", "result": "Standard tools for discovery, map shapes, validation, review, waiting for completion and agent handoff.",
+        "fails": "The optional mcp extra is not installed.",
+    },
+    "discover": {
+        "kind": "deterministic", "summary": "Start with four short questions about the choice and the useful visual.",
+        "when": "At the start of a decision, before drawing or drafting.",
+        "args": [("--question", "Optional choice already described by the person.")],
+        "example": "decisioncraft discover --question 'Which trial should we run?'",
+        "result": "Four questions for the host to ask in conversation; no model call.",
+        "fails": "The supplied choice is not text.",
+    },
+    "handoff": {
+        "kind": "deterministic", "summary": "Return a review to the agent with stories, acceptance criteria and a proposed map.",
+        "when": "After the person finishes a review, or to read a completed review file.",
+        "args": [("model", "Decision model file."), ("review", "Completed review file."), ("--out", "Optional output JSON file.")],
+        "example": "decisioncraft handoff model.json review.json --out handoff.json",
+        "result": "Answers, proposed stories and checks, an explicit proposed-state model, missing parts and an agent request. It does not invent requirements or treat finishing as approval.",
+        "fails": "Invalid model or review, or a review for a different model.",
+    },
+    "session": {
+        "kind": "deterministic",
+        "summary": "Open a local review that saves answers for the agent.",
+        "when": "When an agent starts a review on this computer and should read the answers directly.",
+        "args": [("model", "Path to the decision model."), ("--dir", "New folder for answers and session details."),
+                 ("--review", "Optional saved review to continue."), ("--source-root", "Folder containing sources the reviewer may open."),
+                 ("--prepared-by", "Who prepared notes when no author is recorded."), ("--open", "Open the review in the browser."), ("--until-finished", "Return after the person presses Finish review.")],
+        "example": "decisioncraft session model.json --dir .work/review --open --until-finished",
+        "result": "JSON with a local URL and review file path. Answers save automatically. Finish review records completion; the human still decides.",
+        "fails": "Invalid model or review, an existing session folder, or a local server that cannot start.",
+    },
     "manifest": {
         "kind": "deterministic",
         "summary": "Print the tool's manifest as JSON.",
@@ -126,7 +159,7 @@ CAPABILITIES: dict[str, dict] = {
             ("--out", "Output path (default: print)."),
         ],
         "example": "decisioncraft merge model.json a.json b.json --out merged.json",
-        "result": "JSON: reviewers, per question agree/change/unsure counts, dots, comments and "
+        "result": "JSON: reviewers, per question agree/change/unsure counts, written answers, dots, comments and "
         "`split`; per decision the values given and any `conflict`; `stale_reviews` "
         "names reviews made against another version of the model.",
         "fails": "A file that is not a review (exit 1).",
@@ -148,7 +181,8 @@ CAPABILITIES: dict[str, dict] = {
         "differ run to run; always review the draft.",
         "args": [
             ("material", "Files to read (Markdown or plain text)."),
-            ("--template", "Template id."),
+            ("--brief", "Optional discovery answers JSON from the conversation."),
+            ("--template", "Optional template id; auto chooses suitable maps from the material (default)."),
             ("--question", "The decision being made."),
             ("--title", "Optional title."),
             ("--date", "Optional checked-on date."),

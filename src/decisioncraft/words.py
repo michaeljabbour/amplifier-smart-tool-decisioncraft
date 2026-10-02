@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from .model import DECISION_STATUS, FEELINGS, STATUSES, TEMPLATES, URGENCY, roles_of
+from .model import DECISION_STATUS, FEELINGS, STATUSES, TEMPLATES, URGENCY, roles_of, iter_boxes
 from .review import questions
 
 
@@ -158,8 +158,42 @@ def words(model: dict, merged: dict | None = None) -> str:
                 tally = (f" — agree {q['agree']}, change {q['change']}, unsure {q['unsure']},"
                          f" dots {q['dots']}")
             w(f"- {q['question']} ({q['role_label']}, on {q['where']}){tally}")
+            for a in q.get("answers", []):
+                w(f"  - {a['who']} answered: {a['text']}")
             for c in (merged or {}).get("questions", {}).get(q["id"], {}).get("comments", []):
                 w(f"  - {c['who']}: {c['text']}")
+
+    if model.get("comparison"):
+        comparison = model["comparison"]
+        w(""); w("## Compare the options")
+        if comparison.get("why"):
+            w(comparison["why"])
+        w("What matters:")
+        for criterion in comparison.get("criteria", []):
+            w(f"- {criterion['label']} ({criterion.get('importance', 'important')}).")
+        w("How we will compare: " + (comparison.get("method") or "Not agreed yet."))
+        for option in comparison.get("options", []):
+            w(""); w(f"### {option['title']}")
+            for evaluation in option.get("evaluations", []):
+                criterion = next(c for c in comparison["criteria"] if c["id"] == evaluation["criterion"])
+                w(f"- {criterion['label']}: {evaluation.get('judgment', 'unknown')}. {evaluation.get('reason', 'Not checked yet.')}")
+                out.extend(cite(evaluation.get("evidence")))
+        recommendation = comparison.get("recommendation")
+        if recommendation:
+            option = next(o for o in comparison["options"] if o["id"] == recommendation["option"])
+            w(f"Suggested choice: {option['title']}. {recommendation['reason']}")
+            w("Remaining risks: " + (recommendation.get("risks") or "Not recorded yet."))
+        w("Check again when: " + (comparison.get("review_when") or "Not agreed yet."))
+
+    if model.get("links"):
+        boxes = {b["id"]: b for _, b in iter_boxes(model)}
+        w("")
+        w("## Connections")
+        for connection in model["links"]:
+            a, b = boxes[connection["from"]], boxes[connection["to"]]
+            name = lambda box: box.get("title") or box.get("label") or box.get("text") or box["id"]
+            when = {"today": "current", "planned": "proposed", "both": "current and proposed"}[connection.get("when", "both")]
+            w(f"- {name(a)} → {name(b)}: {connection['label']} ({connection.get('kind', 'flow')}; {when}).")
 
     if model.get("decisions"):
         w("")

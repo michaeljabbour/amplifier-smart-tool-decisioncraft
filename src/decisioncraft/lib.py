@@ -1,7 +1,7 @@
 """The public library. Every capability lives here; the CLI only reads files and prints.
 
 Deterministic: manifest, templates, roles, new, validate, render, words, questions,
-merge, diff. Model-backed: draft, perspectives.
+merge, diff, session. Model-backed: draft, perspectives.
 """
 
 from __future__ import annotations
@@ -11,10 +11,12 @@ from .model import default_roles, new_model, templates, validate
 from .render import render
 from .review import diff, merge, questions
 from .words import words
+from .session import session
+from .workflow import discover, handoff
 
 __all__ = [
     "manifest", "templates", "roles", "new", "validate", "render", "words", "questions",
-    "merge", "diff", "draft", "perspectives",
+    "merge", "diff", "draft", "perspectives", "session", "discover", "handoff",
 ]
 
 

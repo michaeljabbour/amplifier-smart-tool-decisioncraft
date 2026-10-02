@@ -28,7 +28,8 @@ def drive(page):
     if page.is_visible("#hint"):
         page.get_by_role("button", name="Got it").click()
     page.wait_for_timeout(500)
-    page.get_by_role("button", name="Walk me through it").click()
+    page.locator("#top").get_by_role("button", name="Tools").click()
+    page.get_by_role("menuitem", name="Walk me through it").click()
     for _ in range(3):
         page.wait_for_timeout(1500)
         page.locator("#walk").get_by_role("button", name="Next").click()
@@ -47,7 +48,7 @@ def drive(page):
     if agree.count():
         agree.click()
     page.wait_for_timeout(1200)
-    page.locator("#top").get_by_role("button", name="Questions to decide").click()
+    page.locator("#story").get_by_role("button", name="1. Understand the decision").click()
     page.wait_for_timeout(1800)
 
 

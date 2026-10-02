@@ -23,6 +23,7 @@
           "choice": "agree"
         }
       ],
+      "answers": [],
       "split": true
     },
     "N3": {
@@ -37,6 +38,7 @@
           "choice": "agree"
         }
       ],
+      "answers": [],
       "split": false
     },
     "N4": {
@@ -51,6 +53,7 @@
           "choice": "agree"
         }
       ],
+      "answers": [],
       "split": false
     },
     "N10": {
@@ -65,6 +68,7 @@
           "choice": "agree"
         }
       ],
+      "answers": [],
       "split": false
     },
     "N11": {
@@ -84,6 +88,7 @@
           "choice": "unsure"
         }
       ],
+      "answers": [],
       "split": true
     },
     "N5": {
@@ -98,6 +103,7 @@
           "choice": "change"
         }
       ],
+      "answers": [],
       "split": false
     }
   },

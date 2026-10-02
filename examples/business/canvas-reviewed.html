@@ -165,7 +165,7 @@ body.z-far .jindex .mini{font-size:calc(13px * var(--inv))}
 #top .primary{background:#fff6dc;border-color:#e9cf86;font-weight:600}
 #top .count{display:inline-block;min-width:1.6em;padding:0 6px;margin-left:5px;border-radius:9px;background:rgba(0,0,0,.07);font-size:12px}
 #menu{position:fixed;z-index:45;background:#fff;border:1px solid var(--line);border-radius:10px;padding:6px;
-  box-shadow:0 8px 28px rgba(0,0,0,.14);display:none;min-width:270px}
+  box-shadow:0 8px 28px rgba(0,0,0,.14);display:none;min-width:270px;max-height:calc(100vh - 70px);overflow-y:auto}
 #menu.open{display:block}
 #menu button{display:flex;justify-content:space-between;gap:12px;width:100%;text-align:left;border:0;background:none;padding:9px 10px;border-radius:6px}
 #menu button:hover{background:var(--soft)}
@@ -239,6 +239,111 @@ body.z-far .box .meta .notebadge{font-size:calc(11.5px * var(--inv))}
 #story .reading summary{cursor:pointer;color:#2f5bd3;font-weight:600}
 #story .reading p{margin:6px 0 0}
 
+/* Review actions stay visible and say where the file goes. */
+.save-primary,#top .save-primary{background:var(--accent);color:#fff;border:1px solid var(--accent);border-radius:8px;padding:7px 11px;font-weight:600}
+#top .save-primary:hover{background:#2448a8}
+.review-next{border:1px solid var(--line);background:#f3f6fd;border-radius:9px;padding:12px;margin-bottom:16px}
+.answer-label{display:block;font-weight:600;margin-top:10px}
+.review-answer{white-space:pre-wrap;border-left:3px solid var(--accent);padding-left:8px}
+
+.review-nav{display:flex;gap:8px;justify-content:space-between;margin:20px 0 12px}
+.review-nav button{border:1px solid var(--line);border-radius:8px;padding:8px 12px}
+.support{margin:14px 0}
+.support summary{cursor:pointer;color:var(--accent);font-weight:600}
+.decision-question{font-size:19px;font-weight:600;line-height:1.35}
+
+.short-label{display:none}
+@media(max-width:720px){
+  #top{gap:5px;padding:6px}
+  #top .title,#top .wide-label,#top .count,#tkeys{display:none}
+  #top .short-label{display:inline}
+  #top button{padding:6px 8px;font-size:13px}
+  #hint{left:10px;right:10px;max-width:none}
+}
+
+#paper-review{display:none}
+@media print{
+  body.print-review{height:auto;overflow:visible;background:#fff}
+  body.print-review > *{display:none!important}
+  body.print-review #paper-review{display:block!important;padding:16px}
+  #paper-review article{break-inside:avoid;margin:24px 0}
+  #paper-review h2{font-size:17px}
+  .paper-space{height:90px;border-bottom:1px solid #ccc}
+}
+
+.recommendation{background:#f3f6fd;border-left:3px solid var(--accent);padding:10px 12px;margin:12px 0}
+.recommendation p{margin:4px 0 0}
+
+#story .workflow button{padding:12px 9px;font-weight:600}
+#story .more button[aria-current="true"]{background:#eaf0ff;border-color:#9fb4ee;color:#244ca6}
+
+/* Display controls have names on hover or focus, and a visible switch state. */
+#top .display-controls{display:flex;gap:5px;align-items:center}
+#top .icon-control{position:relative;width:36px;height:36px;padding:5px 6px 9px}
+.icon-control svg{display:block;width:22px;height:22px}
+#top .icon-control[aria-pressed="true"]{background:#eaf0ff;color:#244ca6;border-color:#9fb4ee}
+.toggle-state{position:absolute;bottom:3px;left:13px;width:11px;height:4px;border-radius:4px;background:#aaa}
+[aria-pressed="true"] .toggle-state{background:#244ca6}
+.control-tip{display:none;position:absolute;top:calc(100% + 9px);right:0;background:#1d1d1b;color:#fff;
+  font-size:12px;padding:6px 9px;border-radius:6px;pointer-events:none;z-index:60}
+.icon-control:hover .control-tip,.icon-control:focus-visible .control-tip{display:block}
+.word-meanings dt{font-weight:700;margin-top:16px}
+.word-meanings dd{margin:4px 0 0}
+@media(max-width:720px){#top .display-controls{gap:3px}#top .icon-control{width:32px;padding:5px 4px 9px}}
+
+/* Keep space for the drawing when details are open. */
+body.panel-open #panel{width:clamp(320px,30vw,460px)}
+body.panel-open #story{width:240px}
+body.panel-open #zoom{right:calc(clamp(320px,30vw,460px) + 24px)}
+.customer-step{border-top:4px solid #5b78b9}
+.timeline-title{background:#eef3ff;border-color:#b9c9ea}
+.links .customer-flow{stroke:#5b78b9;stroke-width:2}
+#story .seg button{padding:6px 4px}
+@media(max-width:1100px){body.panel-open #story{display:none}body.panel-open #storytab{display:block}}
+@media(max-width:720px){body.panel-open #panel{width:calc(100vw - 20px)}body.panel-open #zoom{display:none}}
+
+/* A stage spine anchors the work; proposals and feedback have distinct styles. */
+.box.stage{background:#f9d46b;border-color:#e5bd51;color:#3a2a00}
+.box.stage h3{font-size:23px;font-weight:600}
+.box.stage.first-stage{background:#7652d9;color:#fff;border-color:#7652d9}
+.box.stage.first-stage p{color:#fff}
+.box.planned-new{background:#effaf8;border-color:#81c9c1}
+.links .connection path{stroke:#7652d9;stroke-width:1.8;fill:none;opacity:.55}
+.links .connection.evidence path{stroke:#4675ba}
+.links .connection.feedback path{stroke:#c54d46;stroke-dasharray:6 4}
+.links .connection.active path{opacity:1;stroke-width:2.5}
+body.connection-focus .box:not(.connected){opacity:.4}
+.connection-description{border-left:3px solid #7652d9;padding-left:8px}
+.connection-description.evidence{border-color:#4675ba}
+.connection-description.feedback{border-color:#c54d46}
+@media(max-width:720px){#top .display-controls{flex:1;min-width:0;overflow-x:auto}#top .icon-control{flex-shrink:0}}
+
+#view-version{border:1px solid var(--line);border-radius:8px;background:#fff;padding:7px;font-size:13px;min-width:88px}
+@media(max-width:720px){body.panel-open #panel{top:auto;height:48vh}#top .display-controls select{flex-shrink:0}}
+
+@media(min-width:721px) and (max-width:1100px){body.panel-open.show-navigation #story{display:block}}
+
+/* Paper notes stay beside the work, with space for each person's perspective. */
+.notecard{border-radius:3px 3px 12px 3px;border:1px solid rgba(70,55,20,.12);padding:14px 14px 12px;
+  box-shadow:0 2px 2px rgba(0,0,0,.05),2px 7px 13px rgba(0,0,0,.13);transform:rotate(var(--note-tilt,0deg))}
+.notecard::before{top:-5px;bottom:auto;left:calc(50% - 22px);width:44px;height:12px;
+  background:rgba(255,255,255,.55)!important;transform:rotate(-3deg);border:1px solid rgba(255,255,255,.6)}
+.notecard::after{content:"";position:absolute;right:0;bottom:0;width:12px;height:12px;
+  background:linear-gradient(135deg,transparent 48%,rgba(0,0,0,.09) 50%,rgba(255,255,255,.7));border-radius:0 0 10px 0}
+.notecard:hover,.notecard:focus-visible{transform:none;box-shadow:2px 10px 18px rgba(0,0,0,.18)}
+.notecard .who{text-transform:none;letter-spacing:0;font-size:12px}
+.notecard h5{font-size:15px;line-height:1.3;margin:7px 0}
+.notecard .q{line-height:1.45}
+#role-strip{position:fixed;top:64px;z-index:29;display:flex;align-items:center;gap:7px;width:max-content;
+  max-width:calc(100vw - 24px);overflow-x:auto;background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:10px;padding:6px 9px}
+#role-strip[hidden]{display:none}
+#role-strip button{display:flex;align-items:center;gap:6px;white-space:nowrap;border:1px solid var(--line);border-radius:7px;background:#faf9f5;padding:4px 8px}
+#role-strip button[aria-pressed="true"]{background:#eef0ff;border-color:#b8b4dc}
+#role-strip button[aria-pressed="false"]{color:var(--muted);opacity:.7}
+.paper-swatch{width:14px;height:14px;border:1px solid;box-shadow:1px 2px 2px rgba(0,0,0,.12);transform:rotate(-5deg)}
+.role-caption{font-size:12px;color:var(--muted);white-space:nowrap}
+@media print{#role-strip{display:none!important}}
+
 </style>
 </head>
 <body class="dots">
@@ -259,7 +364,7 @@ body.z-far .box .meta .notebadge{font-size:calc(11.5px * var(--inv))}
 <div id="gloss" role="tooltip"></div>
 <div id="toast" role="status"></div>
 <script type="application/json" id="dc-model">{"format":"decisioncraft/1","title":"Three Oaks Bakery: a monthly box?","question":"Should our three bakeries offer a monthly subscription box, and if so, what shape should it take?","summary":"Three Oaks is a small chain of three bakeries. Regulars have asked for a box they can collect or have delivered each month. This canvas shows what a subscriber would go through, what the shop would have to do behind the counter, where the idea comes from, and what is still open. All names and numbers are made up.","checked":{"date":"2026-03-28","note":"Checked against six customer chats, 64 survey slips, a four-week waste log, a year of sales and costs, the till supplier call, three other local boxes, and one staff meeting."},"dots":5,"roles":[{"id":"designer","label":"Designer","color":"#e86a92","asks":"Will people understand this and find their way without help?","jobs":["Make signing up take under two minutes at the counter or online"]},{"id":"analyst","label":"Analyst","color":"#4f7fd8","asks":"Is it clear what must be true, for whom, and how we will measure it?"},{"id":"engineer","label":"Head baker","color":"#2f9e6a","asks":"Can we bake and pack this without breaking the weekend?","jobs":["Keep the Friday and weekend bake on time"]},{"id":"owner","label":"Owner","color":"#8a5cd6","asks":"What is in the first version, what do we cut, and what does success look like?","jobs":["Grow steady weekday income","Cut waste"]},{"id":"security","label":"Privacy","color":"#d1543f","asks":"What customer details do we keep, who sees them, and for how long?"},{"id":"voice","label":"Customer voice","color":"#d99a1e","asks":"Would our regulars choose this, and would they need it explained?","jobs":["Get good bread without thinking about it","Treat the office on Fridays"]},{"id":"agent","label":"AI agent teammate","color":"#1f9aa6","asks":"What could an assistant do on its own, and what needs a person's OK?"},{"id":"finance","label":"Finance","color":"#7a7a72","asks":"What does it cost to run, and when does it pay back?"}],"reading":"Start with the list on the left. The first view follows a subscriber through signing up, a normal month, and asking for help or leaving. The second view shows the same box from behind the counter: baking, packing, collection and money. The third view traces the idea from what customers said to what we would launch, and whether it worked; switch between Today and Planned to see what exists and what we propose. Each box says whether it works today, partly works, is missing, or is planned. Notes from the owner, head baker, finance and others sit on the boxes they are about; each ends in a question for the team to answer.","glossary":{"churn":"The share of subscribers who cancel in a given month.","margin":"What is left from the price after ingredients, packaging, fees and staff time.","pause":"Skipping a month without cancelling.","packing list":"The sheet that says how many boxes, of which size and with which swaps, to pack for a given day.","stored card":"A customer's card kept by the till so it can be charged again without them being there.","declined":"A card charge the bank refused, for example because the card expired."},"sources":[{"id":"S1","title":"Customer chats, March","kind":"interview","date":"2026-03-14","ref":"material/customer-chats.md"},{"id":"S2","title":"Sales and costs, last 12 months","kind":"data","date":"2026-03-20","ref":"material/sales-and-costs.md"},{"id":"S3","title":"Staff meeting, Station Road","kind":"meeting","date":"2026-03-22","ref":"material/staff-meeting.md"},{"id":"S4","title":"Waste log, Mill Lane, February","kind":"data","date":"2026-03-01","ref":"material/waste-log.md"},{"id":"S5","title":"Survey of regulars, 64 slips","kind":"survey","date":"2026-03-21","ref":"material/regulars-survey.md"},{"id":"S6","title":"Till supplier call","kind":"document","date":"2026-03-18","ref":"material/till-and-payments.md"},{"id":"S7","title":"Other local boxes","kind":"observation","date":"2026-03-19","ref":"material/other-boxes.md"}],"evidence":[{"id":"E1","source":"S1","kind":"quote","voice":true,"text":"I'd pay for a box if I could skip a month when we're away. I hate being locked in.","where":"Regular, Mill Lane"},{"id":"E2","source":"S1","kind":"quote","voice":true,"text":"Friday treats for the team would be great, but I need an invoice, not a card charge.","where":"Office buyer, Station Road"},{"id":"E3","source":"S1","kind":"quote","voice":true,"text":"What's in it each month? I don't want six things I won't eat.","where":"New customer, Mill Lane"},{"id":"E4","source":"S1","kind":"quote","voice":true,"text":"If there's nothing for me, I'm out.","where":"Gluten-free regular, Mill Lane"},{"id":"E5","source":"S1","kind":"quote","voice":true,"text":"£25 a month feels right. £35 feels like a treat I'd cancel.","where":"Regular, Mill Lane"},{"id":"E6","source":"S2","kind":"data","text":"A trial box costs £11.40 in ingredients and packaging, plus about 14 minutes of staff time to pack.","where":"Costs section"},{"id":"E7","source":"S2","kind":"data","text":"9% of baked goods are thrown away or given away at closing.","where":"Waste"},{"id":"E8","source":"S2","kind":"data","text":"Local courier: £4.20 per drop within 3 miles, Tuesday or Friday only.","where":"Quotes"},{"id":"E9","source":"S3","kind":"quote","text":"Friday afternoon is already our tightest time.","where":"Head baker"},{"id":"E10","source":"S3","kind":"observation","text":"The counter team can take sign-ups but not chase failed payments.","where":"Mill Lane manager"},{"id":"E11","source":"S2","kind":"data","text":"Roughly 380 customers visit at least once a week.","where":"Loyalty card data"},{"id":"E12","source":"S3","kind":"observation","text":"Nobody owns the customer list today. Loyalty data lives in the till system.","where":"Meeting notes"},{"id":"E13","source":"S4","kind":"data","text":"Monday waste is 13% of what is baked; Saturday is 5%.","where":"Waste by day"},{"id":"E14","source":"S4","kind":"data","text":"Ovens sit idle from 1pm to 4pm Monday to Thursday.","where":"Notes under the table"},{"id":"E15","source":"S4","kind":"data","text":"Early-week waste is mostly sourdough and seeded loaves.","where":"Notes under the table"},{"id":"E16","source":"S5","kind":"data","text":"41 of 64 regulars said they would probably or definitely try a monthly box.","where":"Survey totals"},{"id":"E17","source":"S5","kind":"data","text":"Of those 41, 29 prefer collecting and 12 prefer delivery.","where":"Survey totals"},{"id":"E18","source":"S5","kind":"data","text":"24 of 64 ticked £25 as a fair price; only 8 ticked £30 or more.","where":"Price question"},{"id":"E19","source":"S5","kind":"data","text":"11 of 64 (17%) avoid gluten, nuts or dairy.","where":"Diet question"},{"id":"E20","source":"S5","kind":"data","text":"19 of 64 would want to skip at least one month a year.","where":"Skip question"},{"id":"E21","source":"S5","kind":"quote","text":"Let me choose the bread.","where":"Free comment, 7 slips","voice":true},{"id":"E22","source":"S5","kind":"quote","text":"Text me, don't email me.","where":"Free comment, 6 slips","voice":true},{"id":"E23","source":"S5","kind":"quote","text":"Would buy one as a gift.","where":"Free comment, 5 slips","voice":true},{"id":"E24","source":"S6","kind":"data","text":"If a stored-card charge fails, the till marks it declined in a daily report. It does not retry and does not tell the customer.","where":"Payments"},{"id":"E25","source":"S6","kind":"data","text":"The till can send a text through an add-on at 4p per message.","where":"Messages"},{"id":"E26","source":"S6","kind":"data","text":"Any staff login can see every customer's name, phone, email and points.","where":"Customer records"},{"id":"E27","source":"S6","kind":"data","text":"The till cannot raise invoices. The office buyer is invoiced by hand, about 20 minutes a month.","where":"Invoices"},{"id":"E28","source":"S7","kind":"observation","text":"All three local boxes show a photo of this month's box on their front page.","where":"Websites"},{"id":"E29","source":"S7","kind":"observation","text":"The cheese shop lets people skip any month online before the 20th; the veg box allows four weeks of pause a year.","where":"Skip rules"},{"id":"E30","source":"S7","kind":"observation","text":"None of the three offer an allergy swap.","where":"Allergy swaps"},{"id":"E31","source":"S3","kind":"observation","text":"Owner wants the box to cut waste, not add to it, and proposes baking box items on Thursday.","where":"Owner"},{"id":"E32","source":"S3","kind":"observation","text":"Idea: let subscribers pick up on Saturday, when shops are busy anyway.","where":"Ideas"}],"maps":[{"id":"m-journey","template":"customer-journey","title":"A subscriber's month","intro":"What a regular would go through, from hearing about the box to staying or leaving. Each column is a phase.","lanes":[{"id":"notice","label":"Notice","sub":"They find out"},{"id":"start","label":"Start","sub":"Sign up"},{"id":"use","label":"Use","sub":"Each month"},{"id":"help","label":"Get help","sub":"When something is wrong"},{"id":"stay","label":"Stay or leave","sub":"What happens next"}],"journeys":[{"id":"j-signup","title":"A regular signs up","summary":"From seeing the sign at the counter to their first box being ready.","creates":["A subscriber record","A stored card, or an invoice line","A first entry on the packing list"],"steps":[{"id":"su1","lane":"notice","text":"Sees a card by the till: 'Our bread, every month', with a photo of this month's box","status":"planned","detail":"Counter card and a framed photo, changed on the first Monday of the month.","feeling":"good","evidence":["E28"]},{"id":"su2","lane":"start","text":"Asks what is in it and how much","status":"missing","detail":"No fixed contents list or price exists yet; staff answer from memory.","pain":"No fixed answer yet; staff guess.","moment":true,"evidence":["E3"]},{"id":"su3","lane":"start","text":"Picks collect or delivery, and a size","status":"planned","detail":"Two sizes: small (loaf, 4 pastries) and family (2 loaves, 8 pastries, jam).","evidence":["E8","E17"]},{"id":"su4","lane":"start","text":"Pays by card at the counter, or asks for an invoice","status":"partial","detail":"Till can store a card for repeat charges; invoices are written by hand today.","evidence":["E2","E27"]},{"id":"su4b","lane":"start","text":"Says if they avoid gluten, nuts or dairy","status":"missing","detail":"Diet needs would sit as a note on the till customer record; no field exists for it.","moment":true,"evidence":["E4","E19"]},{"id":"su4c","lane":"start","text":"Gives a mobile number for reminders","status":"partial","detail":"Till already stores phone numbers; texting needs the 4p-a-message add-on.","evidence":["E22","E25"]},{"id":"su4d","lane":"use","text":"Their name is added to next month's packing list","status":"missing","detail":"Packing list would be printed from the till's subscriber report every Thursday morning.","evidence":["E12"]},{"id":"su5","lane":"use","text":"Gets a text the day before: 'Your box is ready Saturday'","status":"missing","detail":"Text sent through the till add-on on Friday at 5pm.","evidence":["E25"]}]},{"id":"j-month","title":"Each month after that","summary":"Collecting, opening, skipping and paying, month by month.","creates":["A monthly charge","A packed box with a name label","A skip, if asked for"],"steps":[{"id":"mo0","lane":"use","text":"Sees what is coming next month","status":"missing","detail":"A photo and list posted at the counter and sent in the reminder text on the 25th.","evidence":["E28","E3"]},{"id":"mo1","lane":"use","text":"Collects on Saturday, or the courier drops it Friday","status":"planned","detail":"Boxes kept on a labelled shelf behind the counter; courier drops Tuesday or Friday only.","feeling":"good","evidence":["E8","E32"]},{"id":"mo2","lane":"use","text":"Opens the box and finds something they cannot eat","status":"missing","detail":"Swaps are not tracked; packers would need the diet note on the packing list.","pain":"A gluten-free regular said they would leave.","feeling":"bad","moment":true,"evidence":["E4","E30"]},{"id":"mo2b","lane":"use","text":"Wants a different bread this month","status":"missing","detail":"No way to choose; the box is fixed.","evidence":["E21"]},{"id":"mo3","lane":"help","text":"Wants to skip next month while away","status":"missing","detail":"Would be a text reply 'SKIP' before Wednesday, or a word at the counter.","moment":true,"evidence":["E1","E20","E29"]},{"id":"mo4","lane":"help","text":"Card payment fails; someone has to follow up","status":"missing","detail":"Till marks the charge declined in the daily report, with no retry and no message.","pain":"The counter team cannot chase payments.","feeling":"bad","evidence":["E10","E24"]},{"id":"mo4b","lane":"help","text":"Box not collected by closing on Saturday","status":"missing","detail":"No rule yet: hold until Sunday, give to charity Monday, or refund.","evidence":["E7"]},{"id":"mo5","lane":"stay","text":"Stays, upgrades, or cancels","status":"planned","detail":"Cancel by text or at the counter before the 20th; no fee.","evidence":["E29"]}]},{"id":"j-gift","title":"Someone buys a box as a gift","summary":"A customer pays for three months for someone else.","creates":["A gift record with two people on it","Three charges, or one up-front payment"],"steps":[{"id":"gi1","lane":"notice","text":"Asks at the counter: 'Can I buy one for my mum?'","status":"missing","detail":"Five survey slips asked for gifts; no gift option exists.","moment":true,"evidence":["E23"]},{"id":"gi2","lane":"start","text":"Chooses three months, collect or delivery","status":"missing","detail":"Would be one up-front card payment for three boxes.","evidence":["E23"]},{"id":"gi3","lane":"start","text":"Gives the other person's name and phone","status":"missing","detail":"Holding a second person's details needs their OK before we text them.","evidence":["E26"]},{"id":"gi4","lane":"use","text":"The other person gets a text saying a gift is waiting","status":"missing","detail":"Text through the till add-on.","feeling":"good","evidence":["E25"]},{"id":"gi5","lane":"use","text":"Collects three months in a row","status":"planned","detail":"Same shelf and label as any subscriber."},{"id":"gi6","lane":"stay","text":"After the gift ends, is asked if they want to carry on","status":"missing","detail":"One text after the last box; no follow-ups after that."}]}]},{"id":"m-counter","template":"service-blueprint","title":"Behind the counter","intro":"The same box from the shop's side: baking, packing, collecting, and money. The top row is what the subscriber sees; lower rows are out of sight.","lanes":[{"id":"person","label":"Subscriber","sub":"What they do"},{"id":"front","label":"Counter","sub":"Staff they meet"},{"id":"back","label":"Bakehouse","sub":"Baking and packing out of sight"},{"id":"support","label":"Till and suppliers","sub":"Systems, courier, card fees"},{"id":"proof","label":"What they keep","sub":"Texts, labels, receipts"}],"journeys":[{"id":"j-bake","title":"Thursday bake and pack","summary":"Baking box items in the quiet Thursday afternoon, then packing for Saturday.","creates":["Thursday bake sheet","Packed boxes with name labels","Updated waste log"],"steps":[{"id":"bk1","lane":"support","text":"Thursday 9am: print the packing list from the till","status":"missing","detail":"Till subscriber report, filtered to active, not skipped, paid.","evidence":["E12"]},{"id":"bk2","lane":"back","text":"Head baker adds box items to the Thursday bake sheet","status":"planned","detail":"Uses ovens that sit idle 1pm to 4pm.","moment":true,"evidence":["E14","E31"]},{"id":"bk3","lane":"back","text":"Bake sourdough and seeded loaves for boxes first","status":"planned","detail":"These are the loaves most often wasted early in the week.","evidence":["E15"]},{"id":"bk4","lane":"back","text":"Bake gluten-free swaps in a separate batch","status":"missing","detail":"Needs a cleaned tray, separate cooling rack and a labelled bag.","pain":"Cross-contact risk if done in the same batch.","evidence":["E4","E19"]},{"id":"bk5","lane":"back","text":"Friday morning: pack boxes and label with name and size","status":"partial","detail":"About 14 minutes per box today; target under 8 with a packing table.","evidence":["E6","E9"]},{"id":"bk6","lane":"back","text":"Put swap boxes on their own shelf, labelled 'GF'","status":"missing","detail":"Colour label so the counter team cannot mix them up.","evidence":["E30"]},{"id":"bk7","lane":"support","text":"Book the courier for Friday drops","status":"planned","detail":"£4.20 per drop within 3 miles; call by Thursday noon.","evidence":["E8"]},{"id":"bk8","lane":"back","text":"Log anything left over on Monday as waste","status":"works","detail":"Same waste log as today, with a new 'box' line.","evidence":["E7","E13"]}]},{"id":"j-collect","title":"Saturday collection at the counter","summary":"A subscriber picks up their box during the busy Saturday morning.","creates":["A collected mark on the list","A receipt text"],"steps":[{"id":"co1","lane":"person","text":"Arrives and says their name","status":"planned","evidence":["E32"]},{"id":"co2","lane":"front","text":"Counter finds the box on the labelled shelf","status":"planned","detail":"Shelf sorted by surname; GF shelf separate.","evidence":["E9"]},{"id":"co3","lane":"front","text":"Ticks them off on the printed list","status":"planned","detail":"Paper list kept by the till; typed in on Monday."},{"id":"co4","lane":"person","text":"Asks to swap the bread this week","status":"missing","detail":"No spare stock set aside; counter would swap from the shelf if possible.","evidence":["E21"]},{"id":"co5","lane":"front","text":"Mentions next month's box and the skip deadline","status":"planned","detail":"A short script on the back of the packing list.","evidence":["E3","E20"]},{"id":"co6","lane":"proof","text":"Gets a receipt text","status":"partial","detail":"Till sends receipts by text only if the add-on is on.","evidence":["E22","E25"]},{"id":"co7","lane":"front","text":"Box still on the shelf at closing","status":"missing","detail":"Rule needed; see 'Box not collected'.","evidence":["E7"]}]},{"id":"j-money","title":"Money each month","summary":"Charging cards, handling declines, and seeing whether the box pays.","creates":["Monthly charges","A declined list","A monthly profit line for the box"],"steps":[{"id":"mn1","lane":"support","text":"On the 1st, the till charges every stored card","status":"partial","detail":"Card fee 1.7% per charge; subscription service would be 3%.","evidence":["E24"]},{"id":"mn2","lane":"support","text":"Declined charges land in the daily report","status":"partial","detail":"No retry, no message to the customer.","pain":"Nobody reads the report on a busy morning.","evidence":["E24"]},{"id":"mn3","lane":"front","text":"Someone texts the customer to update their card","status":"missing","detail":"Manager would own this; counter team cannot chase.","moment":true,"evidence":["E10"]},{"id":"mn4","lane":"back","text":"Box held until the payment goes through","status":"missing","detail":"Hold, don't pack; confirmed by the owner in review.","evidence":["E10"]},{"id":"mn5","lane":"support","text":"Office buyer gets a typed invoice","status":"partial","detail":"Written by hand, about 20 minutes a month.","evidence":["E27","E2"]},{"id":"mn6","lane":"back","text":"Owner checks the month: boxes sold, cost, waste","status":"missing","detail":"One spreadsheet line per month: boxes, revenue, ingredients, packing time, waste.","evidence":["E6","E13"]},{"id":"mn7","lane":"proof","text":"Subscriber can see what they paid","status":"partial","detail":"Receipt text per charge; no statement.","evidence":["E25"]}]}]},{"id":"m-chain","template":"decision-chain","title":"From what we heard to what we would launch","intro":"Each stage is one step from a customer's words to a box on the shelf, and whether it worked.","stages":[{"id":"c-source","label":"Source","verb":"backs up","sub":"Where it was said or measured","items":[{"id":"ci1","title":"Counter chats","text":"Six regulars, two shops, written up the same day.","status":"works","when":"both","evidence":["E1","E5"]},{"id":"ci2","title":"Till and loyalty data","text":"A year of sales and weekly visits.","status":"works","when":"both","evidence":["E11"]},{"id":"ci2b","title":"Survey slips","text":"64 slips from both counters in one week.","status":"works","when":"both","evidence":["E16"]},{"id":"ci2c","title":"Waste log","text":"Four weeks of counts at closing.","status":"works","when":"both","evidence":["E13"]}]},{"id":"c-evidence","label":"Evidence","verb":"informs","sub":"The exact words or numbers we rely on","items":[{"id":"ci3","title":"Price people would pay","text":"£25 feels right; £35 feels like a treat people cancel.","status":"works","when":"both","evidence":["E5","E18"]},{"id":"ci4","title":"Pausing matters","text":"Being locked in is the main reason to say no.","status":"works","when":"both","evidence":["E1","E20"]},{"id":"ci4b","title":"Diet needs are common","text":"About one in six avoid gluten, nuts or dairy.","status":"works","when":"both","evidence":["E19","E4"]},{"id":"ci4c","title":"Early-week waste and idle ovens","text":"Waste peaks Monday; ovens idle weekday afternoons.","status":"works","when":"both","evidence":["E13","E14"]}]},{"id":"c-decision","label":"Decision","verb":"shapes","sub":"What we chose, and why","items":[{"id":"ci5","title":"Start with collection only","text":"Most people prefer collecting, and delivery eats the margin.","status":"planned","when":"planned","evidence":["E17","E8"]},{"id":"ci5b","title":"Saturday pickup, Thursday bake","text":"Avoids the tight Friday afternoon and uses idle ovens.","status":"planned","when":"planned","evidence":["E9","E14"]}]},{"id":"c-intent","label":"Intent","verb":"spells out","sub":"The result we want, in plain words","items":[{"id":"ci6","title":"Steady weekday income, less waste","text":"Bake to a known number midweek instead of guessing.","status":"planned","when":"planned","evidence":["E31"]}]},{"id":"c-spec","label":"Spec","verb":"plans","sub":"What it must do, and how we will know","items":[{"id":"ci7","title":"One box, two sizes, a gluten-free swap","text":"Small £18, family £25. Skip by text before Wednesday.","status":"planned","when":"planned","evidence":["E18","E19"]},{"id":"ci7b","title":"Payment and skip rules","text":"Hold unpaid boxes; unlimited skips with a deadline.","status":"planned","when":"planned","evidence":["E24","E29"]}]},{"id":"c-plan","label":"Plan","verb":"produces","sub":"Pieces of work, in order","items":[{"id":"ci8","title":"Pilot at Mill Lane for 8 weeks","text":"Collection only, capped at 30 boxes.","status":"planned","when":"planned","evidence":["E16"]},{"id":"ci8b","title":"Before launch","text":"Counter card and photo, packing list, text add-on, GF shelf.","status":"planned","when":"planned","evidence":["E28","E25"]}]},{"id":"c-work","label":"Work","verb":"creates","sub":"What was actually built or changed","items":[{"id":"ci9","title":"Trial box costed","text":"£11.40 plus 14 minutes of packing.","status":"works","when":"today","evidence":["E6"]},{"id":"ci9b","title":"Customer list cleaned","text":"Not started; nobody owns the list.","status":"missing","when":"today","evidence":["E12"]}]},{"id":"c-outcome","label":"Outcome","verb":"","sub":"Did it work? Measured, not guessed","items":[{"id":"ci10","title":"Measures agreed, not yet measured","text":"Subscribers, waste, cancellations at week eight.","status":"missing","when":"both","evidence":["E7"]}]}]}],"gaps":[{"id":"G1","title":"Let people pause a month","why":"The first thing a regular asked for, and 19 of 64 survey slips want it. Without it, people avoid signing up.","anchors":["mo3"],"impact":5,"effort":2,"stories":[{"as":"As a subscriber going on holiday, I want to skip next month by replying to a text, so I am not charged for bread I cannot collect.","done_when":["a reply of SKIP before Wednesday stops that month's charge","the Saturday packing list leaves that person out","the subscriber gets a text confirming the skip"]},{"as":"As the Mill Lane manager, I want to see who skipped this month, so we bake the right number on Thursday.","done_when":["the Thursday packing list shows the count of skips","skips made at the counter appear on the list the same day"]}]},{"id":"G2","title":"Say what is in the box, and offer a gluten-free swap","why":"People will not pay for things they cannot eat; one in six avoid gluten, nuts or dairy; no other local box offers a swap.","anchors":["su2","mo2","bk4"],"impact":4,"effort":2,"stories":[{"as":"As a new customer, I want to see this month's box before I sign up, so I know it suits us.","done_when":["a photo and list are at the counter from the first Monday of the month","the reminder text on the 25th says what is coming next month"]},{"as":"As a gluten-free regular, I want a swap packed for me every month, so I can stay a subscriber.","done_when":["the diet need is asked once at sign-up","the packing list marks each swap","swap boxes sit on their own labelled shelf"]},{"as":"As the head baker, I want swaps baked in a separate batch, so there is no cross-contact.","done_when":["swaps are baked first on a cleaned tray","they cool on a separate rack and go straight into labelled bags"]}]},{"id":"G3","title":"Someone owns failed payments","why":"The till does not retry or tell the customer, and the counter team cannot chase.","anchors":["mo4","mn3"],"impact":3,"effort":3,"stories":[{"as":"As a subscriber whose card expired, I want a text asking me to update it, so my box is not missed.","done_when":["a text goes out the day a charge is declined","the box is held, not packed, until the charge goes through","a second text goes on day 3, then we stop"]},{"as":"As the Mill Lane manager, I want one short list of declined charges each morning, so it takes two minutes.","done_when":["the list shows only subscribers, not all card payments","each line has name, phone and amount"]}]},{"id":"G4","title":"Invoices for office buyers","why":"Office buyers need an invoice; the till cannot make one and hand-written invoices take 20 minutes a month.","anchors":["su4","mn5"],"impact":3,"effort":4,"stories":[{"as":"As an office buyer, I want a monthly invoice with our company name, so I can claim it back.","done_when":["an invoice goes out on the 1st with the company name and order","it shows the shop's VAT number if we have one"]}]},{"id":"G5","title":"Gift boxes","why":"Five survey slips asked for gifts, and gifts bring in new customers.","anchors":["gi1","gi2","gi3"],"impact":3,"effort":3,"stories":[{"as":"As a customer, I want to buy three months for my mum in one payment, so she gets bread without paying.","done_when":["one up-front payment covers three boxes","the gift ends by itself after three months"]},{"as":"As the person receiving a gift, I want to be asked before I get texts, so I don't feel signed up behind my back.","done_when":["the first text asks them to reply YES to get reminders","if they don't reply, the counter tells them at their first pickup"]}]},{"id":"G6","title":"A rule for boxes not collected","why":"Boxes left on the shelf become waste, and the box is meant to cut waste.","anchors":["mo4b","co7"],"impact":2,"effort":1,"stories":[{"as":"As a subscriber who forgot, I want my box kept until Sunday, so I can still get it.","done_when":["uncollected boxes stay on the shelf until Sunday closing","on Monday they go to the food charity, with no refund"]}]}],"notes":[{"id":"N1","role":"voice","anchor":"mo3","title":"Pausing decides whether people sign up","body":"The regular who asked for this said being locked in is the reason they would say no.","recommend":"Make pausing a one-word text reply, and say so on the counter card.","question":"Do we let people pause as often as they like, or cap it at two months a year?","urgency":"must","evidence":["E1"]},{"id":"N2","role":"designer","anchor":"su2","title":"Show a real box at the counter","body":"People asked what is inside before they asked the price.","recommend":"Put a packed sample box by the till with a card listing this month's items.","question":"Who packs and refreshes the sample box each month?","urgency":"should","evidence":["E3"]},{"id":"N3","role":"engineer","anchor":"mo1","title":"Friday packing clashes with the weekend bake","body":"The head baker named Friday afternoon as the tightest time of the week.","recommend":"Pack Thursday evening for Saturday pickup; no Friday deliveries in the pilot.","question":"Can we commit to Saturday-only pickup for the first eight weeks?","urgency":"must","evidence":["E9"]},{"id":"N4","role":"finance","anchor":"c-spec","title":"The box makes money at £25, but not with delivery","body":"Ingredients, packaging and packing time come to about £14. Card fees take another 43p. Delivery at £4.20 leaves little.","recommend":"Price at £25 for collection and £29 with delivery once delivery starts.","question":"Are we happy with roughly £10 a box before rent and power?","urgency":"must","evidence":["E6","E8"]},{"id":"N5","role":"owner","anchor":"c-decision","title":"Pilot in one shop first","body":"Mill Lane has the most regulars asking. A cap keeps the bake manageable.","recommend":"Pilot at Mill Lane, cap at 30 boxes, review after eight weeks.","question":"What number of subscribers after eight weeks would make us roll it out to all three shops?","urgency":"must","evidence":["E11"]},{"id":"N6","role":"analyst","anchor":"c-outcome","title":"Agree the measures before we start","body":"Without a starting number for waste, we cannot say the box reduced it.","recommend":"Record this month's waste at Mill Lane as the starting point.","question":"Which three numbers do we review at week eight?","urgency":"should","evidence":["E7"]},{"id":"N7","role":"security","anchor":"su4","title":"Keep as little customer data as we can","body":"We would hold names, phone numbers and cards. Nobody owns the customer list today.","recommend":"Keep cards in the payment provider only, and name one person responsible for the list.","question":"Who owns the subscriber list, and how long do we keep details after someone cancels?","urgency":"should","evidence":["E12"]},{"id":"N8","role":"agent","anchor":"su5","title":"An assistant could send the reminders and handle skips","body":"Reminder texts, skip replies and the packing list follow simple rules.","recommend":"Let an assistant send reminders and record skips; a person approves the weekly packing list.","question":"Are we comfortable with an assistant replying to customers' texts about skips?","urgency":"info","evidence":["E1"]},{"id":"N9","role":"voice","anchor":"su4","title":"Office buyers are a different customer","body":"They want Friday treats and an invoice, not a personal card charge.","recommend":"Leave office boxes out of the pilot; talk to three office buyers first.","question":"Do we treat office boxes as a separate product later?","urgency":"info","evidence":["E2"]},{"id":"N10","role":"finance","anchor":"G3","title":"Failed payments cost more than the fee","body":"A packed box nobody paid for is £14 lost.","recommend":"Hold the box until the payment goes through.","question":"Do we pack boxes for people whose payment failed, or hold them?","urgency":"should","evidence":["E6","E10"]},{"id":"N11","role":"designer","anchor":"mo2","title":"Ask about dietary needs once, at sign-up","body":"A box with nothing someone can eat is the fastest way to lose them.","recommend":"One question at sign-up with three choices: none, gluten-free, no nuts.","question":"Can the bakery reliably make a gluten-free swap every month?","urgency":"must","evidence":["E4"]},{"id":"N12","role":"engineer","anchor":"ci6","title":"Thursday baking uses spare oven time","body":"Weekday sales are well below weekends, so Thursday has room.","recommend":"Bake box items Thursday afternoon; freeze dough on Wednesday if needed.","question":"Does a Thursday bake keep the bread good enough for Saturday?","urgency":"should","evidence":["E7"]},{"id":"N13","role":"analyst","anchor":"G1","title":"Define the skip deadline","body":"Packing happens Thursday, so a skip on Friday is too late.","recommend":"Skips close at the end of Wednesday.","question":"Is Wednesday a fair deadline for skipping?","urgency":"should","evidence":["E1"]},{"id":"N14","role":"owner","anchor":"G4","title":"Invoices can wait","body":"Only one buyer asked, and invoices need more admin than the pilot can carry.","recommend":"Do invoices after the pilot if office demand is real.","question":"Do we say no to office buyers during the pilot?","urgency":"info","evidence":["E2"]},{"id":"N15","role":"designer","anchor":"su1","title":"A photo sells it better than words","body":"All three local boxes lead with a photo; our regulars ask what is in it before anything else.","recommend":"Frame a photo of this month's box by each till, changed on the first Monday.","question":"Who takes the photo and changes the frame each month?","urgency":"should","evidence":["E28","E3"]},{"id":"N16","role":"designer","anchor":"mo3","title":"Make skipping one word","body":"People said 'text me'; a one-word reply is easier than any form.","recommend":"Reply SKIP to the reminder text; confirm by text.","question":"Is a text reply enough, or do we also need a way to skip at the counter?","urgency":"should","evidence":["E22","E29"]},{"id":"N17","role":"analyst","anchor":"su4b","title":"Diet needs must be on the packing list","body":"If the diet note lives only in the till, packers will not see it on Friday morning.","recommend":"Print the diet need next to each name on the packing list.","question":"Which diet needs do we support at launch: gluten-free only, or nuts and dairy too?","urgency":"must","evidence":["E19","E4"]},{"id":"N18","role":"analyst","anchor":"mo4b","title":"Uncollected boxes need a rule before launch","body":"Without a rule, counter staff will each do something different.","recommend":"Keep until Sunday closing, then give to the food charity; no refund.","question":"Do we refund an uncollected box, or not?","urgency":"should","evidence":["E7"]},{"id":"N19","role":"engineer","anchor":"bk4","title":"Gluten-free swaps need their own batch","body":"Baking swaps alongside normal loaves risks cross-contact; we cannot promise 'free from' today.","recommend":"Bake swaps first on a cleaned tray and call them 'made without gluten', not 'gluten-free'.","question":"Are we willing to promise gluten-free, or only 'made without gluten'?","urgency":"must","evidence":["E4","E30"]},{"id":"N20","role":"engineer","anchor":"bk5","title":"Packing time must come down","body":"14 minutes a box is close to four hours for 15 boxes on a Friday morning.","recommend":"Set up a packing table with pre-folded boxes and labels printed from the list.","question":"Can we get packing under 8 minutes a box before we pass 15 subscribers?","urgency":"should","evidence":["E6","E9"]},{"id":"N21","role":"owner","anchor":"c-intent","title":"The box is for steady midweek income","body":"The point is to bake to a known number on quiet days, not to sell more on busy ones.","recommend":"Judge the pilot on midweek waste and steady income, not on total sales.","question":"Do we agree the pilot is judged on waste and steady income first?","urgency":"should","evidence":["E31","E13"]},{"id":"N22","role":"owner","anchor":"G5","title":"Gifts can wait until after the pilot","body":"Gifts bring new people in, but they add a second person's details and a different payment.","recommend":"Collect names of people who ask for gifts and come back to them at week eight.","question":"Do we take gift requests during the pilot or say 'soon'?","urgency":"info","evidence":["E23"]},{"id":"N23","role":"security","anchor":"su4c","title":"Every staff login can see every customer","body":"The till shows names, phones and emails to any login; adding subscribers adds more people at risk.","recommend":"Turn on separate logins for managers and counter staff before launch.","question":"Can the till limit who sees customer phone numbers?","urgency":"must","evidence":["E26"]},{"id":"N24","role":"security","anchor":"gi3","title":"A gift means holding someone else's number","body":"The person receiving a gift has not agreed to be texted.","recommend":"Ask the receiver to reply YES before any reminder texts.","question":"Are we comfortable storing a gift receiver's phone without asking them first?","urgency":"should","evidence":["E26"]},{"id":"N25","role":"voice","anchor":"mo2b","title":"People want to choose their bread","body":"Seven slips asked to choose the bread; it was the most common free comment.","recommend":"Offer a choice of two loaves each month at sign-up, not a full menu.","question":"Is a choice of two loaves enough, or does it need to change month by month?","urgency":"should","evidence":["E21"]},{"id":"N26","role":"voice","anchor":"mo1","title":"Collecting is fine for most","body":"29 of 41 interested people prefer collecting; delivery would be nice but not paid for.","recommend":"Launch with Saturday collection only.","question":"Do we offer delivery later only if 10 or more subscribers ask?","urgency":"info","evidence":["E17","E5"]},{"id":"N27","role":"agent","anchor":"mn3","title":"An assistant could send the first payment reminder","body":"The till marks declines but tells nobody; a short text could go out the same morning.","recommend":"Let an assistant send one polite text per decline; a person handles replies.","question":"Do we let an assistant text customers about payments, or only about pickups?","urgency":"should","evidence":["E24","E25"]},{"id":"N28","role":"agent","anchor":"bk1","title":"An assistant could prepare the packing list","body":"The list is a filter of the till report: active, paid, not skipped, with swaps.","recommend":"Have it ready by 8am Thursday for the head baker to check.","question":"Who checks the list before the bake, and what if it looks wrong?","urgency":"info","evidence":["E12"]},{"id":"N29","role":"finance","anchor":"bk7","title":"Delivery costs more than it earns","body":"£4.20 a drop on a £25 box takes margin from about £10 to under £6.","recommend":"Charge delivery at cost, or leave it out of the pilot.","question":"If we add delivery later, do we charge £4 or absorb it?","urgency":"should","evidence":["E8","E6"]},{"id":"N30","role":"finance","anchor":"mn6","title":"Track the box as its own line","body":"Without a monthly line we cannot tell whether the box pays for itself.","recommend":"One line a month: boxes, revenue, ingredients, packing minutes, waste.","question":"Who fills in the monthly line, and when do we look at it?","urgency":"should","evidence":["E6","E13"]},{"id":"N31","role":"analyst","anchor":"co5","title":"The counter script keeps answers the same","body":"Different staff gave different answers about contents and price.","recommend":"Print a three-line script on the back of the packing list.","question":"Who writes the script, and who checks it each month?","urgency":"info","evidence":["E3"]},{"id":"N32","role":"designer","anchor":"gi4","title":"A gift text should feel like a gift","body":"The first message is the whole experience for a gift receiver.","recommend":"Say who it is from and when to collect, in one short text.","question":"Do we show the giver's name in the text?","urgency":"info","evidence":["E23"]}],"decisions":[{"id":"D1","question":"Do we run an eight-week pilot at Mill Lane, collection only, capped at 30 boxes?","notes":["N3","N5"],"options":["Yes, as described","Yes, but include delivery","Not yet"],"owner":"Owner","status":"open","due":"2026-04-10"},{"id":"D2","question":"What price do we start at?","notes":["N4"],"options":["£22","£25","£29"],"owner":"Owner","status":"open","due":"2026-04-10"},{"id":"D3","question":"How do pausing and failed payments work?","notes":["N1","N10","N13"],"options":["Unlimited pauses, hold unpaid boxes","Two pauses a year, hold unpaid boxes"],"owner":"Mill Lane manager","status":"open","due":"2026-04-17"},{"id":"D4","question":"Do we promise 'gluten-free' or 'made without gluten'?","notes":["N19","N17"],"options":["Gluten-free, with a separate batch","Made without gluten, with a clear warning","No swap in the pilot"],"owner":"Head baker","status":"open","due":"2026-04-10"},{"id":"D5","question":"Who can see subscribers' phone numbers?","notes":["N23","N24"],"options":["Managers only","All staff, as today"],"owner":"Owner","status":"open","due":"2026-04-10"}],"outcomes":[{"id":"O1","measure":"Subscribers at week eight","baseline":"0","target":"25 or more"},{"id":"O2","measure":"Waste at Mill Lane","baseline":"9% of baked goods","target":"Below 7%"},{"id":"O3","measure":"Cancellations in the first two months","target":"Fewer than 1 in 5"},{"id":"O4","measure":"Packing time per box","baseline":"14 minutes","target":"Under 8 minutes"},{"id":"O5","measure":"Declined charges sorted within three days","target":"9 in 10"}]}</script>
-<script type="application/json" id="dc-merged">{"format":"decisioncraft-merged/1","reviewers":["Mill Lane manager","Owner"],"stale_reviews":[],"questions":{"N1":{"agree":1,"change":1,"unsure":0,"dots":3,"comments":[{"who":"Mill Lane manager","text":"Cap at two pauses a year or packing gets unpredictable.","choice":"change"},{"who":"Owner","text":"Unlimited pauses. Simpler to explain.","choice":"agree"}],"split":true},"N3":{"agree":2,"change":0,"unsure":0,"dots":0,"comments":[{"who":"Mill Lane manager","text":"Saturday works for the counter team.","choice":"agree"}],"split":false},"N4":{"agree":2,"change":0,"unsure":0,"dots":0,"comments":[{"who":"Owner","text":"£25 is fine for the pilot.","choice":"agree"}],"split":false},"N10":{"agree":1,"change":0,"unsure":0,"dots":2,"comments":[{"who":"Mill Lane manager","text":"Hold unpaid boxes. We cannot chase payments.","choice":"agree"}],"split":false},"N11":{"agree":1,"change":0,"unsure":1,"dots":3,"comments":[{"who":"Mill Lane manager","text":"Customers ask about gluten-free every week.","choice":"agree"},{"who":"Owner","text":"Need to ask the head baker about cross-contamination.","choice":"unsure"}],"split":true},"N5":{"agree":0,"change":1,"unsure":0,"dots":2,"comments":[{"who":"Owner","text":"25 subscribers is too high for eight weeks. Say 20.","choice":"change"}],"split":false}},"decisions":{"D1":{"owner":[{"who":"Mill Lane manager","value":"Mill Lane manager"},{"who":"Owner","value":"Owner"}],"status":[{"who":"Owner","value":"open"}],"due":[{"who":"Owner","value":"2026-04-10"}],"conflict":["owner"]},"D3":{"owner":[{"who":"Mill Lane manager","value":"Mill Lane manager"}],"due":[{"who":"Mill Lane manager","value":"2026-04-17"}],"conflict":[]},"D2":{"decision":[{"who":"Owner","value":"£25 collection only"}],"conflict":[]}}}</script>
+<script type="application/json" id="dc-merged">{"format":"decisioncraft-merged/1","reviewers":["Mill Lane manager","Owner"],"stale_reviews":[],"questions":{"N1":{"agree":1,"change":1,"unsure":0,"dots":3,"comments":[{"who":"Mill Lane manager","text":"Cap at two pauses a year or packing gets unpredictable.","choice":"change"},{"who":"Owner","text":"Unlimited pauses. Simpler to explain.","choice":"agree"}],"answers":[],"split":true},"N3":{"agree":2,"change":0,"unsure":0,"dots":0,"comments":[{"who":"Mill Lane manager","text":"Saturday works for the counter team.","choice":"agree"}],"answers":[],"split":false},"N4":{"agree":2,"change":0,"unsure":0,"dots":0,"comments":[{"who":"Owner","text":"£25 is fine for the pilot.","choice":"agree"}],"answers":[],"split":false},"N10":{"agree":1,"change":0,"unsure":0,"dots":2,"comments":[{"who":"Mill Lane manager","text":"Hold unpaid boxes. We cannot chase payments.","choice":"agree"}],"answers":[],"split":false},"N11":{"agree":1,"change":0,"unsure":1,"dots":3,"comments":[{"who":"Mill Lane manager","text":"Customers ask about gluten-free every week.","choice":"agree"},{"who":"Owner","text":"Need to ask the head baker about cross-contamination.","choice":"unsure"}],"answers":[],"split":true},"N5":{"agree":0,"change":1,"unsure":0,"dots":2,"comments":[{"who":"Owner","text":"25 subscribers is too high for eight weeks. Say 20.","choice":"change"}],"answers":[],"split":false}},"decisions":{"D1":{"owner":[{"who":"Mill Lane manager","value":"Mill Lane manager"},{"who":"Owner","value":"Owner"}],"status":[{"who":"Owner","value":"open"}],"due":[{"who":"Owner","value":"2026-04-10"}],"conflict":["owner"]},"D3":{"owner":[{"who":"Mill Lane manager","value":"Mill Lane manager"}],"due":[{"who":"Mill Lane manager","value":"2026-04-17"}],"conflict":[]},"D2":{"decision":[{"who":"Owner","value":"£25 collection only"}],"conflict":[]}}}</script>
 <script type="application/json" id="dc-since"></script>
 <script type="application/json" id="dc-meta">{"fingerprint":"cab52849c814","generator":"decisioncraft"}</script>
 <script>
@@ -273,6 +378,7 @@ body.z-far .box .meta .notebadge{font-size:calc(11.5px * var(--inv))}
 const $ = (s, r) => (r || document).querySelector(s);
 const read = id => { const n = document.getElementById(id); return n && n.textContent.trim() ? JSON.parse(n.textContent) : null; };
 const MODEL = read("dc-model");
+const SESSION = read("dc-session");
 const MERGED = read("dc-merged");
 const SINCE = read("dc-since");
 const META = read("dc-meta") || {};
@@ -289,8 +395,8 @@ const DEFAULT_ROLES = [
   {id:"agent",label:"AI agent teammate",color:"#1f9aa6"},{id:"finance",label:"Finance",color:"#7a7a72"}];
 const KIND = {"system-journeys":"journeys","customer-journey":"journeys","service-blueprint":"journeys",
   "decision-chain":"chain","opportunity-tree":"tree"};
-const TREE_LEVELS = ["Outcome","Need or pain","Idea","Quick test"];
-const MIN_Z = 0.3, MAX_Z = 2.2;
+const TREE_LEVELS = ["What we want","What needs attention","Possible next step","How we will check"];
+const MIN_Z = 0.15, MAX_Z = 2.2;
 const STORY_W = 320, PANEL_W = 480, TOP_H = 52;
 
 const ROLES = (MODEL.roles && MODEL.roles.length ? MODEL.roles : DEFAULT_ROLES);
@@ -303,33 +409,109 @@ const DECISIONS = MODEL.decisions || [];
 const GLOSS = MODEL.glossary || {};
 const DOT_BUDGET = MODEL.dots || 5;
 const FRESH_DAYS = MODEL.freshness_days || 60;
-const KEY = "decisioncraft:" + (META.fingerprint || MODEL.title);
+const KEY = "decisioncraft:" + (SESSION ? SESSION.id : META.fingerprint || MODEL.title);
 
 const sinceAdded = new Set((SINCE && SINCE.added || []).map(x => x.id));
 const sinceChanged = Object.fromEntries((SINCE && SINCE.changed || []).map(x => [x.id, x.fields]));
 
 /* ---------- saved state ---------- */
-let saved = {};
-try { saved = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { saved = {}; }
-const S = Object.assign({map:0, mode:"planned", journey:-1, tech:false, notesOnMap:false, dots:true, story:true,
+let saved = {}, storageOK = true;
+try { saved = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { saved = {}; storageOK = false; }
+const seed = SESSION ? {answers:SESSION.review.answers || {}, votes:SESSION.review.dots || {},
+  decisions:SESSION.review.decisions || {}, reviewer:SESSION.review.reviewer || ""} : {};
+const S = Object.assign({map:0, mode:MODEL.maps[0].when === "planned" ? "planned" : "compare", journey:-1, tech:false, notesOnMap:false, lines:false, dots:true, story:true,
   hintSeen:false, roles:Object.fromEntries(ROLES.map(r => [r.id, true])),
-  answers:{}, votes:{}, decisions:{}, reviewer:""}, saved);
+  answers:{}, votes:{}, decisions:{}, reviewer:""}, seed, saved);
+if (SESSION && saved.syncedVersion !== SESSION.version) Object.assign(S, seed);
+if (SESSION) { S.syncedVersion = SESSION.version; S.sessionFinished = SESSION.state === "finished"; }
 ROLES.forEach(r => { if (!(r.id in S.roles)) S.roles[r.id] = true; });
 if (S.map >= MODEL.maps.length) S.map = 0;
-const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+let completedHandoff = SESSION && SESSION.handoff || null;
+let syncVersion = SESSION ? SESSION.version : 0, syncPromise = null, syncTimer = null;
+let syncState = SESSION ? "saved" : "", syncError = "", finishing = false;
+const snapshot = () => JSON.stringify([S.answers, S.votes, S.decisions, S.reviewer]);
+let lastWritten = SESSION ? JSON.stringify([seed.answers, seed.votes, seed.decisions, seed.reviewer]) : "";
+function queueSync() {
+  if (!SESSION || finishing || snapshot() === lastWritten) return;
+  S.sessionFinished = false;
+  syncState = "pending"; clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => syncReview(), 200);
+}
+async function syncReview(finish = false) {
+  if (!SESSION) return true;
+  if (syncPromise) { const ok = await syncPromise; return ok ? syncReview(finish) : false; }
+  const sent = snapshot();
+  if (!finish && sent === lastWritten) return true;
+  syncState = "saving"; updateReviewStatus();
+  syncPromise = (async () => {
+    try {
+      const response = await fetch(SESSION.base + (finish ? "/finish" : "/answers"), {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({version:syncVersion, review:reviewData()})});
+      const value = await response.json();
+      if (!response.ok) throw new Error(value.error || "The answers could not be saved.");
+      if (value.handoff) completedHandoff = value.handoff;
+      syncVersion = value.version; S.syncedVersion = syncVersion;
+      try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+      lastWritten = sent; syncState = "saved"; syncError = "";
+      return true;
+    } catch (error) { syncState = "failed"; syncError = error.message; return false; }
+  })();
+  const ok = await syncPromise; syncPromise = null; updateReviewStatus();
+  if (ok && snapshot() !== lastWritten) return syncReview(finish);
+  return ok;
+}
+async function finishReview() {
+  if (finishing) return;
+  finishing = true; clearTimeout(syncTimer);
+  const controls = [...document.querySelectorAll("#panel input,#panel textarea,#panel button,#panel select,#tsave")];
+  controls.forEach(el => el.disabled = true);
+  const ok = await syncReview(true);
+  controls.forEach(el => el.disabled = false); finishing = false;
+  if (ok) { S.sessionFinished = true; persist(); open("sessiondone"); }
+  else toast("Your answers have not reached the agent. Keep this page open and try Finish review again.");
+}
+addEventListener("beforeunload", event => {
+  if (SESSION && snapshot() !== lastWritten) { event.preventDefault(); event.returnValue = ""; }
+});
+const persist = () => {
+  try { localStorage.setItem(KEY, JSON.stringify(S)); storageOK = true; }
+  catch (e) { storageOK = false; }
+  queueSync(); updateReviewStatus();
+};
+function answerDone(n) {
+  const a = S.answers[n.id] || {};
+  return n.answer_type === "stance" ? !!a.choice : !!String(a.answer || "").trim() || a.choice === "unsure";
+}
+function updateReviewStatus() {
+  const save = $("#tsave"); if (save && SESSION && !finishing) save.textContent = S.sessionFinished ? "Read my answers" : "Finish review";
+  const el = $("#review-progress");
+  if (!el) return;
+  const all = NOTES.filter(n => String(n.question || "").trim());
+  const done = all.filter(answerDone).length;
+  const unsure = all.filter(n => (S.answers[n.id] || {}).choice === "unsure").length;
+  el.textContent = `${done} of ${all.length} reviewed${unsure ? ` · ${unsure} not sure yet` : ""}. ` +
+    (SESSION ? syncState === "failed" ? "Not saved for your agent. " + syncError : syncState === "saved" ? "Saved for your agent automatically." : "Saving for your agent…" :
+      storageOK ? "Kept in this browser. Save a file to share." : "Browser storage is unavailable. Save a file before leaving.");
+  document.querySelectorAll("[data-local-copy]").forEach(el => el.textContent = SESSION ? "Answers save for your agent automatically. Finish review when you are ready." : "Answers stay in this browser. Save a file to share.");
+  const status = $("#save-status");
+  const changed = JSON.stringify([S.answers, S.votes, S.decisions, S.reviewer]) !== (S.lastExport || JSON.stringify([{}, {}, {}, ""]));
+  if (status) status.textContent = SESSION ? "No file handoff needed. Finish review when you are ready." : changed ? "Changes since your last saved file" : "";
+}
 
 /* ---------- text helpers ---------- */
 const esc = t => String(t == null ? "" : t).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]);
 const TERMS = Object.keys(GLOSS).sort((a, b) => b.length - a.length);
 const TERM_RE = TERMS.length ? new RegExp("\\b(" + TERMS.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|") + ")\\b", "i") : null;
-function gl(text, focusable) {
-  const s = esc(text);
-  if (!TERM_RE) return s;
-  return s.replace(TERM_RE, m => {
-    const key = TERMS.find(t => t.toLowerCase() === m.toLowerCase());
-    return `<span class="term" data-term="${esc(key)}"${focusable ? ' tabindex="0"' : ""}>${m}</span>`;
-  });
+function gl(text, focusable = true) {
+  if (!TERM_RE) return esc(text);
+  return String(text || "").split(TERM_RE).map((part, i) => {
+    if (!(i % 2)) return esc(part);
+    const key = TERMS.find(t => t.toLowerCase() === part.toLowerCase());
+    return `<span class="term" data-term="${esc(key)}"${focusable ? ' tabindex="0"' : ""}>${esc(part)}</span>`;
+  }).join("");
 }
+
 const pill = s => s && STATUS[s] ? `<span class="pill ${s}">${STATUS[s]}</span>` : "";
 const days = (a, b) => (new Date(a) - new Date(b)) / 864e5;
 const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
@@ -365,7 +547,7 @@ function badges(b) {
   if (b.pain) out.push(`<span class="chip pain">Pain point</span>`);
   if (b.feeling) out.push(`<span class="chip"><i class="feel ${b.feeling}"></i>${FEEL[b.feeling]}</span>`);
   const ev = (b.evidence || []).length;
-  if (ev) out.push(`<span class="chip">${ev} evidence</span>`);
+  if (ev) out.push(`<span class="chip">Evidence: ${ev}</span>`);
   const notes = notesOn(b.id);
   if (notes.length) out.push(`<span class="notebadge${notes.some(n => n.urgency === "must") ? " must" : ""}">${plural(notes.length, "note")}</span>`);
   return out.join("");
@@ -417,7 +599,7 @@ function notePile(anchors, x, y, max, rowKey) {
     .sort((a, b) => URG_ORDER[a.urgency || "info"] - URG_ORDER[b.urgency || "info"]);
   const shown = list.slice(0, max);
   const colH = [0, 0];
-  shown.forEach(n => {
+  shown.forEach((n, i) => {
     const c = colH[0] <= colH[1] ? 0 : 1;
     const r = ROLE[n.role] || {label:n.role, color:"#888"};
     const el = place(`notecard ${n.urgency || "info"} inj`, x + c * (NOTE_W + NOTE_GAP), y + colH[c], NOTE_W,
@@ -425,6 +607,7 @@ function notePile(anchors, x, y, max, rowKey) {
        <h5>${esc(n.title)}</h5><div class="q">${esc(n.question || n.body || "")}</div>`,
       {type:"note", n}, `${r.label} note: ${n.title}`);
     el.style.background = tint(r.color);
+    el.style.setProperty("--note-tilt", [-0.7, 0.5, -0.3, 0.6][i % 4] + "deg");
     el.dataset.row = rowKey;
     colH[c] += el.offsetHeight + NOTE_GAP;
   });
@@ -465,7 +648,7 @@ function renderJourneys(m) {
     const hd = place("box jhead inj", 0, y0, J.headW,
       `<h3><span class="n">${ji + 1}</span>${gl(j.title)}</h3><p>${gl(j.summary || "")}</p>
        ${(j.creates || []).length ? `<p class="sub small"><b>What it leaves behind:</b> ${j.creates.map(esc).join(", ")}</p>` : ""}
-       <div class="meta">${badges(j)}<span class="chip">${plural((j.steps || []).length, "step")}</span></div>`,
+       ${tech(j)}<div class="meta">${badges(j)}<span class="chip">${plural((j.steps || []).length, "step")}</span></div>`,
       {type:"box", id:j.id}, `Journey ${ji + 1}: ${j.title}`);
     hd.dataset.row = "j" + ji;
     nodes[j.id] = hd;
@@ -500,40 +683,90 @@ function renderJourneys(m) {
   return {x:0, y:0, w:W, h:y};
 }
 
+/* A customer's actions run left to right, in the supplied order. */
+function renderCustomerJourney(m) {
+  const cardW = 250, gap = 64;
+  const count = Math.max(1, ...(m.journeys || []).map(j => (j.steps || []).length));
+  const timelineW = count * (cardW + gap) - gap;
+  const notesX = timelineW + 48;
+  const W = timelineW + notesWidth();
+  let y = header(m, W);
+  (m.journeys || []).forEach((j, ji) => {
+    const start = y;
+    const hd = place("box timeline-title inj", 0, y, Math.min(600, timelineW),
+      `<h3>${gl(j.title)}</h3><p>${gl(j.summary || "")}</p>${tech(j)}<div class="meta">${badges(j)}</div>`,
+      {type:"box", id:j.id}, j.title);
+    nodes[j.id] = hd; hd.dataset.row = "j" + ji;
+    y += hd.offsetHeight + 48;
+    let maxH = 0, prev = null;
+    (j.steps || []).forEach((step, i) => {
+      const x = i * (cardW + gap);
+      const lane = (m.lanes || []).find(l => l.id === step.lane);
+      place("label", x, y - 26, cardW, `${i + 1}. ${esc(lane ? lane.label : "Next step")}`);
+      const card = place("box customer-step inj", x, y, cardW,
+        `<h4>${gl(step.text)}</h4>${tech(step)}<div class="meta">${pill(step.status)}${badges(step)}</div>`,
+        {type:"box", id:step.id}, `Step ${i + 1}: ${step.text}`);
+      card.dataset.row = "j" + ji; nodes[step.id] = card;
+      maxH = Math.max(maxH, card.offsetHeight);
+      if (prev !== null) {
+        const line = link(prev + cardW, y + 30, x - 8, y + 30, "inj customer-flow");
+        line.dataset.row = "j" + ji;
+        const arrow = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        arrow.setAttribute("d", `M${x - 16},${y + 24} L${x - 8},${y + 30} L${x - 16},${y + 36}`);
+        arrow.setAttribute("class", "customer-flow"); svg.appendChild(arrow);
+      }
+      prev = x;
+    });
+    const nh = notePile([j.id, ...(j.steps || []).map(step => step.id)], notesX, start, 4, "j" + ji);
+    const h = Math.max(y - start + maxH, nh);
+    rows.push({key:"j" + ji, y:start, h, x:0, w:W});
+    y = start + h + 64;
+  });
+  return {x:0, y:0, w:W, h:y};
+}
+
 /* ---------- chain ---------- */
 const C = {stageW:300, stageH:96, itemW:250, itemGap:14, perRow:3, gap:64};
 function renderChain(m) {
+  const compare = S.mode === "compare";
   const itemsX = C.stageW + 50;
-  const notesX = itemsX + C.perRow * (C.itemW + C.itemGap) + 34;
-  const W = itemsX + C.perRow * (C.itemW + C.itemGap) + notesWidth();
+  const perRow = compare ? 2 : C.perRow;
+  const columnW = perRow * (C.itemW + C.itemGap) - C.itemGap;
+  const versions = compare ? ["today", "planned"] : [S.mode];
+  const notesX = itemsX + versions.length * (columnW + 44) + 34;
+  const W = notesX - 34 + notesWidth();
   let y = header(m, W);
   place("label", 0, y, 0, "Stage");
-  place("label", itemsX, y, 0, S.mode === "planned" ? "Planned (dashed border = new)" : "What exists today");
+  versions.forEach((version, i) => place("label", itemsX + i * (columnW + 44), y, columnW,
+    version === "today" ? "Current" : "Proposed · dashed boxes are new"));
   if (S.notesOnMap) place("label", notesX, y, 0, "Notes from each role");
   y += 30;
   let prevStage = null;
   (m.stages || []).forEach((st, si) => {
     const y0 = y;
-    const items = (st.items || []).filter(it => (it.when || "both") === "both" || it.when === S.mode);
-    const stEl = place("box stage inj", 0, y0, C.stageW,
+    const stEl = place(`box stage inj${si === 0 ? " first-stage" : ""}`, 0, y0, C.stageW,
       `<h3>${gl(st.label)}</h3><p>${gl(st.sub || "")}</p>${tech(st)}<div class="meta">${badges(st)}</div>`,
       {type:"box", id:st.id}, `Stage ${si + 1}: ${st.label}`);
     stEl.style.minHeight = C.stageH + "px";
-    stEl.dataset.row = "s" + si;
-    nodes[st.id] = stEl;
-    let rowMax = 0, iy = y0, col = 0;
-    items.forEach(it => {
-      const el = place(`box item inj${it.when === "planned" ? " planned-new" : ""}`,
-        itemsX + col * (C.itemW + C.itemGap), iy, C.itemW,
-        `<h4>${gl(it.title)}</h4><p class="t">${gl(it.text || "")}</p>${tech(it)}<div class="meta">${pill(it.status)}${badges(it)}</div>`,
-        {type:"box", id:it.id}, it.title);
-      el.dataset.row = "s" + si;
-      nodes[it.id] = el;
-      rowMax = Math.max(rowMax, el.offsetHeight);
-      if (++col === C.perRow) { col = 0; iy += rowMax + C.itemGap; rowMax = 0; }
+    stEl.dataset.row = "s" + si; nodes[st.id] = stEl;
+    let ih = 0;
+    versions.forEach((version, vi) => {
+      const items = (st.items || []).filter(it => (it.when || "both") === "both" || it.when === version);
+      const columnX = itemsX + vi * (columnW + 44);
+      let rowMax = 0, iy = y0, col = 0;
+      items.forEach(it => {
+        const el = place(`box item inj${it.when === "planned" ? " planned-new" : ""}`,
+          columnX + col * (C.itemW + C.itemGap), iy, C.itemW,
+          `<h4>${gl(it.title)}</h4><p class="t">${gl(it.text || "")}</p>${tech(it)}<div class="meta">${pill(it.status)}${badges(it)}${compare && (it.when || "both") === "both" ? '<span class="chip">Unchanged</span>' : ""}</div>`,
+          {type:"box", id:it.id}, `${compare ? version === "today" ? "Current: " : "Proposed: " : ""}${it.title}`);
+        el.dataset.row = "s" + si;
+        if (!nodes[it.id]) nodes[it.id] = el;
+        rowMax = Math.max(rowMax, el.offsetHeight);
+        if (++col === perRow) { col = 0; iy += rowMax + C.itemGap; rowMax = 0; }
+      });
+      ih = Math.max(ih, iy - y0 + rowMax);
+      if (!items.length) { place("label", columnX, y0 + 10, columnW, version === "planned" ? "Nothing proposed here" : "Nothing here today"); ih = Math.max(ih, 40); }
     });
-    let ih = iy - y0 + rowMax;
-    if (!items.length) { place("label", itemsX, y0 + 10, 0, S.mode === "planned" ? "Nothing planned here" : "Nothing here today"); ih = 40; }
     const nh = notePile([st.id, ...(st.items || []).map(i => i.id)], notesX, y0, 4, "s" + si);
     const h = Math.max(stEl.offsetHeight, ih, nh);
     rows.push({key:"s" + si, y:y0, h, x:0, w:W});
@@ -549,15 +782,18 @@ function renderChain(m) {
     place("label", 0, y, 0, "Did it work?");
     y += 26;
     const ow = C.itemW + 60;
+    let oy = y, outcomeH = 0;
     outs.forEach((o, i) => {
-      const el = place("box inj", (i % 3) * (ow + C.itemGap), y + Math.floor(i / 3) * 150, ow,
+      const el = place("box inj", (i % 3) * (ow + C.itemGap), oy, ow,
         `<h4>${esc(o.measure)}</h4><p class="t">${o.baseline ? "Before: " + esc(o.baseline) + ". " : ""}${o.target ? "Target: " + esc(o.target) + ". " : ""}${o.result ? "<b>Result: " + esc(o.result) + "</b>" : "Not measured yet."}</p>
          <div class="meta">${o.becomes_evidence ? `<span class="chip">Feeds back as evidence</span>` : ""}</div>`,
         {type:"outcome", o}, `Outcome: ${o.measure}`);
       nodes[o.id] = el;
+      outcomeH = Math.max(outcomeH, el.offsetHeight);
+      if (i % 3 === 2 || i === outs.length - 1) { oy += outcomeH + C.itemGap; outcomeH = 0; }
     });
-    rows.push({key:"outcomes", y:y - 26, h:Math.ceil(outs.length / 3) * 150 + 26, x:0, w:W});
-    y += Math.ceil(outs.length / 3) * 150 + 20;
+    rows.push({key:"outcomes", y:y - 26, h:oy - y + 26, x:0, w:W});
+    y = oy + 20;
   }
   return {x:0, y:0, w:W, h:y};
 }
@@ -565,7 +801,7 @@ function renderChain(m) {
 /* ---------- tree ---------- */
 const T = {colW:270, colGap:60, nodeH:104, vGap:18};
 function renderTree(m) {
-  const levels = m.levels || TREE_LEVELS;
+  const levels = !m.levels || JSON.stringify(m.levels) === JSON.stringify(["Outcome","Need or pain","Idea","Quick test"]) ? TREE_LEVELS : m.levels;
   const depthOf = n => n.children && n.children.length ? 1 + Math.max(...n.children.map(depthOf)) : 1;
   const depth = depthOf(m.root);
   const notesX = depth * (T.colW + T.colGap) + 10;
@@ -573,12 +809,24 @@ function renderTree(m) {
   let y = header(m, W);
   for (let d = 0; d < depth; d++) place("label", d * (T.colW + T.colGap), y, 0, esc(levels[Math.min(d, levels.length - 1)]));
   y += 30;
+  // Measure the actual cards before reserving rows. Long titles and badges wrap.
+  const cards = {};
+  let nodeH = T.nodeH;
+  (function measure(n, d) {
+    const el = place(`box tree-node l${d} inj`, d * (T.colW + T.colGap), y, T.colW,
+      `<h4>${gl(n.title)}</h4>${n.text ? `<p class="t">${gl(n.text)}</p>` : ""}${tech(n)}<div class="meta">${pill(n.status)}${badges(n)}</div>`,
+      {type:"box", id:n.id}, `${levels[Math.min(d, levels.length - 1)]}: ${n.title}`);
+    el.style.minHeight = T.nodeH + "px";
+    cards[n.id] = el;
+    nodeH = Math.max(nodeH, el.offsetHeight);
+    (n.children || []).forEach(c => measure(c, d + 1));
+  })(m.root, 0);
   let cursor = y;
   const pos = {};
   (function lay(n, d) {
     const kids = n.children || [];
     let cy;
-    if (!kids.length) { cy = cursor; cursor += T.nodeH + T.vGap; }
+    if (!kids.length) { cy = cursor; cursor += nodeH + T.vGap; }
     else { kids.forEach(k => lay(k, d + 1)); cy = (pos[kids[0].id].y + pos[kids[kids.length - 1].id].y) / 2; }
     pos[n.id] = {x:d * (T.colW + T.colGap), y:cy, d};
   })(m.root, 0);
@@ -589,7 +837,7 @@ function renderTree(m) {
   branches.forEach((b, bi) => {
     const own = ids(b);
     const ys = own.map(i => pos[i].y);
-    const y0 = Math.min(...ys) + shift, y1 = Math.max(...ys) + T.nodeH + shift;
+    const y0 = Math.min(...ys) + shift, y1 = Math.max(...ys) + nodeH + shift;
     own.forEach(i => shifted[i] = pos[i].y + shift);
     const nh = notePile(own, notesX, y0, 4, "b" + bi);
     rows.push({key:"b" + bi, y:y0, h:Math.max(y1 - y0, nh), x:0, w:W});
@@ -598,64 +846,120 @@ function renderTree(m) {
   shifted[m.root.id] = branches.length ? (shifted[branches[0].id] + shifted[branches[branches.length - 1].id]) / 2 : pos[m.root.id].y;
   const draw = (n, parent, bi) => {
     const p = pos[n.id], ny = shifted[n.id];
-    const el = place(`box tree-node l${p.d} inj`, p.x, ny, T.colW,
-      `<h4>${gl(n.title)}</h4>${n.text ? `<p class="t">${gl(n.text)}</p>` : ""}${tech(n)}<div class="meta">${pill(n.status)}${badges(n)}</div>`,
-      {type:"box", id:n.id}, `${levels[Math.min(p.d, levels.length - 1)]}: ${n.title}`);
-    el.style.minHeight = T.nodeH + "px";
+    const el = cards[n.id];
+    el.style.top = ny + "px";
+    el.style.height = nodeH + "px";
     if (bi != null) el.dataset.row = "b" + bi;
     nodes[n.id] = el;
     if (parent) {
-      const l = link(pos[parent.id].x + T.colW, shifted[parent.id] + T.nodeH / 2, p.x, ny + T.nodeH / 2, "inj");
+      const l = link(pos[parent.id].x + T.colW, shifted[parent.id] + nodeH / 2, p.x, ny + nodeH / 2, "inj");
       if (bi != null) l.dataset.row = "b" + bi;
     }
     (n.children || []).forEach(c => draw(c, n, bi == null ? branches.indexOf(c) : bi));
   };
   draw(m.root, null, null);
-  return {x:0, y:0, w:W, h:Math.max(...Object.values(shifted)) + T.nodeH + 60};
+  let bottom = Math.max(...Object.values(shifted)) + nodeH;
+  if (S.notesOnMap && notesOn(m.root.id).length) {
+    const start = Math.max(bottom, ...rows.map(row => row.y + row.h)) + 38;
+    place("label", notesX, start - 24, NOTES_W, "About the whole choice");
+    const height = notePile([m.root.id], notesX, start, 6, "root-notes");
+    rows.push({key:"root-notes", y:start, h:height, x:0, w:W});
+    bottom = start + height;
+  }
+  return {x:0, y:0, w:W, h:bottom + 60};
+}
+
+/* Named connections come from the model, never from the card positions. */
+function visibleLinks() {
+  return (MODEL.links || []).filter(l => S.mode === "compare" || (l.when || "both") === "both" || l.when === S.mode);
+}
+function drawConnections() {
+  const connections = visibleLinks().filter(l => nodes[l.from] && nodes[l.to]);
+  const right = Math.max(0, ...Object.values(nodes).map(n => parseFloat(n.style.left) + n.offsetWidth));
+  connections.forEach((connection, i) => {
+    const a = nodes[connection.from], b = nodes[connection.to];
+    const ax = parseFloat(a.style.left) + a.offsetWidth / 2, ay = parseFloat(a.style.top);
+    const bx = parseFloat(b.style.left) + b.offsetWidth / 2, by = parseFloat(b.style.top);
+    const gutter = right + 40 + i * 18;
+    const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    group.setAttribute("class", `connection ${connection.kind || "flow"}`);
+    group.dataset.from = connection.from; group.dataset.to = connection.to;
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", `M${ax},${ay} V${ay - 16} H${gutter} V${by - 16} H${bx} V${by - 2}`);
+    group.appendChild(path);
+    const arrow = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    arrow.setAttribute("d", `M${bx - 5},${by - 9} L${bx},${by - 2} L${bx + 5},${by - 9}`);
+    group.appendChild(arrow);
+    const title = document.createElementNS("http://www.w3.org/2000/svg", "title");
+    title.textContent = connection.label; group.appendChild(title);
+    svg.appendChild(group);
+  });
+  if (connections.length) bounds.w = Math.max(bounds.w, right + 70 + connections.length * 18);
+  applyConnections();
+}
+function applyConnections() {
+  const selected = current && current.kind === "box" ? current.arg : null;
+  const connected = new Set(selected ? [selected] : []);
+  visibleLinks().forEach(l => { if (l.from === selected || l.to === selected) { connected.add(l.from); connected.add(l.to); } });
+  svg.querySelectorAll(".connection").forEach(group => {
+    const relevant = selected && (group.dataset.from === selected || group.dataset.to === selected);
+    group.classList.toggle("active", !!relevant);
+    group.style.display = S.lines || relevant ? "" : "none";
+  });
+  document.body.classList.toggle("connection-focus", connected.size > 1);
+  Object.entries(nodes).forEach(([id, node]) => node.classList.toggle("connected", connected.has(id)));
 }
 
 /* ---------- render ---------- */
 let bounds = {x:0, y:0, w:1000, h:800};
-function render() {
+function layout() {
   world.innerHTML = "";
   nodes = {}; rows = [];
   svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.setAttribute("class", "links"); svg.setAttribute("aria-hidden", "true");
   world.appendChild(svg);
-  const far = document.body.classList.contains("z-far");
-  document.body.classList.remove("z-far");          // lay out at full detail, then restore
   const m = MODEL.maps[S.map];
   const kind = KIND[m.template];
-  bounds = kind === "journeys" ? renderJourneys(m) : kind === "chain" ? renderChain(m) : renderTree(m);
-  if (far) document.body.classList.add("z-far");
+  bounds = m.template === "customer-journey" ? renderCustomerJourney(m) : kind === "journeys" ? renderJourneys(m) : kind === "chain" ? renderChain(m) : renderTree(m);
+  drawConnections();
   applyFocus();
+  if (current && current.kind === "box" && nodes[current.arg]) nodes[current.arg].classList.add("sel");
+}
+function render() {
+  layout();
   topBar();
   story();
 }
 
 /* ---------- pan and zoom ---------- */
 let Z = 1, X = 40, Y = 80;
-const leftEdge = () => S.story ? STORY_W : 0;
-const rightEdge = () => document.body.classList.contains("panel-open") ? PANEL_W + 10 : 0;
+const leftEdge = () => S.story && getComputedStyle($("#story")).display !== "none" ? $("#story").getBoundingClientRect().right : 0;
+const rightEdge = () => document.body.classList.contains("panel-open") && innerWidth > 720 ? innerWidth - $("#panel").getBoundingClientRect().left : 0;
 function apply() {
   world.style.transform = `translate(${X}px,${Y}px) scale(${Z})`;
   document.documentElement.style.setProperty("--z", Z);
-  document.documentElement.style.setProperty("--inv", Math.min(2.4, Math.max(1, 0.62 / Z)));
+  const inv = Math.min(2.4, Math.max(1, 0.62 / Z));
+  const changed = document.body.classList.contains("z-far") !== (Z < 0.55) ||
+    document.documentElement.style.getPropertyValue("--inv") !== String(inv);
+  document.documentElement.style.setProperty("--inv", inv);
   document.body.classList.toggle("z-far", Z < 0.55);
+  if (changed) layout();
 }
 function zoomAt(f, cx, cy) {
   const nz = Math.min(MAX_Z, Math.max(MIN_Z, Z * f));
   X = cx - (cx - X) * (nz / Z); Y = cy - (cy - Y) * (nz / Z); Z = nz; apply();
 }
-const viewCenter = () => [leftEdge() + (innerWidth - leftEdge() - rightEdge()) / 2, TOP_H + (innerHeight - TOP_H) / 2];
+const bottomEdge = () => document.body.classList.contains("panel-open") && innerWidth <= 720 ? innerHeight - $("#panel").getBoundingClientRect().top : 0;
+const topEdge = () => S.notesOnMap && NOTES.length ? TOP_H + 50 : TOP_H;
+const viewCenter = () => [leftEdge() + (innerWidth - leftEdge() - rightEdge()) / 2, topEdge() + (innerHeight - topEdge() - bottomEdge()) / 2];
 function fitTo(b) {
-  const vw = innerWidth - leftEdge() - rightEdge() - 40, vh = innerHeight - TOP_H - 40;
+  const vw = innerWidth - leftEdge() - rightEdge() - 40, vh = innerHeight - topEdge() - bottomEdge() - 40;
   let z = Math.min(vw / b.w, vh / b.h) * 0.95;
   const tall = z < MIN_Z + 0.08;
   if (tall) z = Math.min(1, Math.max(MIN_Z + 0.1, vw / b.w * 0.96));   // too tall: fit the width, start at the top
   Z = Math.min(1.3, Math.max(MIN_Z, z));
   X = leftEdge() + 20 + Math.max(0, (vw - b.w * Z) / 2) - b.x * Z;
-  Y = TOP_H + 20 + (tall ? 0 : Math.max(0, (vh - b.h * Z) / 2)) - b.y * Z;
+  Y = topEdge() + 20 + (tall ? 0 : Math.max(0, (vh - b.h * Z) / 2)) - b.y * Z;
   apply();
 }
 function fitRow(key) {
@@ -698,27 +1002,60 @@ function focusRow(mi, key) { showMap(mi); S.journey = -1; persist(); applyFocus(
 function setMode(m) { S.mode = m; persist(); render(); }
 
 /* ---------- top bar ---------- */
+const ICONS = {
+  lines:'<path d="M4 6h6l4 12h6M16 14l4 4-4 4"/><circle cx="4" cy="6" r="2"/><circle cx="20" cy="18" r="2"/>',
+  notes:'<path d="M4 4h16v12H9l-5 4V4Z"/><path d="M8 8h8M8 12h5"/>',
+  tech:'<path d="M4 5h16M4 10h12M4 15h7M16 14v7M12.5 17.5h7"/>',
+  dots:'<path stroke-linecap="round" stroke-width="3" d="M5 5h.01M12 5h.01M19 5h.01M5 12h.01M12 12h.01M19 12h.01M5 19h.01M12 19h.01M19 19h.01"/>',
+  story:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M5.5 8h1M5.5 12h1"/>',
+  glossary:'<path d="M12 5v15M12 5C9 3 5 3 2 4v15c3-1 7-1 10 1 3-2 7-2 10-1V4c-3-1-7-1-10 1Z"/>'
+};
+function iconControl(action, label, on) {
+  const state = on === undefined ? "" : ` · ${on ? "On" : "Off"}`;
+  return `<button class="icon-control" data-tool="${action}" aria-label="${label}" title="${label}${state}"${on === undefined ? "" : ` aria-pressed="${on}"`}>
+    <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7">${ICONS[action]}</svg>
+    <span class="control-tip">${label}${state}</span>${on === undefined ? "" : '<span class="toggle-state" aria-hidden="true"></span>'}</button>`;
+}
 function topBar() {
-  const qn = questionList().length;
+  const details = Object.values(BOX).filter(info => info.mi === S.map && info.box.detail);
   $("#top").innerHTML = `
     <span class="title" title="${esc(MODEL.title)}">${esc(MODEL.title)}</span>
-    <button id="tq" class="primary">Questions to decide<span class="count">${qn}</span></button>
-    <button id="tshare" aria-haspopup="true" aria-expanded="false">Share my answers ▾</button>
-    <button id="tview" aria-haspopup="true" aria-expanded="false">View ▾</button>
-    <button id="tkeys" title="Keyboard shortcuts">? Keys</button>`;
-  $("#tq").addEventListener("click", () => open("questions"));
+    <div class="display-controls" role="group" aria-label="Map display">
+      ${KIND[MODEL.maps[S.map].template] === "chain" ? `<select id="view-version" aria-label="Current and proposed work">${[["compare","Compare"],["today","Current"],["planned","Proposed"]].map(([value,label]) => `<option value="${value}"${S.mode === value ? " selected" : ""}>${label}</option>`).join("")}</select>` : ""}
+      ${iconControl("story", "Left navigation", leftEdge() > 0)}
+      ${NOTES.length ? iconControl("notes", "Notes beside boxes", S.notesOnMap) : ""}
+      ${(MODEL.links || []).length ? iconControl("lines", "All connections", S.lines) : ""}
+      ${details.length ? iconControl("tech", "Extra details on the map", S.tech) : ""}
+      ${iconControl("dots", "Background dots", S.dots)}
+      ${TERMS.length ? iconControl("glossary", "Word meanings") : ""}
+    </div>
+    <button id="tsave" class="save-primary">${SESSION ? S.sessionFinished ? "Read my answers" : "Finish review" : "Save my answers"}</button>
+    <button id="tshare" aria-haspopup="true" aria-expanded="false">Tools ▾</button>`;
+  roleStrip();
+  const version = $("#view-version"); if (version) version.addEventListener("change", () => { setMode(version.value); fit(); });
+  $("#top").querySelectorAll("[data-tool]").forEach(button => button.addEventListener("click", () => { const action = button.dataset.tool; act(action); const next = $("#top [data-tool=" + action + "]"); if (next) next.focus({preventScroll:true}); }));
+  $("#tsave").addEventListener("click", () => SESSION && S.sessionFinished ? open("reviewsummary") : saveReview());
   $("#tshare").addEventListener("click", e => menu(e.currentTarget, [
-    ["save", "Save my answers as a file", ""], ["copy", "Copy the questions as a list", ""],
-    ["print", "Print this view", ""], ["reset", "Clear my answers on this computer", ""]]));
-  $("#tview").addEventListener("click", e => menu(e.currentTarget, [
-    ["tech", "Show technical names", S.tech ? "On" : "Off"],
-    ["notes", "Show all notes on the map", S.notesOnMap ? "On" : "Off"],
-    ["roles", "Whose notes to show", `${ROLES.filter(r => S.roles[r.id] !== false).length} of ${ROLES.length}`],
-    ["story", S.story ? "Hide the list on the left" : "Show the list on the left", ""],
-    ["dots", "Background dots", S.dots ? "On" : "Off"],
-    ["key", "What the colours mean", ""]]));
-  $("#tkeys").addEventListener("click", () => open("keys"));
+    ["walk", "Walk me through it", ""],
+    [SESSION ? "backup" : "save", SESSION ? "Download a backup copy" : "Save my answers as a file", ""],
+    ["copy", "Copy the questions as a list", ""], ["paper", "Print the questions", ""],
+    ["print", "Print this view", ""], ["roles", "Whose notes to show", ""],
+    ["key", "What the colours mean", ""], ["keys", "Keyboard shortcuts", ""],
+    ["reset", "Clear my answers on this computer", ""]]));
 }
+
+function roleStrip() {
+  let strip = $("#role-strip");
+  if (!strip) { strip = document.createElement("nav"); strip.id = "role-strip"; strip.setAttribute("aria-label", "Perspectives on the map"); document.body.appendChild(strip); }
+  const used = ROLES.filter(r => NOTES.some(n => n.role === r.id));
+  strip.hidden = !S.notesOnMap || !used.length;
+  strip.style.left = (leftEdge() + 12) + "px";
+  strip.style.right = (rightEdge() + 12) + "px";
+  strip.style.maxWidth = Math.max(60, innerWidth - leftEdge() - rightEdge() - 24) + "px";
+  strip.innerHTML = `<span class="role-caption">Perspectives</span>` + used.map(r => `<button data-map-role="${esc(r.id)}" aria-pressed="${S.roles[r.id] !== false}" title="${esc(r.label)} notes · ${S.roles[r.id] !== false ? "shown" : "hidden"}"><span class="paper-swatch" style="background:${esc(tint(r.color))};border-color:${esc(r.color)}"></span>${esc(r.label)}</button>`).join("");
+  strip.querySelectorAll("button").forEach(button => button.addEventListener("click", () => { const role = button.dataset.mapRole; S.roles[role] = S.roles[role] === false; persist(); render(); fit(); const next = $("#role-strip [data-map-role=" + CSS.escape(role) + "]"); if (next) next.focus(); }));
+}
+
 function menu(btn, items) {
   const mm = $("#menu");
   const reopen = mm.classList.contains("open") && mm._from === btn;
@@ -735,23 +1072,31 @@ function menu(btn, items) {
 }
 document.addEventListener("click", e => { if (!e.target.closest("#menu,#tshare,#tview")) $("#menu").classList.remove("open"); });
 function act(a) {
-  if (a === "tech") { S.tech = !S.tech; persist(); render(); if (current) open(current.kind, current.arg); toast(S.tech ? "Technical names shown" : "Technical names hidden"); }
-  if (a === "notes") { S.notesOnMap = !S.notesOnMap; persist(); render(); toast(S.notesOnMap ? "Notes shown beside the boxes" : "Notes shown as a count on each box"); }
+  if (a === "walk") walk(0);
+  if (a === "tech" && !Object.values(BOX).some(info => info.mi === S.map && info.box.detail)) return toast("This map has no extra box details.");
+  if (a === "lines") { S.lines = !S.lines; persist(); topBar(); applyConnections(); }
+  if (a === "glossary") open("glossary");
+  if (a === "tech") { S.tech = !S.tech; persist(); render(); if (current) open(current.kind, current.arg); fit(); toast(S.tech ? "Extra box details shown on the map" : "Extra box details hidden on the map"); }
+  if (a === "notes") { S.notesOnMap = !S.notesOnMap; persist(); render(); fit(); toast(S.notesOnMap ? "Notes shown beside the boxes" : "Notes shown as a count on each box"); }
   if (a === "roles") open("roles");
-  if (a === "story") setStory(!S.story);
-  if (a === "dots") { S.dots = !S.dots; persist(); document.body.classList.toggle("dots", S.dots); }
+  if (a === "story") setStory(leftEdge() === 0);
+  if (a === "dots") { S.dots = !S.dots; persist(); document.body.classList.toggle("dots", S.dots); topBar(); }
   if (a === "key") open("key");
+  if (a === "keys") open("keys");
   if (a === "save") saveReview();
+  if (a === "backup") downloadReview();
   if (a === "copy") copyQuestions();
   if (a === "print") window.print();
+  if (a === "paper") printQuestions();
   if (a === "reset" && confirm("Clear your answers, dots and decision notes on this computer?")) {
     S.answers = {}; S.votes = {}; S.decisions = {}; persist(); if (current) open(current.kind, current.arg); topBar();
   }
 }
 
 /* ---------- left story list ---------- */
-function setStory(on) { S.story = on; persist(); document.body.classList.toggle("nostory", !on); story(); }
+function setStory(on) { document.body.classList.toggle("show-navigation", on); S.story = on; persist(); document.body.classList.toggle("nostory", !on); story(); topBar(); fit(); }
 $("#storytab").addEventListener("click", () => setStory(true));
+let exploringMaps = false;
 function story() {
   const el = $("#story");
   if (!S.story) { el.innerHTML = ""; return; }
@@ -762,24 +1107,34 @@ function story() {
     if (kind === "journeys") sub = (m.journeys || []).map((j, ji) => `<li><button class="view" data-j="${mi}:${ji}" aria-current="${cur && S.journey === ji}"><b><span class="num">${mi + 1}.${ji + 1}</span>${esc(j.title)}</b><span>${esc(j.summary || plural((j.steps || []).length, "step"))}</span></button></li>`).join("");
     if (kind === "chain") sub = (m.stages || []).map((st, si) => `<li><button class="view" data-row="${mi}:s${si}"><b><span class="num">${mi + 1}.${si + 1}</span>${esc(st.label)}</b><span>${esc(st.sub || "")}</span></button></li>`).join("");
     if (kind === "tree") sub = (m.root.children || []).map((b, bi) => `<li><button class="view" data-row="${mi}:b${bi}"><b><span class="num">${mi + 1}.${bi + 1}</span>${esc(b.title)}</b><span>${plural((b.children || []).length, "idea")}</span></button></li>`).join("");
-    const seg = kind === "chain" && cur ? `<div class="seg" role="group" aria-label="Today or planned"><button data-mode="today" aria-pressed="${S.mode === "today"}">Today</button><button data-mode="planned" aria-pressed="${S.mode === "planned"}">Planned</button></div>` : "";
+    const seg = kind === "chain" && cur ? `<div class="seg" role="group" aria-label="Current and proposed work"><button data-mode="compare" aria-pressed="${S.mode === "compare"}">Compare</button><button data-mode="today" aria-pressed="${S.mode === "today"}">Current</button><button data-mode="planned" aria-pressed="${S.mode === "planned"}">Proposed</button></div>` : "";
     return `<li><button class="view" data-map="${mi}" aria-current="${cur && S.journey < 0}"><b><span class="num">${mi + 1}.</span>${esc(m.title)}</b><span>${esc(m.intro || "")}</span></button>${seg}<ol class="sub">${sub}</ol></li>`;
   }).join("");
+  const qs = questionList(), done = qs.filter(q => answerDone(q.n)).length;
+  const active = current && current.kind;
   el.innerHTML = `<button class="hide" data-hide>Hide list</button>
     <div class="small">The decision</div><p class="q">${gl(MODEL.question, true)}</p>
-    ${MODEL.reading ? `<details class="reading"><summary>How to read this</summary><p>${gl(MODEL.reading, true)}</p></details>` : ""}
-    <button class="walkbtn" data-walk>Walk me through it</button>
-    <h2>Views</h2><ol>${views}</ol>
-    <h2>Deciding</h2><div class="more">
-      <button data-open="questions">Questions to decide (${questionList().length})</button>
-      ${DECISIONS.length ? `<button data-open="decisions">Decisions (${DECISIONS.length})</button>` : ""}
-      ${GAPS.length ? `<button data-open="gaps">Gaps, ranked (${GAPS.length})</button>` : ""}
-      <button data-open="evidence">Evidence and sources (${(MODEL.evidence || []).length})</button>
-      <button data-open="roles">Whose notes to show</button>
+    <h2>Your review</h2><p class="small">${done} of ${qs.length} questions answered</p>
+    <div class="more workflow">
+      <button data-open="reviewstart" aria-current="${active === 'reviewstart'}">1. Understand the decision</button>
+      <button data-give aria-current="${active === 'review' || active === 'questions'}">2. Give your view</button>
+      <button data-open="reviewsummary" aria-current="${active === 'reviewsummary'}">3. Check your answers</button>
     </div>
-    ${MODEL.summary ? `<h2>About this decision</h2><p class="small">${gl(MODEL.summary, true)}</p>` : ""}`;
+    <h2>Supporting material</h2><div class="more">
+      <button data-explore aria-current="${exploringMaps}">Explore the map</button>
+      ${MODEL.comparison ? `<button data-open="comparison">Compare the options</button>` : ""}
+      <button data-open="evidence">Supporting sources</button>
+      ${DECISIONS.length ? `<button data-open="decisions">Decision record</button>` : ""}
+      ${GAPS.length ? `<button data-open="gaps">Changes to consider</button>` : ""}
+      ${MODEL.reading ? `<button data-open="reading">How to read the map</button>` : ""}
+    </div>
+    ${exploringMaps ? `<h2>Map views</h2><ol>${views}</ol>` : ""}`;
   el.querySelector("[data-hide]").addEventListener("click", () => setStory(false));
-  el.querySelector("[data-walk]").addEventListener("click", () => walk(0));
+  el.querySelector("[data-give]").addEventListener("click", () => {
+    exploringMaps = false;
+    goReview(Math.max(0, qs.findIndex(q => !answerDone(q.n))));
+  });
+  el.querySelector("[data-explore]").addEventListener("click", () => { exploringMaps = !exploringMaps; close(); story(); fit(); });
   el.querySelectorAll("[data-map]").forEach(b => b.addEventListener("click", () => { showMap(+b.dataset.map); S.journey = -1; persist(); applyFocus(); story(); fit(); }));
   el.querySelectorAll("[data-j]").forEach(b => b.addEventListener("click", () => { const [mi, ji] = b.dataset.j.split(":").map(Number); focusJourney(mi, ji); }));
   el.querySelectorAll("[data-row]").forEach(b => b.addEventListener("click", () => { const [mi, key] = b.dataset.row.split(":"); focusRow(+mi, key); }));
@@ -813,7 +1168,7 @@ function steps() {
   }
   const qs = questionList();
   const must = qs.filter(q => q.urgency === "must").length;
-  out.push({title:"What we need to decide", text:`${plural(qs.length, "question")}, ${must} that must be decided. Answer them on the right, then use Share my answers.`, panel:true, go:() => open("questions")});
+  out.push({title:"What we need to decide", text:`${plural(qs.length, "question")}, ${must} that must be decided. Answer them on the right, then press Save my answers. Send the downloaded file to the review owner.`, panel:true, go:() => open("questions")});
   return out;
 }
 let walkAt = -1;
@@ -842,7 +1197,7 @@ function endWalk() { walkAt = -1; $("#walk").classList.remove("open"); }
 function hint() {
   if (S.hintSeen) return;
   const h = $("#hint");
-  h.innerHTML = `<b>New here?</b> Press <b>Walk me through it</b> on the left for a short tour, or click any box to read about it. Answer questions on the right, then use <b>Share my answers</b>.<br><button id="hintok">Got it</button>`;
+  h.innerHTML = `<b>New here?</b> Press <b>Walk me through it</b> in Tools for a short tour, or click any box to read about it. ${SESSION ? "Answer questions on the right. Your answers save for your agent automatically; press Finish review when ready." : "Answer questions on the right, then press Save my answers. Send the downloaded file to the review owner."}<br><button id="hintok">Got it</button>`;
   h.classList.add("open");
   $("#hintok").addEventListener("click", hideHint);
 }
@@ -852,40 +1207,44 @@ function hideHint() { $("#hint").classList.remove("open"); if (!S.hintSeen) { S.
 let current = null;
 function open(kind, arg) {
   current = {kind, arg};
+  applyConnections();
+  story();
   const p = $("#panel");
   const [title, html] = PANELS[kind](arg);
   p.innerHTML = `<header><h2 id="ptitle">${title}</h2><button id="pclose">Close</button></header>
-    <div class="body">${kind === "box" || kind === "note" ? `<label class="switch"><input type="checkbox" id="techsw"${S.tech ? " checked" : ""}> Show technical names</label>` : ""}${html}</div>`;
-  p.classList.add("open"); document.body.classList.add("panel-open");
+    <div class="body">${html}</div>`;
+  p.classList.add("open"); document.body.classList.add("panel-open"); topBar();
   p.setAttribute("aria-labelledby", "ptitle");
   $("#pclose").addEventListener("click", close);
-  const sw = $("#techsw"); if (sw) sw.addEventListener("change", () => act("tech"));
   wirePanel(p);
+  fit();
   $("#ptitle").setAttribute("tabindex", "-1"); $("#ptitle").focus();
 }
 function close() {
   $("#panel").classList.remove("open"); document.body.classList.remove("panel-open");
-  current = null; world.querySelectorAll(".sel").forEach(x => x.classList.remove("sel"));
+  current = null; topBar(); applyConnections(); world.querySelectorAll(".sel").forEach(x => x.classList.remove("sel")); story(); fit();
 }
 
 function evidenceHtml(refs) {
   return (refs || []).map(r => {
     const e = EVID[r]; if (!e) return "";
     const s = SRC[e.source] || {};
+    const local = SESSION && SESSION.sources && SESSION.sources[s.id];
+    const remote = /^https?:\/\//i.test(s.ref || "") ? s.ref : null;
+    const sourceLink = local || remote;
     const q = e.kind === "data" ? "" : "“", qq = e.kind === "data" ? "" : "”";
     return `<div class="quote${e.voice ? " voice" : ""}">${q}${esc(e.text)}${qq}
-      <span class="src">${e.voice ? "In their words · " : ""}${esc(s.title || e.source)}${s.kind ? " · " + esc(s.kind) : ""}${s.date ? " · " + esc(s.date) : ""}${e.where ? " · " + esc(e.where) : ""}</span></div>`;
+      <span class="src">${e.voice ? "In their words · " : ""}${esc(s.title || e.source)}${s.date ? " · " + esc(s.date) : ""}</span>${sourceLink ? `<a href="${esc(sourceLink)}" target="_blank" rel="noopener noreferrer">Open source</a>` : ""}${e.where || s.ref ? `<p class="small">${esc(s.ref || "")}${e.where ? " · " + esc(e.where) : ""}</p>` : ""}</div>`;
   }).join("");
 }
 function noteHtml(n, withJump) {
   const r = ROLE[n.role] || {label:n.role, color:"#888"};
   const dec = DECISIONS.filter(d => (d.notes || []).includes(n.id));
   return `<div class="card ${n.urgency || "info"}">
-    <div class="small"><span class="swatch" style="background:${r.color}"></span><b>${esc(r.label)}</b> · ${URG[n.urgency || "info"]}</div>
+    <div class="small"><span class="swatch" style="background:${r.color}"></span><b>${esc(r.label)}</b> · ${esc(n.author || (SESSION && SESSION.prepared_by) || "Author not recorded")} · ${URG[n.urgency || "info"]}</div>
     <h3 style="margin:4px 0">${gl(n.title, true)}</h3>
     ${n.body ? `<p>${gl(n.body, true)}</p>` : ""}
-    ${n.recommend ? `<p><b>We suggest:</b> ${gl(n.recommend, true)}</p>` : ""}
-    ${(n.evidence || []).length ? evidenceHtml(n.evidence) : `<p class="small">No evidence linked yet.</p>`}
+    ${(n.evidence || []).length ? `<button class="mini" data-evidence="${esc(n.evidence.join(","))}">See supporting sources</button>` : `<p class="small">We have not attached a source for this yet.</p>`}
     ${n.question ? `<p><b>Question:</b> ${gl(n.question, true)}</p>${answerHtml(n)}` : ""}
     ${dec.length ? `<p class="small">Part of ${dec.map(d => `<button class="mini" data-open-decision="${esc(d.id)}">decision ${esc(d.id)}</button>`).join(" ")}</p>` : ""}
     ${withJump && BOX[n.anchor] ? `<button class="mini" data-jump-to="${esc(n.anchor)}">Show where this note sits</button>` : ""}
@@ -895,22 +1254,21 @@ function answerHtml(n) {
   const a = S.answers[n.id] || {};
   const v = S.votes[n.id] || 0;
   const mv = MERGED && MERGED.questions && MERGED.questions[n.id];
-  let merged = "";
-  if (mv) {
-    const tot = (mv.agree + mv.change + mv.unsure) || 1;
-    merged = `<div class="tally" aria-hidden="true"><i class="a" style="width:${mv.agree / tot * 100}%"></i><i class="c" style="width:${mv.change / tot * 100}%"></i><i class="u" style="width:${mv.unsure / tot * 100}%"></i></div>
-      <div class="small">Reviewers: ${mv.agree} agree · ${mv.change} want a change · ${mv.unsure} not sure · ${plural(mv.dots, "dot")} ${mv.split ? '<span class="badge split">Split</span>' : ""}</div>
-      ${(mv.comments || []).map(c => `<p class="small"><b>${esc(c.who)}:</b> ${esc(c.text)}</p>`).join("")}`;
-  }
-  return `${merged}<div class="answer" role="group" aria-label="Your answer">
-      ${[["agree", "Agree"], ["change", "Change it"], ["unsure", "Not sure"]].map(([k, l]) => `<button data-ans="${esc(n.id)}" data-choice="${k}" aria-pressed="${a.choice === k}">${l}</button>`).join("")}
-      <span class="dots"><span class="small">Dots</span><button class="mini" data-dot="${esc(n.id)}" data-d="-1" aria-label="Take a dot back">−</button><span class="n">${v}</span><button class="mini" data-dot="${esc(n.id)}" data-d="1" aria-label="Add a dot">+</button></span>
-    </div>
-    <label class="sr" for="c-${esc(n.id)}">Comment</label>
-    <textarea id="c-${esc(n.id)}" data-comment="${esc(n.id)}" placeholder="Your comment (optional)">${esc(a.comment || "")}</textarea>`;
+  const stance = n.answer_type === "stance";
+  const choices = stance ? [["agree", "Agree"], ["change", "Change it"], ["unsure", "Not sure yet"]] : [["unsure", "Not sure yet"]];
+  return `${n.recommend ? `<section class="recommendation"><b>Suggested next step</b><p>${gl(n.recommend, true)}</p></section>` : ""}
+    ${!stance ? `<label class="answer-label" for="a-${esc(n.id)}">Your answer<span class="sr">: ${esc(n.question)}</span></label>
+      <textarea id="a-${esc(n.id)}" data-answer="${esc(n.id)}" placeholder="Answer in your own words. It is fine to be unsure.">${esc(a.answer || "")}</textarea>` : ""}
+    ${!stance && a.choice && a.choice !== "unsure" ? `<p class="small">Earlier view: ${esc(a.choice)}. Add a written answer to complete this question.</p>` : ""}
+    <div class="answer" role="group" aria-label="${stance ? "Your view" : "Your uncertainty"}">
+      ${choices.map(([k, l]) => `<button data-ans="${esc(n.id)}" data-choice="${k}" aria-pressed="${a.choice === k}">${l}</button>`).join("")}
+      <button class="mini" data-priority="${esc(n.id)}" aria-pressed="${v > 0}">${v ? `Important · ${plural(v, "vote")}` : "Mark as important"}</button>
+    </div><p class="small"><span data-votes-left>${dotsLeft()}</span> votes left to mark what deserves discussion.</p>
+    ${mv ? `<button class="mini" data-responses="${esc(n.id)}">Compare earlier responses</button>` : ""}
+    ${a.comment ? `<label class="small" for="c-${esc(n.id)}">Earlier comment</label><textarea id="c-${esc(n.id)}" data-comment="${esc(n.id)}">${esc(a.comment)}</textarea>` : ""}`;
 }
 function questionList() {
-  return NOTES.filter(n => (n.question || "").trim() && S.roles[n.role] !== false).map(n => {
+  return NOTES.filter(n => (n.question || "").trim()).map(n => {
     const mv = MERGED && MERGED.questions && MERGED.questions[n.id] || {};
     const g = GAPS.find(g => g.id === n.anchor);
     return {id:n.id, n, urgency:n.urgency || "info", dots:(mv.dots || 0) + (S.votes[n.id] || 0), impact:g ? g.impact || 0 : 0};
@@ -919,6 +1277,25 @@ function questionList() {
 const dotsLeft = () => DOT_BUDGET - Object.values(S.votes).reduce((a, b) => a + b, 0);
 
 const PANELS = {
+  comparison() {
+    const comparison = MODEL.comparison || {}, criteria = comparison.criteria || [], options = comparison.options || [];
+    const judgments = {fits:"Fits", mixed:"Tradeoff", does_not_fit:"Does not meet this", unknown:"Not yet known"};
+    const importance = {must:"Must-have", important:"Important", nice:"Nice to have"};
+    const recommendation = comparison.recommendation;
+    return ["Compare the options", `<p>${gl(comparison.why || "Agree what matters before choosing. Compare realistic options, including keeping things as they are when that is a real choice.", true)}</p>
+      <h3>What matters</h3>${criteria.length ? `<ul>${criteria.map(c => `<li><b>${esc(c.label)}</b> · ${importance[c.importance || "important"]}</li>`).join("")}</ul>` : "<p>Not agreed yet. Ask the decision owner what matters most.</p>"}
+      <h3>How we will compare</h3><p>${gl(comparison.method || "Not agreed yet. Choose a discussion, research or a small trial to match the stakes.", true)}</p>
+      ${options.length ? options.map(option => `<section class="card"><h3>${esc(option.title)}</h3><p>${gl(option.summary || "", true)}</p>${criteria.map(criterion => {
+        const evaluation = (option.evaluations || []).find(e => e.criterion === criterion.id) || {};
+        return `<p><b>${esc(criterion.label)}:</b> ${judgments[evaluation.judgment || "unknown"]}</p><p class="small">${gl(evaluation.reason || "This still needs checking.", true)}</p>${(evaluation.evidence || []).length ? `<button class="mini" data-evidence="${esc(evaluation.evidence.join(","))}">See supporting sources</button>` : ""}`;
+      }).join("")}</section>`).join("") : "<p>The alternatives have not been named yet.</p>"}
+      ${recommendation ? `<h3>Suggested choice</h3><p><b>${esc((options.find(o => o.id === recommendation.option) || {}).title || recommendation.option)}</b></p><p>${gl(recommendation.reason, true)}</p><p>Remaining risks: ${gl(recommendation.risks || "Not recorded yet.", true)}</p><p class="small">The owner still makes and records the final choice.</p>` : "<p>No choice has been recommended yet.</p>"}
+      <h3>When to check again</h3><p>${gl(comparison.review_when || "Not agreed yet. Record what would make you revisit the choice.", true)}</p>`];
+  },
+  glossary() {
+    return ["Word meanings", `<p>These meanings were supplied with this review. Select an underlined word to see its meaning beside it.</p>
+      <dl class="word-meanings">${TERMS.slice().sort().map(term => `<dt>${esc(term)}</dt><dd>${esc(GLOSS[term])}</dd>`).join("")}</dl>`];
+  },
   box(id) {
     const info = BOX[id]; const b = info.box;
     world.querySelectorAll(".sel").forEach(x => x.classList.remove("sel"));
@@ -938,7 +1315,11 @@ const PANELS = {
       ${sinceAdded.has(id) ? `<p><span class="chip new">New</span> since the last review.</p>` : ""}
       ${ch ? `<p><span class="chip changed">Changed</span> since the last review: ${ch.map(esc).join(", ")}.</p>` : ""}
       ${b.checked ? `<p class="small">Checked ${esc(b.checked)}.</p>` : ""}
-      ${b.detail && S.tech ? `<h3>Technical names</h3><p class="techname">${esc(b.detail)}</p>` : ""}
+      ${visibleLinks().filter(l => l.from === id || l.to === id).length ? `<h3>Connected to this</h3>${visibleLinks().filter(l => l.from === id || l.to === id).map(l => {
+        const other = l.from === id ? l.to : l.from;
+        return `<p class="connection-description ${l.kind || "flow"}">${esc(l.label)} ${l.from === id ? "→" : "←"} <button class="mini" data-connection-to="${esc(other)}">${esc(titleOf(BOX[other].box))}</button>${S.mode === "compare" && l.when && l.when !== "both" ? ` <span class="small">(${l.when === "today" ? "current" : "proposed"})</span>` : ""}</p>`;
+      }).join("")}` : ""}
+      ${b.detail ? `<h3>More about this</h3><p>${gl(b.detail, true)}</p>` : ""}
       ${(b.evidence || []).length ? `<h3>Evidence</h3>${evidenceHtml(b.evidence)}` : ""}
       ${gaps.length ? `<h3>Gaps here</h3>${gaps.map(g => `<button class="mini" data-open-gap="${esc(g.id)}">${esc(g.id)}: ${esc(g.title)}</button>`).join(" ")}` : ""}
       <h3>${notes.length ? `Notes from ${plural(notes.length, "role")}` : "Notes"}</h3>
@@ -951,10 +1332,76 @@ const PANELS = {
       <p><b>Result:</b> ${o.result ? esc(o.result) : "Not measured yet."}</p>${o.checked ? `<p class="small">Measured ${esc(o.checked)}.</p>` : ""}
       ${o.becomes_evidence ? `<h3>Feeds back as evidence</h3>${evidenceHtml([o.becomes_evidence])}` : ""}`];
   },
+  reading() { return ["How to read this", `<p>${gl(MODEL.reading || "Start with the decision, then answer the review questions.", true)}</p>`]; },
+  sources(refs) {
+    return ["Supporting sources", evidenceHtml(refs) + `<button class="mini" data-support-back>Back to the question</button>`];
+  },
+  responses(id) {
+    const q = MERGED && MERGED.questions && MERGED.questions[id] || {};
+    return ["Earlier responses", `${(q.answers || []).map(a => `<p class="review-answer"><b>${esc(a.who)}:</b> ${esc(a.text)}</p>`).join("")}
+      <p class="small">Recorded views: ${q.agree || 0} agree · ${q.change || 0} want a change · ${q.unsure || 0} not sure. These are not written answers.</p>
+      ${(q.comments || []).map(c => `<p><b>${esc(c.who)} commented:</b> ${esc(c.text)}</p>`).join("")}
+      <button class="mini" data-support-back>Back to the question</button>`];
+  },
+  handoff() {
+    const result = completedHandoff;
+    if (!result) return ["Next steps", "<p>The agent will prepare the proposed stories, acceptance criteria and map from your answers.</p>"];
+    return ["Next steps for the agent", `<p>Your answers are recorded. These next steps remain proposals for the decision owner.</p>
+      ${(result.user_stories || []).map(story => `<section class="card"><h3>${esc(story.story)}</h3><b>Acceptance criteria</b>${story.acceptance_criteria.length ? `<ul>${story.acceptance_criteria.map(c => `<li>${esc(c)}</li>`).join("")}</ul>` : "<p>Not defined yet.</p>"}</section>`).join("")}
+      ${(result.missing || []).length ? `<h3>What still needs defining</h3><ul>${result.missing.map(item => `<li>${esc(item)}</li>`).join("")}</ul>` : ""}
+      ${result.proposed_model ? '<button class="save-primary" data-proposed-map>See the proposed map</button>' : "<p>The agent still needs to draft a proposed-state map.</p>"}
+      <p>Return to chat to discuss the choice and its reasons with your agent.</p>`];
+  },
+  sessiondone() {
+    return ["Your answers are ready for your agent", `<p>Your answers have been saved on this computer, where the agent can read them. You do not need to download or attach a file.</p><p>Return to your agent chat. The agent receives your answers and a request to show the proposed user stories, acceptance criteria and proposed-state map, including what still needs defining. You still make the final decision.</p><button data-open-handoff>See next steps</button><button data-review-summary>${SESSION.close_on_finish ? "Read my answers" : "Check my answers"}</button>${SESSION.close_on_finish ? "<p>To change these answers, ask your agent to reopen the review.</p>" : ""}`];
+  },
+  saved(filename) {
+    return ["Send your saved answers", `<p>Your browser started downloading <b>${esc(filename)}</b>. If it asks where to save it, choose a folder you can find again.</p><ol><li>Send this file to the review owner, or attach it to your agent chat.</li><li>The owner combines the reviews, checks unanswered questions, and records the decision.</li><li>Keep the file so you can return to the discussion.</li></ol><p>Saving does not send anything automatically. A partial review is fine.</p><button data-return-questions>Back to my answers</button>`];
+  },
+  reviewstart() {
+    const qs = questionList();
+    const done = qs.filter(q => answerDone(q.n)).length;
+    const next = Math.max(0, qs.findIndex(q => !answerDone(q.n)));
+    return ["Let's review this decision", `<p class="decision-question">${gl(MODEL.question, true)}</p>
+      ${MODEL.summary ? `<p>${gl(MODEL.summary, true)}</p>` : ""}
+      <p>We will ask ${plural(qs.length, "question")}, one at a time. Give your view in your own words. If you need more information, choose <b>Not sure yet</b>.</p>
+      <p>${SESSION ? "Your answers save automatically for your agent. Check them, then press Finish review and return to chat." : "Then check your answers and save a file to share."} The decision owner makes the final call.</p>
+      ${done === qs.length ? `<button class="save-primary" data-review-summary>Check my answers</button>` : `<button class="save-primary" data-review-at="${next}">${done ? "Continue review" : "Answer questions"}</button>`}
+      ${done < qs.length ? `<button class="mini" data-review-summary>Check my answers</button>` : ""}
+      <button class="mini" data-all-questions>See all questions</button>`];
+  },
+  review(index) {
+    const qs = questionList();
+    index = Math.max(0, Math.min(qs.length - 1, Number(index) || 0));
+    if (!qs.length) return PANELS.reviewsummary();
+    const n = qs[index].n;
+    const r = ROLE[n.role] || {label:n.role};
+    return [esc(n.question), `<p class="small">Question ${index + 1} of ${qs.length} · ${esc(r.label)}<br>From: ${esc(n.author || (SESSION && SESSION.prepared_by) || "Author not recorded")}</p>
+      ${n.body ? `<p>${gl(n.body, true)}</p>` : ""}
+      ${answerHtml(n)}
+      ${(n.evidence || []).length ? `<button class="mini" data-evidence="${esc(n.evidence.join(","))}">See supporting sources</button>` : ""}
+      <div class="review-nav">${index ? `<button data-review-at="${index - 1}">Back</button>` : ""}
+      ${index < qs.length - 1 ? `<button class="save-primary" data-review-at="${index + 1}">${SESSION ? "Save and continue" : "Next question"}</button>` : `<button class="save-primary" data-review-summary>Check my answers</button>`}</div>
+      <button class="mini" data-review-summary>Pause and check my answers</button>
+      <p id="review-progress" class="small" role="status"></p><p id="save-status" class="small"></p>`];
+  },
+  reviewsummary() {
+    const qs = questionList();
+    const readOnly = SESSION && SESSION.close_on_finish && S.sessionFinished;
+    return ["Check your answers", `<p id="review-progress" role="status"></p>
+      <p>You can change any answer or save what you have. Missing answers and uncertainty remain open for discussion.</p>
+      ${qs.map((q, i) => { const a = S.answers[q.id] || {}; return `<div class="card"><h3>${gl(q.n.question, true)}</h3>
+        <p class="review-answer">${a.answer ? esc(a.answer) : q.n.answer_type === "stance" && a.choice ? esc({agree:"Agree",change:"Change it",unsure:"Not sure yet"}[a.choice]) : a.choice === "unsure" ? "Not sure yet" : "No written answer yet"}</p>
+        ${a.choice && q.n.answer_type !== "stance" ? `<p class="small">Recorded view: ${esc(a.choice)}. This does not decide the question.</p>` : ""}
+        ${readOnly ? "" : `<button class="mini" data-review-at="${i}">Change answer<span class="sr"> to ${esc(q.n.question)}</span></button>`}</div>`; }).join("")}
+      <label for="reviewer">Your name or role (optional)</label><input type="text" id="reviewer" value="${esc(S.reviewer)}" placeholder="For example: Product owner">
+      <p id="save-status" class="small"></p><button class="save-primary" data-save-review>${SESSION ? "Finish review" : "Save my answers"}</button>
+      <p class="small">${SESSION ? "Your agent receives saved answers on this computer. Press Finish review when you are ready." : "Send the downloaded file to the decision owner, or attach it to your agent chat."}</p>`];
+  },
   questions() {
     const qs = questionList();
-    let html = `<p class="small">Every note ends in a question. Answer the ones you can. You have <b id="dleft">${dotsLeft()}</b> of ${DOT_BUDGET} dots to mark what matters most. Your answers stay on this computer until you use <b>Share my answers</b>.</p>
-      <label class="small" for="reviewer">Your name, for the saved file</label><input type="text" id="reviewer" value="${esc(S.reviewer)}" placeholder="Your name">
+    let html = `<section class="review-next"><p id="review-progress" role="status"></p><p id="save-status" class="small"></p><button data-save-review class="save-primary">${SESSION ? "Finish review" : "Save my answers"}</button><p class="small">${SESSION ? "Your answers save automatically for the agent that opened this review. Press Finish review when ready. You can leave questions open." : "Send the downloaded file to the review owner or attach it to your agent chat. The owner combines reviews and records the decision. You can save a partial review and return later."}</p></section><p class="small">Every note ends in a question. Answer the ones you can. You have <b id="dleft">${dotsLeft()}</b> of ${DOT_BUDGET} votes to mark what matters most. <span data-local-copy>Answers stay in this browser. Save a file to share.</span></p>
+      <label class="small" for="reviewer">Your role, for the saved file</label><input type="text" id="reviewer" value="${esc(S.reviewer)}" placeholder="For example: Product owner">
       ${MERGED ? `<p class="small">Showing answers from ${plural(MERGED.reviewers.length, "reviewer")}: ${MERGED.reviewers.map(esc).join(", ")}.</p>` : ""}`;
     let cur = null;
     qs.forEach(q => {
@@ -963,7 +1410,7 @@ const PANELS = {
       const where = BOX[q.n.anchor] ? titleOf(BOX[q.n.anchor].box) : q.n.anchor;
       html += `<div class="card ${cur}"><div class="small"><span class="swatch" style="background:${r.color}"></span>${esc(r.label)} · about <button class="mini" data-jump-to="${esc(q.n.anchor)}">${esc(where)}</button></div>
         <p><b>${gl(q.n.question, true)}</b></p><p class="small">${gl(q.n.body || "", true)}</p>
-        ${(q.n.evidence || []).length ? `<details><summary class="small">Evidence (${q.n.evidence.length})</summary>${evidenceHtml(q.n.evidence)}</details>` : ""}
+        ${(q.n.evidence || []).length ? `<button class="mini" data-evidence="${esc(q.n.evidence.join(","))}">See supporting sources</button>` : ""}
         ${answerHtml(q.n)}</div>`;
     });
     if (!qs.length) html += `<p>No questions from the roles you are showing.</p>`;
@@ -1019,7 +1466,7 @@ const PANELS = {
   },
   roles() {
     const count = id => NOTES.filter(n => n.role === id).length;
-    return ["Whose notes to show", `<div class="row"><button class="mini" data-roles="all">Show all</button><button class="mini" data-roles="none">Hide all</button></div>
+    return ["Whose notes to show", `<p class="small">These switches change the notes on the map. The review still includes every question.</p><div class="row"><button class="mini" data-roles="all">Show all</button><button class="mini" data-roles="none">Hide all</button></div>
       ${ROLES.map(r => `<div class="rolerow"><input type="checkbox" id="r-${esc(r.id)}" data-role="${esc(r.id)}"${S.roles[r.id] !== false ? " checked" : ""}>
         <label for="r-${esc(r.id)}"><span class="swatch" style="background:${r.color}"></span><b>${esc(r.label)}</b> <span class="small">${plural(count(r.id), "note")}</span>
         ${r.asks ? `<br><span class="small">Always asks: ${esc(r.asks)}</span>` : ""}
@@ -1027,6 +1474,7 @@ const PANELS = {
   },
   key() {
     return ["What the colours mean", `<h3>Status of each box</h3><p class="legend">${Object.keys(STATUS).map(pill).join(" ")}</p>
+      <h3>Connections</h3><p>Arrows between steps show their order. Named connections come from this review: purple for flow, blue for supporting evidence, and red dashed lines for feedback. Selecting a box highlights its connections; their names appear in the detail panel. Use All connections to show them together.</p>
       <h3>Notes</h3><p>Each note is one role's comment and ends in a question. A box shows how many notes it has; red means at least one must be decided. The coloured edge on a note shows how urgent it is:</p>
       <p class="legend"><span><span class="swatch" style="background:var(--must)"></span>Must decide</span><span><span class="swatch" style="background:var(--should)"></span>Should decide</span><span><span class="swatch" style="background:var(--info)"></span>For information</span></p>
       <h3>Roles</h3><p class="legend">${ROLES.map(r => `<span><span class="swatch" style="background:${r.color}"></span>${esc(r.label)}</span>`).join(" ")}</p>
@@ -1036,12 +1484,54 @@ const PANELS = {
     return ["Keyboard shortcuts", `<p class="small">Everything also works with the buttons on screen. These are only shortcuts.</p>
       <ul><li><b>Tab</b> and <b>Enter</b>: move between boxes and open one</li><li><b>W</b>: walk me through it; <b>→</b> and <b>←</b>: next and back during the walk-through</li>
       <li><b>F</b>: fit to screen; <b>+</b> and <b>−</b>: zoom</li><li><b>Q</b>: questions to decide</li><li><b>T</b>: today or planned (on a chain view)</li>
-      <li><b>N</b>: show all notes on the map</li><li><b>X</b>: show technical names</li><li><b>1</b> to <b>9</b>: switch view</li><li><b>Esc</b>: close the panel or menu</li></ul>
-      <p class="small">Move around by dragging or scrolling. Zoom with Ctrl and scroll, or pinch.</p>`];
+      <li><b>N</b>: show all notes on the map</li><li><b>X</b>: show extra box details on the map, when available</li><li><b>1</b> to <b>9</b>: switch view</li><li><b>Esc</b>: close the panel or menu</li></ul>
+      <p class="small">Boxes are placed automatically. Drag empty space to move the view. Zoom with Ctrl and scroll, or pinch.</p>`];
   },
 };
 
+let supportReturn = null;
+function openSupport(kind, arg) {
+  supportReturn = {kind:current.kind, arg:current.arg, scroll:$("#panel .body").scrollTop};
+  open(kind, arg);
+}
+async function goReview(index) {
+  if (SESSION && !(await syncReview())) { toast("The answers could not be saved. Keep this page open and try again."); return; }
+  open("review", index);
+}
 function wirePanel(p) {
+  p.querySelectorAll("[data-evidence]").forEach(b => b.addEventListener("click", () => openSupport("sources", b.dataset.evidence.split(","))));
+  p.querySelectorAll("[data-responses]").forEach(b => b.addEventListener("click", () => openSupport("responses", b.dataset.responses)));
+  p.querySelectorAll("[data-support-back]").forEach(b => b.addEventListener("click", () => { if (supportReturn) { const previous = supportReturn; open(previous.kind, previous.arg); $("#panel .body").scrollTop = previous.scroll; } }));
+  p.querySelectorAll("[data-priority]").forEach(b => b.addEventListener("click", () => {
+    const id = b.dataset.priority;
+    if (!S.votes[id] && dotsLeft() <= 0) return toast("No votes left. Unmark another question first.");
+    if (S.votes[id]) delete S.votes[id]; else S.votes[id] = 1;
+    persist();
+    b.setAttribute("aria-pressed", !!S.votes[id]);
+    b.textContent = S.votes[id] ? "Important · 1 vote" : "Mark as important";
+    p.querySelectorAll("[data-votes-left]").forEach(el => el.textContent = dotsLeft());
+    const remaining = $("#dleft"); if (remaining) remaining.textContent = dotsLeft();
+  }));
+  p.querySelectorAll("[data-review-at]").forEach(b => b.addEventListener("click", () => goReview(+b.dataset.reviewAt)));
+  p.querySelectorAll("[data-open-handoff]").forEach(b => b.addEventListener("click", () => open("handoff")));
+  p.querySelectorAll("[data-proposed-map]").forEach(b => b.addEventListener("click", () => {
+    const index = MODEL.maps.findIndex(m => m.when === "planned" || m.template === "decision-chain" && (m.stages || []).some(stage => (stage.items || []).some(item => item.when === "planned")));
+    if (index >= 0) { showMap(index); setMode("planned"); close(); fit(); }
+  }));
+  p.querySelectorAll("[data-review-summary]").forEach(b => b.addEventListener("click", () => open("reviewsummary")));
+  p.querySelectorAll("[data-all-questions]").forEach(b => b.addEventListener("click", () => open("questions")));
+  p.querySelectorAll("[data-save-review]").forEach(b => b.addEventListener("click", saveReview));
+  p.querySelectorAll("[data-answer]").forEach(t => t.addEventListener("input", () => {
+    (S.answers[t.dataset.answer] = S.answers[t.dataset.answer] || {}).answer = t.value;
+    persist();
+  }));
+  updateReviewStatus();
+  if (SESSION && SESSION.close_on_finish && S.sessionFinished) {
+    p.querySelectorAll("input,textarea,select,[data-review-at],[data-save-review],[data-ans],[data-dot],[data-priority]").forEach(el => el.disabled = true);
+    $("#tsave").disabled = false; $("#tsave").textContent = "Read my answers";
+  }
+  p.querySelectorAll("[data-return-questions]").forEach(b => b.addEventListener("click", () => open("reviewsummary")));
+  p.querySelectorAll("[data-connection-to]").forEach(b => b.addEventListener("click", () => { jumpTo(b.dataset.connectionTo); open("box", b.dataset.connectionTo); }));
   p.querySelectorAll("[data-jump-to]").forEach(b => b.addEventListener("click", () => jumpTo(b.dataset.jumpTo)));
   p.querySelectorAll("[data-open-gap]").forEach(b => b.addEventListener("click", () => { open("gaps"); const c = $("#gap-" + CSS.escape(b.dataset.openGap)); if (c) c.scrollIntoView(); }));
   p.querySelectorAll("[data-open-note]").forEach(b => b.addEventListener("click", () => open("note", NOTES.find(n => n.id === b.dataset.openNote))));
@@ -1056,10 +1546,11 @@ function wirePanel(p) {
   }));
   p.querySelectorAll("[data-dot]").forEach(b => b.addEventListener("click", () => {
     const id = b.dataset.dot, d = +b.dataset.d, v = S.votes[id] || 0;
-    if (d > 0 && dotsLeft() <= 0) return toast("No dots left. Take one back from another question first.");
+    if (d > 0 && dotsLeft() <= 0) return toast("No votes left. Take one back from another question first.");
     S.votes[id] = Math.max(0, v + d); if (!S.votes[id]) delete S.votes[id]; persist();
     b.parentElement.querySelector(".n").textContent = S.votes[id] || 0;
     const dl = $("#dleft"); if (dl) dl.textContent = dotsLeft();
+    p.querySelectorAll("[data-votes-left]").forEach(el => el.textContent = dotsLeft());
   }));
   p.querySelectorAll("[data-dec]").forEach(f => f.addEventListener(f.tagName === "SELECT" ? "change" : "input", () => {
     (S.decisions[f.dataset.dec] = S.decisions[f.dataset.dec] || {})[f.dataset.k] = f.value; persist();
@@ -1093,8 +1584,9 @@ function activate(el) {
   else if (d.type === "notes") open("notes", d);
   else if (d.type === "outcome") open("outcome", d.o);
 }
-world.addEventListener("click", e => { const el = e.target.closest("[role=button]"); if (el && el._data) activate(el); });
+world.addEventListener("click", e => { const term = e.target.closest(".term"); if (term) { showTerm(term); return; } const el = e.target.closest("[role=button]"); if (el && el._data) activate(el); });
 world.addEventListener("keydown", e => {
+  const term = e.target.closest(".term"); if (term && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); showTerm(term); return; }
   const el = e.target.closest("[role=button]");
   if (el && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); activate(el); }
 });
@@ -1125,31 +1617,48 @@ function wireTerms(root) {
 }
 world.addEventListener("mouseover", e => { const t = e.target.closest(".term"); if (t) showTerm(t); });
 world.addEventListener("mouseout", e => { if (e.target.closest(".term")) hideTerm(); });
+world.addEventListener("focusin", e => { const term = e.target.closest(".term"); if (term) showTerm(term); });
+world.addEventListener("focusout", e => { if (e.target.closest(".term")) hideTerm(); });
 
 /* ---------- share ---------- */
 function reviewData() {
   return {format:"decisioncraft-review/1", model:MODEL.title, model_fingerprint:META.fingerprint || "",
     reviewer:S.reviewer || "", saved_at:new Date().toISOString(), answers:S.answers, dots:S.votes, decisions:S.decisions};
 }
-function saveReview() {
+function saveReview() { if (SESSION) finishReview(); else downloadReview(); }
+function downloadReview() {
   const blob = new Blob([JSON.stringify(reviewData(), null, 2)], {type:"application/json"});
   const a = document.createElement("a");
   const who = (S.reviewer || "reviewer").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   a.href = URL.createObjectURL(blob); a.download = `review-${who || "reviewer"}.json`;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  toast("Saved. Send the file to whoever runs the review.");
+  S.lastExport = JSON.stringify([S.answers, S.votes, S.decisions, S.reviewer]);
+  persist();
+  if (!SESSION) open("saved", a.download);
+  toast(SESSION ? "Backup download started. Your agent already receives saved answers." : "Download started. Send the file to the review owner.");
 }
 function copyQuestions() {
   let out = `# Questions to decide: ${MODEL.title}\n`, cur = null;
   questionList().forEach(q => {
     if (q.urgency !== cur) { cur = q.urgency; out += `\n## ${URG[cur]}\n\n`; }
     const a = S.answers[q.id] || {};
-    out += `- ${q.n.question} (${(ROLE[q.n.role] || {label:q.n.role}).label})${a.choice ? ` — my answer: ${a.choice}` : ""}${a.comment ? ` — ${a.comment}` : ""}\n`;
+    out += `- ${q.n.question} (${(ROLE[q.n.role] || {label:q.n.role}).label})${a.answer ? ` — my answer: ${a.answer}` : ""}${a.choice ? ` — my view: ${a.choice}` : ""}${a.comment ? ` — ${a.comment}` : ""}\n`;
   });
   const done = () => toast("Copied as a list");
   if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(out).then(done, () => fallbackCopy(out, done));
   else fallbackCopy(out, done);
+}
+function printQuestions() {
+  const sheet = document.createElement("section"); sheet.id = "paper-review";
+  sheet.innerHTML = `<h1>${esc(MODEL.title)}</h1><p><b>The decision:</b> ${esc(MODEL.question)}</p>
+    ${MODEL.summary ? `<p>${esc(MODEL.summary)}</p>` : ""}
+    <p>Write your own view first. It is fine to say you are not sure. Compare answers together, then have the decision owner record the choice and reason.</p>
+    ${questionList().map(q => `<article><h2>${esc(q.n.question)}</h2>${q.n.body ? `<p>${esc(q.n.body)}</p>` : ""}<p>Your answer:</p><div class="paper-space"></div></article>`).join("")}
+    <h2>What did we decide?</h2><p>Decision owner: ____________________</p><p>Choice and reason:</p><div class="paper-space"></div><p>What remains open, and who will follow up?</p><div class="paper-space"></div>`;
+  document.body.appendChild(sheet); document.body.classList.add("print-review");
+  try { window.print(); }
+  finally { document.body.classList.remove("print-review"); sheet.remove(); }
 }
 function fallbackCopy(text, done) {
   const t = document.createElement("textarea"); t.value = text; document.body.appendChild(t); t.select();
@@ -1193,7 +1702,9 @@ document.body.classList.toggle("nostory", !S.story);
 render();
 fit();
 hint();
-addEventListener("resize", () => apply());
+if (SESSION) { hideHint(); open("reviewstart"); }
+queueSync();
+addEventListener("resize", () => { fit(); topBar(); });
 })();
 
 </script>

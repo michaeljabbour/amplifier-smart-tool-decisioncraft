@@ -450,6 +450,8 @@ def validate(model: dict) -> list[dict]:
     for mi, m in enumerate(maps):
         mp = f"maps[{mi}]"
         claim(m.get("id"), mp)
+        if m.get("when", "both") not in ("today", "planned", "both"):
+            err(f"{mp}.when", "Map applies today, to the proposal, or to both.")
         t = TEMPLATES.get(m.get("template"))
         if not t:
             err(f"{mp}.template", f"Unknown template {m.get('template')!r}.")
@@ -523,7 +525,32 @@ def validate(model: dict) -> list[dict]:
                     for ci, c in enumerate(_as_list(n.get("children"))):
                         stack.append((c, f"{np_}.children[{ci}]"))
 
+    if "comparison" in model:
+        from .comparison import check_comparison
+        out.extend(check_comparison(model["comparison"], evidence_ids))
+
     box_ids = {b.get("id") for _, b in iter_boxes(model)}
+    raw_links = model.get("links")
+    if raw_links is not None and not isinstance(raw_links, list):
+        err("links", "Links must be a list.")
+    for li, connection in enumerate(_as_list(raw_links)):
+        lp = f"links[{li}]"
+        if not isinstance(connection, dict):
+            err(lp, "Each link must be a JSON object.")
+            continue
+        claim(connection.get("id"), lp)
+        for end in ("from", "to"):
+            value = connection.get(end)
+            if not isinstance(value, str) or value not in box_ids:
+                err(f"{lp}.{end}", "Link must point at a known box.")
+        if connection.get("from") == connection.get("to"):
+            err(lp, "A link must join two different boxes.")
+        if not isinstance(connection.get("label"), str) or not connection["label"].strip():
+            err(f"{lp}.label", "Say what this connection means.")
+        if connection.get("kind", "flow") not in ("flow", "evidence", "feedback"):
+            err(f"{lp}.kind", "Link kind must be flow, evidence or feedback.")
+        if connection.get("when", "both") not in ("today", "planned", "both"):
+            err(f"{lp}.when", "Link applies today, to the proposal, or to both.")
     raw_gaps = model.get("gaps")
     if raw_gaps is not None and not isinstance(raw_gaps, list):
         err("gaps", "Gaps must be a list.")
@@ -542,8 +569,18 @@ def validate(model: dict) -> list[dict]:
             v = g.get(k)
             if v is not None and (not isinstance(v, int) or not 1 <= v <= 5):
                 err(f"{gp}.{k}", f"{k.title()} is a whole number from 1 to 5.")
+        if "stories" in g and not isinstance(g["stories"], list):
+            err(f"{gp}.stories", "Stories must be a list.")
         for si, s in enumerate(_as_list(g.get("stories"))):
-            if isinstance(s, dict) and not s.get("done_when"):
+            if not isinstance(s, dict):
+                err(f"{gp}.stories[{si}]", "Each story must be a JSON object.")
+                continue
+            if not isinstance(s.get("as", ""), str):
+                err(f"{gp}.stories[{si}].as", "Write the story in text.")
+            criteria = s.get("done_when", [])
+            if not isinstance(criteria, str) and (not isinstance(criteria, list) or any(not isinstance(c, str) for c in criteria)):
+                err(f"{gp}.stories[{si}].done_when", "Use a list of checks in text.")
+            if not s.get("done_when"):
                 warn(f"{gp}.stories[{si}]", "Say how we will know it is done.")
     gap_ids = {g.get("id") for g in gaps}
     anchors = box_ids | gap_ids
@@ -570,6 +607,10 @@ def validate(model: dict) -> list[dict]:
             )
         if n.get("urgency", "info") not in URGENCY:
             err(f"{np_}.urgency", f"Urgency must be one of {sorted(URGENCY)}.")
+        if "author" in n and not isinstance(n["author"], str):
+            err(f"{np_}.author", "Author must be text when provided.")
+        if n.get("answer_type", "text") not in ("text", "stance"):
+            err(f"{np_}.answer_type", "Answer type must be text or stance.")
         if not str(n.get("question", "")).strip():
             warn(f"{np_}.question", f"Note {n.get('id')} should end in a question.")
         if not n.get("evidence"):

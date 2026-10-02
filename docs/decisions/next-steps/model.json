@@ -1,0 +1,544 @@
+{
+  "format": "decisioncraft/1",
+  "title": "Next steps for Decisioncraft",
+  "question": "Which next step should we take to learn whether Decisioncraft helps people make a decision?",
+  "summary": "Proposed order: run a small real decision trial, fix the failures it reveals, then firm up the contracts and release checks. All scores and role notes are agent analysis, not user feedback. No option has been chosen.",
+  "checked": {
+    "date": "2026-10-01",
+    "note": "Checked against local repository revision 3f8aa2e. No user interviews, live provider trials, or release verification were performed for this model."
+  },
+  "roles": [
+    {
+      "id": "designer",
+      "label": "Designer",
+      "color": "#e86a92",
+      "asks": "Will people understand this and find their way without help?"
+    },
+    {
+      "id": "analyst",
+      "label": "Analyst",
+      "color": "#4f7fd8",
+      "asks": "Is it clear what must be true, for whom, and how we will measure it?"
+    },
+    {
+      "id": "engineer",
+      "label": "Engineer",
+      "color": "#2f9e6a",
+      "asks": "What do we build first, what could break, and how do we test it?"
+    },
+    {
+      "id": "owner",
+      "label": "Product owner",
+      "color": "#8a5cd6",
+      "asks": "What is in the first version, what do we cut, and what does success look like?"
+    },
+    {
+      "id": "security",
+      "label": "Security and privacy",
+      "color": "#d1543f",
+      "asks": "Who can see what, what do we keep, and what happens if it leaks?"
+    },
+    {
+      "id": "voice",
+      "label": "Customer voice",
+      "color": "#d99a1e",
+      "asks": "Would the people we serve choose this, and would they need a manual?"
+    },
+    {
+      "id": "agent",
+      "label": "AI agent teammate",
+      "color": "#1f9aa6",
+      "asks": "What can an agent do on its own, and what needs a person's OK?"
+    },
+    {
+      "id": "finance",
+      "label": "Finance",
+      "color": "#7a7a72",
+      "asks": "What does it cost to build and run, and when does it pay back?"
+    }
+  ],
+  "glossary": {},
+  "sources": [
+    {
+      "id": "vision",
+      "title": "docs/VISION.md",
+      "kind": "document",
+      "date": "2026-10-01",
+      "ref": "docs/VISION.md"
+    },
+    {
+      "id": "contracts",
+      "title": "contracts/README.md",
+      "kind": "document",
+      "date": "2026-10-01",
+      "ref": "contracts/README.md"
+    },
+    {
+      "id": "readme",
+      "title": "README.md",
+      "kind": "document",
+      "date": "2026-10-01",
+      "ref": "README.md"
+    },
+    {
+      "id": "tests",
+      "title": "tests/test_render_and_cli.py",
+      "kind": "code",
+      "date": "2026-10-01",
+      "ref": "tests/test_render_and_cli.py"
+    },
+    {
+      "id": "intelligence",
+      "title": "src/decisioncraft/intelligence.py",
+      "kind": "code",
+      "date": "2026-10-01",
+      "ref": "src/decisioncraft/intelligence.py"
+    },
+    {
+      "id": "review",
+      "title": "contracts/review.v1.md",
+      "kind": "document",
+      "date": "2026-10-01",
+      "ref": "contracts/review.v1.md"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "E-vision",
+      "source": "vision",
+      "kind": "quote",
+      "text": "Most decisions that matter affect several groups at once",
+      "where": "Line 3",
+      "voice": false
+    },
+    {
+      "id": "E-contracts",
+      "source": "contracts",
+      "kind": "quote",
+      "text": "They are drafts until the shapes have\nbeen used by real callers.",
+      "where": "Line 3",
+      "voice": false
+    },
+    {
+      "id": "E-readme",
+      "source": "readme",
+      "kind": "quote",
+      "text": "The models were written by hand to show the format",
+      "where": "Line 90",
+      "voice": false
+    },
+    {
+      "id": "E-tests",
+      "source": "tests",
+      "kind": "quote",
+      "text": "def test_cli_deterministic_paths_run_without_credentials(tmp_path):",
+      "where": "Line 119",
+      "voice": false
+    },
+    {
+      "id": "E-intelligence",
+      "source": "intelligence",
+      "kind": "quote",
+      "text": "Every reply is checked by `validate` before it is returned.",
+      "where": "Line 5",
+      "voice": false
+    },
+    {
+      "id": "E-review",
+      "source": "review",
+      "kind": "quote",
+      "text": "decisioncraft-review/1",
+      "where": "Line 9",
+      "voice": false
+    }
+  ],
+  "maps": [
+    {
+      "id": "m1",
+      "template": "opportunity-tree",
+      "title": "Four ways to learn what to do next",
+      "intro": "These can form a sequence. Choose one primary trial before widening the work.",
+      "levels": [
+        "Outcome",
+        "Need or pain",
+        "Idea",
+        "Quick test"
+      ],
+      "root": {
+        "id": "goal",
+        "title": "A useful decision with reasons attached",
+        "text": "Choose the smallest trial that reduces the most uncertainty.",
+        "status": "planned",
+        "children": [
+          {
+            "id": "need-trial",
+            "title": "The examples show the format; they do not show whether a real group can reach a useful decision.",
+            "text": "Evidence and uncertainty",
+            "status": "partial",
+            "evidence": [
+              "E-vision",
+              "E-readme",
+              "E-review"
+            ],
+            "children": [
+              {
+                "id": "trial",
+                "title": "Try one real decision",
+                "text": "Invite three reviewers from different roles to review one non-sensitive decision. Watch them find evidence, answer questions, vote, save, and merge.",
+                "status": "planned",
+                "evidence": [
+                  "E-vision",
+                  "E-readme",
+                  "E-review"
+                ],
+                "children": [
+                  {
+                    "id": "test-trial",
+                    "title": "What would count as success?",
+                    "text": "Three reviewers finish without coaching; the owner records a decision and reason. Record every point where help was needed.",
+                    "status": "planned",
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "need-contracts-check",
+            "title": "The contracts remain drafts until real callers use them.",
+            "text": "Evidence and uncertainty",
+            "status": "partial",
+            "evidence": [
+              "E-contracts",
+              "E-tests"
+            ],
+            "children": [
+              {
+                "id": "contracts-check",
+                "title": "Test the file contracts",
+                "text": "Have two independent callers create and consume models and review files. Agree on required fields, error messages, and a version-change policy.",
+                "status": "planned",
+                "evidence": [
+                  "E-contracts",
+                  "E-tests"
+                ],
+                "children": [
+                  {
+                    "id": "test-contracts-check",
+                    "title": "What would count as success?",
+                    "text": "Both callers exchange files successfully; malformed files fail with useful errors; compatibility rules are written down.",
+                    "status": "planned",
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "need-draft-trial",
+            "title": "Handwritten examples and supplied-completion tests do not establish the quality of live drafting.",
+            "text": "Evidence and uncertainty",
+            "status": "partial",
+            "evidence": [
+              "E-readme",
+              "E-intelligence",
+              "E-tests"
+            ],
+            "children": [
+              {
+                "id": "draft-trial",
+                "title": "Try drafting from real notes",
+                "text": "Use a redacted notes pack and an explicitly chosen provider and model. Compare the draft with a human reference; check claims, missing roles, questions, repairs, cost, and elapsed time.",
+                "status": "planned",
+                "evidence": [
+                  "E-readme",
+                  "E-intelligence",
+                  "E-tests"
+                ],
+                "children": [
+                  {
+                    "id": "test-draft-trial",
+                    "title": "What would count as success?",
+                    "text": "No invented quotes or broken evidence links; a person records correction time and cost and decides whether another trial is worthwhile.",
+                    "status": "planned",
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "need-release-check",
+            "title": "Local deterministic tests cover key commands; that alone does not prove a new user can install and complete a review.",
+            "text": "Evidence and uncertainty",
+            "status": "partial",
+            "evidence": [
+              "E-tests",
+              "E-review"
+            ],
+            "children": [
+              {
+                "id": "release-check",
+                "title": "Check a fresh installation",
+                "text": "On a clean supported environment, install a pinned revision, create a model, render, save a review, merge it, and render again. Test the base package without provider SDKs.",
+                "status": "planned",
+                "evidence": [
+                  "E-tests",
+                  "E-review"
+                ],
+                "children": [
+                  {
+                    "id": "test-release-check",
+                    "title": "What would count as success?",
+                    "text": "A first-time user completes the documented path; supported versions and reproducible install instructions are recorded.",
+                    "status": "planned",
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "gaps": [
+    {
+      "id": "gap-trial",
+      "title": "Try one real decision",
+      "why": "The examples show the format; they do not show whether a real group can reach a useful decision.",
+      "anchors": [
+        "trial"
+      ],
+      "impact": 5,
+      "effort": 2,
+      "stories": [
+        {
+          "as": "As a product owner, I want a small trial so I can choose the next change from evidence.",
+          "done_when": [
+            "Three reviewers finish without coaching; the owner records a decision and reason. Record every point where help was needed."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gap-contracts-check",
+      "title": "Test the file contracts",
+      "why": "The contracts remain drafts until real callers use them.",
+      "anchors": [
+        "contracts-check"
+      ],
+      "impact": 4,
+      "effort": 3,
+      "stories": [
+        {
+          "as": "As a product owner, I want a small trial so I can choose the next change from evidence.",
+          "done_when": [
+            "Both callers exchange files successfully; malformed files fail with useful errors; compatibility rules are written down."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gap-draft-trial",
+      "title": "Try drafting from real notes",
+      "why": "Handwritten examples and supplied-completion tests do not establish the quality of live drafting.",
+      "anchors": [
+        "draft-trial"
+      ],
+      "impact": 4,
+      "effort": 3,
+      "stories": [
+        {
+          "as": "As a product owner, I want a small trial so I can choose the next change from evidence.",
+          "done_when": [
+            "No invented quotes or broken evidence links; a person records correction time and cost and decides whether another trial is worthwhile."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gap-release-check",
+      "title": "Check a fresh installation",
+      "why": "Local deterministic tests cover key commands; that alone does not prove a new user can install and complete a review.",
+      "anchors": [
+        "release-check"
+      ],
+      "impact": 3,
+      "effort": 2,
+      "stories": [
+        {
+          "as": "As a product owner, I want a small trial so I can choose the next change from evidence.",
+          "done_when": [
+            "A first-time user completes the documented path; supported versions and reproducible install instructions are recorded."
+          ]
+        }
+      ]
+    }
+  ],
+  "notes": [
+    {
+      "id": "N1",
+      "role": "designer",
+      "anchor": "trial",
+      "title": "Watch where readers get stuck",
+      "body": "The vision says people should read the file without being shown how. This needs an observed trial.",
+      "recommend": "Record task completion and requests for help.",
+      "question": "Which visible task should each reviewer complete without help?",
+      "urgency": "must",
+      "evidence": [
+        "E-vision"
+      ]
+    },
+    {
+      "id": "N2",
+      "role": "analyst",
+      "anchor": "contracts-check",
+      "title": "Define what success means",
+      "body": "A passing check and a useful decision measure different things. The contract needs real callers.",
+      "recommend": "Keep file validity and decision usefulness as separate measures.",
+      "question": "What failure would make us change the file shape?",
+      "urgency": "should",
+      "evidence": [
+        "E-contracts"
+      ]
+    },
+    {
+      "id": "N3",
+      "role": "engineer",
+      "anchor": "release-check",
+      "title": "Prove the full path",
+      "body": "The command tests cover many deterministic paths. A fresh install and saved browser review still need their own proof.",
+      "recommend": "Start with the documented install and one complete review.",
+      "question": "Which supported environment should we check first?",
+      "urgency": "should",
+      "evidence": [
+        "E-tests",
+        "E-review"
+      ]
+    },
+    {
+      "id": "N4",
+      "role": "owner",
+      "anchor": "trial",
+      "title": "Choose one decision",
+      "body": "A narrow trial can reveal what prevents the review from ending in a decision.",
+      "recommend": "Use one decision with an owner and a clear deadline.",
+      "question": "Which real decision and owner should we use for the first trial?",
+      "urgency": "must",
+      "evidence": [
+        "E-vision"
+      ]
+    },
+    {
+      "id": "N5",
+      "role": "security",
+      "anchor": "draft-trial",
+      "title": "Keep trial material suitable to share",
+      "body": "Real notes may contain information that should not be included in a saved canvas or sent to a provider. This is a trial design concern, not evidence of a current leak.",
+      "recommend": "Use redacted material and agree who can receive the output.",
+      "question": "What material is approved for this trial and who may see it?",
+      "urgency": "must",
+      "evidence": [
+        "E-intelligence"
+      ]
+    },
+    {
+      "id": "N6",
+      "role": "voice",
+      "anchor": "trial",
+      "title": "Hear from people doing the review",
+      "body": "The examples are handwritten. No user feedback was collected for this planning model.",
+      "recommend": "Ask reviewers what helped them decide and what remained unclear.",
+      "question": "Would reviewers use the file for another decision?",
+      "urgency": "must",
+      "evidence": [
+        "E-readme"
+      ]
+    },
+    {
+      "id": "N7",
+      "role": "agent",
+      "anchor": "draft-trial",
+      "title": "Keep a person in charge of claims",
+      "body": "Validation checks the reply shape; it does not establish that a claim is true.",
+      "recommend": "Compare each draft claim with the notes and keep corrections.",
+      "question": "What must a person check before sharing a draft?",
+      "urgency": "should",
+      "evidence": [
+        "E-intelligence"
+      ]
+    },
+    {
+      "id": "N8",
+      "role": "finance",
+      "anchor": "draft-trial",
+      "title": "Measure work saved",
+      "body": "The draft trial should measure editing time and provider cost; no savings have been measured here.",
+      "recommend": "Set a budget before the trial and compare total work with the manual path.",
+      "question": "What correction time and cost would make drafting worth continuing?",
+      "urgency": "should",
+      "evidence": [
+        "E-readme",
+        "E-intelligence"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D-next",
+      "question": "Which next step should we take to learn whether Decisioncraft helps people make a decision?",
+      "notes": [
+        "N1",
+        "N2",
+        "N3",
+        "N4",
+        "N5",
+        "N6",
+        "N7",
+        "N8"
+      ],
+      "options": [
+        "Try one real decision",
+        "Test the file contracts",
+        "Try drafting from real notes",
+        "Check a fresh installation"
+      ],
+      "owner": "Product owner",
+      "status": "open",
+      "due": "",
+      "decided_by": "",
+      "decision": ""
+    }
+  ],
+  "outcomes": [
+    {
+      "id": "O1",
+      "measure": "Reviewers who complete the first review without coaching",
+      "baseline": "Not measured",
+      "target": "3 of 3 in the first trial; proposed target",
+      "result": "",
+      "checked": "",
+      "becomes_evidence": ""
+    },
+    {
+      "id": "O2",
+      "measure": "Decision recorded with owner and evidence-backed reason",
+      "baseline": "Not measured",
+      "target": "One real decision; proposed target",
+      "result": "",
+      "checked": "",
+      "becomes_evidence": ""
+    },
+    {
+      "id": "O3",
+      "measure": "Time to prepare, review, and merge the decision file",
+      "baseline": "Not measured",
+      "target": "Measure first; agree a target after the trial",
+      "result": "",
+      "checked": "",
+      "becomes_evidence": ""
+    }
+  ],
+  "reading": "Open the options map, then Gaps and Questions to decide. Compare the four small trials. Scores are tentative: impact means learning value, and effort means relative work, not days. Save your answers to record your preferences. This is an internal planning model; the repository examples it cites are fictional."
+}

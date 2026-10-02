@@ -45,6 +45,7 @@ def questions(model: dict, merged: dict | None = None) -> list[dict]:
             {
                 "id": n["id"],
                 "question": q,
+                "answer_type": n.get("answer_type", "text"),
                 "role": n.get("role"),
                 "role_label": roles.get(n.get("role"), n.get("role")),
                 "urgency": n.get("urgency", "info"),
@@ -60,6 +61,7 @@ def questions(model: dict, merged: dict | None = None) -> list[dict]:
                 "agree": v.get("agree", 0),
                 "change": v.get("change", 0),
                 "unsure": v.get("unsure", 0),
+                "answers": list(v.get("answers", [])),
             }
         )
     out.sort(
@@ -94,14 +96,35 @@ def check_review(review: dict) -> list[str]:
     problems = []
     if review.get("format") != REVIEW_FORMAT:
         problems.append(f'Not a review file (expected format "{REVIEW_FORMAT}").')
+    for field in ("model", "model_fingerprint", "reviewer", "saved_at"):
+        if field in review and not isinstance(review[field], str):
+            problems.append(f"{field} must be text.")
     answers = review.get("answers")
+    if answers is not None and not isinstance(answers, dict):
+        problems.append("Answers must be an object keyed by question id.")
     for qid, a in (answers if isinstance(answers, dict) else {}).items():
+        if not isinstance(a, dict):
+            problems.append(f"Answer to {qid} must be an object.")
+            continue
+        for field in ("answer", "comment", "choice"):
+            if field in a and not isinstance(a[field], str):
+                problems.append(f"{field.capitalize()} for {qid} must be text.")
         if isinstance(a, dict) and a.get("choice") and a["choice"] not in CHOICES:
             problems.append(f"Answer to {qid} must be one of {', '.join(CHOICES)}.")
     dots = review.get("dots")
+    if dots is not None and not isinstance(dots, dict):
+        problems.append("Dots must be an object keyed by question id.")
     for k, v in (dots if isinstance(dots, dict) else {}).items():
-        if not isinstance(v, int) or v < 0:
+        if type(v) is not int or v < 0:
             problems.append(f"Dots on {k} must be a whole number, 0 or more.")
+    decisions = review.get("decisions")
+    if decisions is not None and not isinstance(decisions, dict):
+        problems.append("Decisions must be an object keyed by decision id.")
+    for did, fields in (decisions if isinstance(decisions, dict) else {}).items():
+        if not isinstance(fields, dict):
+            problems.append(f"Decision {did} must be an object.")
+        elif any(not isinstance(value, str) for value in fields.values()):
+            problems.append(f"Fields for decision {did} must be text.")
     return problems
 
 
@@ -109,7 +132,7 @@ def merge(reviews: list[dict], model: dict | None = None) -> dict:
     """Combine several reviews into one view of where people agree and disagree.
 
     For each question: how many agree, want a change or are unsure, every comment with
-    who wrote it, total dots, and `split` when people answered differently. For each
+    who wrote it, written answers, total dots, and `split` for differing views. For each
     decision: the fields reviewers filled in, and `conflict` where they differ.
     Reviews for a different model version are kept but flagged in `stale_reviews`.
     """
@@ -132,8 +155,10 @@ def merge(reviews: list[dict], model: dict | None = None) -> dict:
             merged["stale_reviews"].append(who)
         for qid, a in (r.get("answers") or {}).items():
             q = merged["questions"].setdefault(
-                qid, {"agree": 0, "change": 0, "unsure": 0, "dots": 0, "comments": []}
+                qid, {"agree": 0, "change": 0, "unsure": 0, "dots": 0, "comments": [], "answers": []}
             )
+            if a.get("answer", "").strip():
+                q["answers"].append({"who": who, "text": a["answer"].strip()})
             if a.get("choice") in CHOICES:
                 q[a["choice"]] += 1
             if str(a.get("comment", "")).strip():
@@ -146,7 +171,7 @@ def merge(reviews: list[dict], model: dict | None = None) -> dict:
                 )
         for qid, d in (r.get("dots") or {}).items():
             q = merged["questions"].setdefault(
-                qid, {"agree": 0, "change": 0, "unsure": 0, "dots": 0, "comments": []}
+                qid, {"agree": 0, "change": 0, "unsure": 0, "dots": 0, "comments": [], "answers": []}
             )
             q["dots"] += d
         for did, fields in (r.get("decisions") or {}).items():

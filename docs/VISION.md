@@ -27,7 +27,19 @@ clear: model-backed steps are named as such and their output is always checked.
 
 ## Not the goal
 
-- Live collaborative editing. Files travel; answers come back.
+- Live collaborative editing. Offline reviews travel as files. A local review started
+  by an agent can save answers directly on the same computer.
 - Project tracking after the decision.
 - Giving advice in specialist fields. The medical example shows team-level organisation,
   not clinical guidance.
+
+## A review should feel like a conversation
+
+Begin with the decision and enough context to understand it. Ask one useful question at
+a time. Show a clear recommendation without treating it as the answer. Let people
+choose when to compare their view with other people's responses.
+Keep sources close enough to check, without making people read a pile of documents first.
+
+People can say they are not sure, leave a question for later, and change their answer.
+Before they finish, show what they said and what remains open. Make saving and the next
+step visible. A vote shows what deserves attention; it does not make a decision.

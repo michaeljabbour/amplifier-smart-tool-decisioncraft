@@ -1,0 +1,43 @@
+{
+  "format": "decisioncraft-review/1",
+  "model": "Next steps for Decisioncraft",
+  "model_fingerprint": "909069dc8ba6",
+  "reviewer": "Repository owner",
+  "saved_at": "",
+  "answers": {
+    "N1": {
+      "choice": "agree",
+      "comment": ""
+    },
+    "N2": {
+      "choice": "agree",
+      "comment": ""
+    },
+    "N3": {
+      "choice": "agree",
+      "comment": ""
+    },
+    "N4": {
+      "choice": "unsure",
+      "comment": ""
+    },
+    "N5": {
+      "choice": "agree",
+      "comment": ""
+    },
+    "N6": {
+      "choice": "agree",
+      "comment": ""
+    },
+    "N7": {
+      "choice": "agree",
+      "comment": ""
+    },
+    "N8": {
+      "choice": "agree",
+      "comment": ""
+    }
+  },
+  "dots": {},
+  "decisions": {}
+}

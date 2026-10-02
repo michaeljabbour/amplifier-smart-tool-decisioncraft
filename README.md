@@ -72,6 +72,41 @@ html = dc.render(model)
 merged = dc.merge([json.load(open(p)) for p in ["a.json", "b.json"]], model)
 ```
 
+## Review with an agent
+
+When the agent starts the review on your computer, use a local session:
+
+```sh
+decisioncraft session model.json --dir .work/review --open --until-finished
+```
+
+Answers save automatically. **Save and continue** keeps your answer before moving to the
+next question. **Finish review** tells the waiting agent the review is ready. The agent
+gets the answers directly; you do not need to download or attach a file. You still make
+the final decision. Starting a session does not by itself mean the review is finished.
+
+The command prints the local address and where it keeps the answers. Leave it running
+while reviewing. Use a new folder for each session; pass `--review review.json` to continue
+an earlier review. `--prepared-by` can identify the actual author when the notes omit one.
+The session accepts requests only from this computer. Source links show only the files
+inside `--source-root` (the current folder by default), or open a source website when asked.
+No provider credentials are needed.
+
+## Finish an offline review
+
+1. Open **Questions to decide**, then **Answer questions**. You see one question at a time.
+   Write an answer, or choose **Not sure yet**. The suggested next step is visible; supporting sources have a clear link. Use **Check my answers** to see what you have said and what remains open.
+2. Press **Save my answers** in the top bar. This downloads a review file; it does not send it.
+   You can save a partial review. Browser storage keeps your work when available.
+3. Send the file to the review owner, or attach it to the agent chat that started the review.
+4. The owner runs `merge` and `render --merged`, reads the answers, and records the decision.
+   A review response does not by itself decide anything.
+
+For a meeting on paper, choose **More → Print the questions**. The handout leaves room
+for individual answers and the owner's final choice and reason.
+
+Box positions are automatic. Drag empty space to move the view; click a box to read it.
+
 ## The four examples
 
 Each folder in `examples/` holds the input material, the model, the rendered canvas and a
@@ -126,6 +161,8 @@ uv run pytest                                   # tests
 python3 scripts/check-generic.py                # no personal details, product names or filler words
 python3 scripts/build-examples.py               # rebuild example outputs
 python3 scripts/check-canvas.py examples/*/canvas*.html   # first-time-user checks (needs Playwright)
+python3 scripts/check-review-flow.py                     # save and merge a written answer
+python3 scripts/check-session-flow.py                    # local answers reach the agent
 ```
 
 See [AGENTS.md](AGENTS.md), [the vision](docs/VISION.md) and [the contracts](contracts/README.md).
@@ -134,3 +171,14 @@ The product page lives in [site/](site/README.md).
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+New drafts choose suitable maps from the supplied material by default (`--template auto`).
+An explicit template still works. Customer journeys use a timeline, staff and system
+handoffs use lanes, stage flows compare current and proposed work, and alternatives branch.
+Optional named connections highlight when a box is selected and remain readable in the
+text version. Display icons have labels and show their on or off state.
+
+Start with `decisioncraft discover`, then use the answers to shape the draft. See
+[the decision process](docs/DECISION-PROCESS.md) and [host setup](docs/HOSTS.md).
+Completion returns an agent handoff with stories, acceptance criteria and an explicit
+proposed-state model when supplied; missing requirements remain visible.

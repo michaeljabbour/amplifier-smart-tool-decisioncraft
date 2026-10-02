@@ -51,6 +51,19 @@ result.
 Not for: a quick yes/no between two people, project tracking, or anything that needs a
 live shared editor. The canvas is a file you send round; answers come back as files.
 
+## When an agent starts the review
+
+Use `decisioncraft session model.json --dir .work/review --open --until-finished`.
+Answers save automatically on this computer. The command returns the completed review
+when the person presses **Finish review**. Read it before proposing next steps. Do not
+interpret missing answers, votes or a running session as a final human decision.
+
+Use a fresh session folder. Add `--review review.json` to continue earlier responses.
+The local URL and review path are printed as JSON. A host can also use `session.status()`
+and `session.wait()` from Python. After a finished receipt, read the latest `review.json`,
+merge it with the model and use the actual words the person wrote. Close the session when
+finished. The standalone HTML from `render` keeps the offline file workflow.
+
 ## How it works
 
 1. **A model** (JSON) holds the decision: sources, quoted evidence, one or more maps,
@@ -58,9 +71,12 @@ live shared editor. The canvas is a file you send round; answers come back as fi
    `draft` (from your material, using a language model).
 2. **`validate`** checks it: broken links between parts, missing evidence, notes with no
    question, and filler words.
-3. **`render`** makes one HTML file. It works offline and makes no requests. Reviewers
+3. **`render`** makes one HTML file. **Questions to decide** starts a review: one question
+   at a time, possible approaches and sources when needed, then **Check my answers**. It works offline and makes no requests. Reviewers
    pan and zoom, filter by role, answer questions, place dots on what matters most,
    fill in decision owners and dates, and save their answers as a file.
+   Press **Save my answers** to download a review file, then send it to the review owner
+   or attach it to your agent chat. Written answers and views on suggestions are separate.
 4. **`merge`** combines those files. Render again with `--reviews` to show tallies.
 5. **`diff`** or `render --since` shows what changed before a follow-up review.
 
@@ -113,3 +129,16 @@ decisioncraft draft notes/*.md --template decision-chain \
   hover, focus or tap it for the meaning.
 - Examples in the repository are fictional. The medical example is about how a ward
   organises its work; it is not medical advice and holds no patient data.
+
+Drafts use `--template auto` by default to choose suitable maps from the supplied material.
+A fixed template can still be requested. The canvas uses timelines for customer actions,
+lanes for service and system work, comparison columns for stage flows, and branches for
+alternative options. Optional named links record flow, supporting evidence and feedback;
+they highlight on selection and also appear in the text version.
+
+The workflow begins with `discover`: four opening questions about the choice, purpose,
+owner and visual, then follow-ups about criteria, comparison and stakes. Discovery answers
+can guide `draft --brief`. Compare the options shows criteria, assessments, reasons,
+evidence and uncertainty in plain words. A local review returns `handoff` on completion:
+answers, proposed stories, acceptance criteria, a proposed map and missing parts for the
+agent to prepare. The optional `mcp` extra serves the same flow to any local MCP host.

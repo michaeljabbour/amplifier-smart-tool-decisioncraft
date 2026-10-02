@@ -194,11 +194,12 @@ def _ask(complete: Complete, system: str, prompt: str, check) -> dict:
 def draft(
     material: list[dict],
     *,
-    template: str,
+    template: str = "auto",
     question: str,
     title: str = "",
     roles: list[dict] | None = None,
     date: str = "",
+    brief: dict | None = None,
     provider: str | None = None,
     model: str | None = None,
     complete: Complete | None = None,
@@ -207,11 +208,11 @@ def draft(
     """Model-backed. Read the material and draft a full decision model.
 
     material: [{name, text}] — the actual content (notes, transcripts, documents, data).
-    template: one of the template ids; question: the decision being made.
+    template: auto selects maps from the material, or use a template id; question: the decision being made.
     Returns a validated model with sources, quoted evidence, maps, gaps, notes from each
     role, decisions and outcome measures. Every claim should cite the material.
     """
-    if template not in TEMPLATES:
+    if template != "auto" and template not in TEMPLATES:
         raise ModelError(
             [
                 {
@@ -221,19 +222,56 @@ def draft(
                 }
             ]
         )
+    if brief is not None:
+        from .workflow import check_brief
+        check_brief(brief)
     complete = complete or provider_complete(provider or "", model)
-    skeleton = new_model(template, title or question, question, date=date)
+    skeleton = new_model("opportunity-tree" if template == "auto" else template,
+                         title or question, question, date=date)
     skeleton["roles"] = roles or default_roles()
+    skeleton["comparison"] = {"why": "", "criteria": [], "options": [], "method": "", "review_when": ""}
+    if template == "auto":
+        skeleton["maps"] = []
+        map_start = (
+            "Choose the map or maps that best explain this material. Do not default to a tree. "
+            "Use customer-journey for a person's ordered actions, service-blueprint for visible "
+            "and behind-the-scenes work, system-journeys for handoffs between people and systems, "
+            "decision-chain for current and proposed work through stages, and opportunity-tree "
+            "for alternative ways to reach an outcome. Use more than one map only when each answers "
+            "a different useful question. Explain the choice in each map's intro. Keep actions "
+            "in the supplied order. Choose meaningful lanes, stages and labels from the material. "
+            "Here are the supported map shapes; replace the empty maps list with your choices:\n"
+            + json.dumps([new_model(t, "", question)["maps"][0] for t in TEMPLATES], indent=1)
+        )
+    else:
+        map_start = "Start from this skeleton. Keep its lanes or stages unless the material needs different ones."
     system = "You build decision models as JSON. " + _guide()
     prompt = (
         f"Build a complete model in format {FORMAT!r} for this decision:\n{question}\n\n"
-        f"Start from this skeleton and fill every part. Keep its lanes or stages unless the "
-        f"material clearly needs different ones.\n{json.dumps(skeleton, indent=1)}\n\n"
+        f"Discovery answers from the person: {json.dumps(brief) if brief else 'Not supplied. Keep missing context explicit.'}\n\n"
+        f"{map_start}\n{json.dumps(skeleton, indent=1)}\n\n"
+        "Compare realistic alternatives against what the person says matters. Establish criteria "
+        "before assessing options. Include keeping things as they are only when it is realistic. "
+        "Choose the amount of checking and the method to match the stakes. Preserve uncertainty; "
+        "do not invent scores, agreed criteria or a final choice. comparison uses criteria "
+        "[{id,label,importance:must|important|nice}], options [{id,title,summary,evaluations "
+        "[{criterion,judgment:fits|mixed|does_not_fit|unknown,reason,evidence:[]}]}], method, why, "
+        "review_when, and an optional recommendation {option,reason,risks}. Use supplied evidence "
+        "and say which claims still need checking. Mark a map when planned if it explicitly "
+        "shows the proposed state. Questions should help the owner resolve the choice. "
         "Rules: every source in the material becomes a source; quote exact words or numbers "
-        "as evidence and cite evidence ids from boxes and notes; add 2 to 5 notes per role, "
-        "each ending in a question, with urgency must/should/info; turn differences between "
+        "as evidence and cite evidence ids from boxes and notes; consider every role, "
+        "but add only questions whose answers could change the choice, reveal an important "
+        "unknown, or establish who will act. Do not invent concerns to fill a quota. "
+        "Use a note's body to explain why the question matters in everyday words. "
+        "Each note must end in one question, with urgency must/should/info. Use answer_type text "
+        "for open questions and stance only when agree/change/unsure answers the question; "
+        "turn differences between "
         "today and planned into gaps with impact and effort 1-5, user stories and 'done when' "
         "checks; add open decisions that collect related notes; add outcome measures. "
+        "Use optional links [{id, from, to, label, kind, when}] for explicit relationships "
+        "between boxes: kind flow/evidence/feedback, when today/planned/both. Cite their basis "
+        "in the linked boxes. Do not turn shared evidence or visual proximity into a dependency. "
         "Say 'not sure' rather than invent facts. Reply with the JSON only.\n\n"
         + _material_block(material, max_material_chars)
     )
@@ -241,7 +279,12 @@ def draft(
     def check(v):
         return [p["message"] for p in validate(v) if p["level"] == "error"]
 
-    return _ask(complete, system, prompt, check)
+    result = _ask(complete, system, prompt, check)
+    if brief is not None:
+        result["brief"] = brief
+    for note in result.get("notes", []):
+        note.setdefault("author", "AI assistant")
+    return result
 
 
 def perspectives(
@@ -266,6 +309,9 @@ def perspectives(
     prompt = (
         f"Here is a decision model:\n{json.dumps(model, indent=1)}\n\n"
         f"Write up to {per_role} new notes for each of these roles:\n{json.dumps(roles, indent=1)}\n"
+        "Ask only questions that could change the choice or resolve an important unknown. "
+        "Do not repeat a standard checklist for every role or fill a quota. "
+        "Explain why each question matters in everyday words. "
         "Each note: {id, role, anchor (an existing box or gap id), title, body, recommend, "
         "question, urgency (must|should|info), evidence (existing evidence ids)}. Use ids that "
         "start with 'P'. Do not repeat points the model already makes. Reply with "
@@ -287,4 +333,7 @@ def perspectives(
             return ['Reply must be {"notes": [...]}.']
         return [p["message"] for p in validate(combine(v)) if p["level"] == "error"]
 
-    return combine(_ask(complete, system, prompt, check))
+    result = _ask(complete, system, prompt, check)
+    for note in result.get("notes", []):
+        note.setdefault("author", "AI assistant")
+    return combine(result)

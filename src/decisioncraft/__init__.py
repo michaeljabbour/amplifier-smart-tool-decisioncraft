@@ -2,6 +2,8 @@
 
 from .help import VERSION as __version__  # noqa: F401 -- single source of the version
 from .lib import (  # noqa: F401
+    discover,
+    handoff,
     diff,
     draft,
     manifest,
@@ -11,6 +13,7 @@ from .lib import (  # noqa: F401
     questions,
     render,
     roles,
+    session,
     templates,
     validate,
     words,
