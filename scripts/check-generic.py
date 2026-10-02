@@ -58,11 +58,17 @@ def local_terms(root: Path) -> list[re.Pattern]:
     return [re.compile(r"\b" + re.escape(t) + r"\b", re.IGNORECASE) for t in terms]
 
 
+# The vendored family theme names the family's owner and organisation; that is expected.
+# Paths, emails and product names are still checked there.
+VENDORED = ("site/theme/",)
+
+
 def patterns(rel: str, terms):
-    pats = list(PATHS) + list(terms)
+    vendored = rel.startswith(VENDORED)
+    pats = list(PATHS) + ([] if vendored else list(terms))
     pats += [re.compile(re.escape(t), re.IGNORECASE) for t in PRODUCT_TERMS]
     pats += [re.compile(r"\b" + re.escape(t) + r"\b") for t in CASED_TERMS]
-    if rel not in FILLER_EXEMPT:
+    if rel not in FILLER_EXEMPT and not vendored:
         pats += [re.compile(r"\b" + re.escape(t) + r"\b", re.IGNORECASE) for t in FILLER]
     return pats
 

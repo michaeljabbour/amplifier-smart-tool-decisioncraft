@@ -7,3 +7,4 @@ build/
 .work/
 .check-generic.local
 *.egg-info/
+_site/

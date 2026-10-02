@@ -1,0 +1,106 @@
+{
+  "kind": "tool",
+  "key": "decisioncraft",
+  "name": "Decisioncraft",
+  "accent": "#7a5a2f",
+  "title": "Decisioncraft | Amplifier Smart Tools",
+  "promise": "Decide together, with every voice in the room.",
+  "description": "Map how a problem works today and what you plan to change. Put the evidence beside every claim, gather notes from every point of view, and leave the review with a short, ranked list of what to decide.",
+  "image": "docs/images/business-poster.png",
+  "video": "docs/images/business-demo.mp4",
+  "alt": "A bakery's decision about a monthly box: the list of views on the left, a subscriber's journey on the map, a walk-through card, a step's notes with an answer, and the questions to decide.",
+  "caption": "Screen recording of the bakery example: take the walk-through, open a step, answer a question, then see everything that needs deciding.",
+  "width": 1440,
+  "height": 900,
+  "flow_title": "Map it. Hear everyone. Decide.",
+  "flow_intro": "Start from the notes, interviews, data or code you already have. Decisioncraft turns them into one map that a mixed group can read without training.",
+  "steps": [
+    [
+      "Bring what you know.",
+      "Give your agent the material: meeting notes, interviews, figures, documents. It drafts a decision model with sources, quoted evidence, journeys or stages, and gaps between today and the plan."
+    ],
+    [
+      "Hear every point of view.",
+      "Designers, analysts, engineers, owners, security, the people you serve, an AI agent teammate and finance each leave notes. Every note ends in a question."
+    ],
+    [
+      "Review, then decide.",
+      "Send one offline file round. Reviewers take the walk-through, answer questions, place dots on what matters most and save their answers. Merge the answers to see where people agree."
+    ]
+  ],
+  "detail_title": "Keep the reasons with the decision.",
+  "details": [
+    [
+      "Evidence beside every claim.",
+      "Boxes and notes link to the exact words or numbers behind them, with the source and date. Customer and patient quotes are marked as their own words."
+    ],
+    [
+      "Gaps you can rank.",
+      "Differences between today and the plan become gaps with user stories, done-when checks, and impact and effort scores. Quick wins sort to the top."
+    ],
+    [
+      "See what changed.",
+      "Compare two versions of a model before a follow-up review. New and changed boxes are marked, and boxes not checked for a while say so."
+    ]
+  ],
+  "prompt": "Use Decisioncraft to help us decide whether to open on Sundays. Read decisioncraft --help, draft a model from the notes in ./notes with the customer-journey template, check it with validate, then render the canvas and open it for review.",
+  "install": "uv tool install \"amplifier-smart-tool-decisioncraft[smart] @ git+https://github.com/decisioncraft/amplifier-smart-tool-decisioncraft\"\ndecisioncraft --help",
+  "prerequisites": "Python 3.11 or later. Canvases are single HTML files that open in any current browser, offline.",
+  "model_note": "Drafting a model and adding role notes need separately configured Anthropic or OpenAI access. Checking, drawing, comparing and merging reviews need no model.",
+  "guide": "src/decisioncraft/SMART_TOOL.md",
+  "related": [
+    "possibly",
+    "stories",
+    "showrun"
+  ],
+  "capability_demos": [
+    {
+      "id": "business",
+      "eyebrow": "For a business decision",
+      "title": "A bakery weighs a monthly box.",
+      "description": "Three shops, six customer chats, a year of figures and one staff meeting. The map follows a subscriber's month and the path from what customers said to a pilot plan.",
+      "image": "docs/images/business-poster.png",
+      "video": "docs/images/business-demo.mp4",
+      "width": 1440,
+      "height": 900,
+      "alt": "The bakery example: a customer journey across five phases, with notes counted on each step.",
+      "caption": "Screen recording. Fictional business, people and figures."
+    },
+    {
+      "id": "technical",
+      "eyebrow": "For a technical decision",
+      "title": "A web team rethinks file uploads.",
+      "description": "Large uploads time out and the storage bill keeps growing. The map shows how an upload works today, the proposed change, and an opportunity tree of options with quick tests.",
+      "image": "docs/images/technical-poster.png",
+      "video": "docs/images/technical-demo.mp4",
+      "width": 1440,
+      "height": 900,
+      "alt": "The uploads example: two journeys across customer, web app, servers, database, background jobs and storage.",
+      "caption": "Screen recording. Fictional team and figures."
+    },
+    {
+      "id": "engineering",
+      "eyebrow": "For an engineering decision",
+      "title": "A council chooses: repair or replace a footbridge.",
+      "description": "An inspection, early costs and a public drop-in. The map traces the decision from findings to outcome, and what closing the bridge would mean for the people who cross it.",
+      "image": "docs/images/engineering-poster.png",
+      "video": "docs/images/engineering-demo.mp4",
+      "width": 1440,
+      "height": 900,
+      "alt": "The footbridge example: a decision chain from source to outcome, with planned items marked by dashed borders.",
+      "caption": "Screen recording. Fictional bridge, council and figures."
+    },
+    {
+      "id": "medical",
+      "eyebrow": "For a decision in care",
+      "title": "A ward changes how patients go home.",
+      "description": "An audit, patient and carer feedback and a staff huddle. The map follows a patient's way home and the ward's discharge day. This is about how a team organises its work; it is not medical advice.",
+      "image": "docs/images/medical-poster.png",
+      "video": "docs/images/medical-demo.mp4",
+      "width": 1440,
+      "height": 900,
+      "alt": "The ward example: a patient's journey home, today and with the proposed changes.",
+      "caption": "Screen recording. Invented data; no real patients."
+    }
+  ]
+}
