@@ -20,8 +20,8 @@ def car():
     return json.loads(CAR.read_text())
 
 
-def errors(model):
-    return [p for p in validate(model) if p["level"] == "error"]
+def errors(model, allow_empty=False):
+    return [p for p in validate(model, allow_empty=allow_empty) if p["level"] == "error"]
 
 
 def tiny():
@@ -51,7 +51,7 @@ def test_personal_decision_is_a_starting_set():
     m = new_model("personal-decision", "Car", "Which car?")
     assert [x["template"] for x in m["maps"]] == ["decision-chain", "customer-journey", "scoring-table", "cost-over-time"]
     assert {r["id"] for r in m["roles"]} >= {"money", "safety", "future", "devil"}
-    assert errors(m) == []
+    assert errors(m, allow_empty=True) == []
 
 
 def test_personal_decision_cannot_be_a_single_map():

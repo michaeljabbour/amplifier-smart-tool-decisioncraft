@@ -81,13 +81,14 @@ On failure:
 | `file_not_found` | 1 | A file named on the command line does not exist. |
 | `not_a_file` | 1 | A folder was given where a file was expected. |
 | `bad_json`, `not_text` | 1 | The file is not valid JSON, or not text. |
-| `invalid_model` | 1 | The model has errors; `problems` lists them, `field` is the first path. |
+| `invalid_model` | 1 | The model has errors; `problems` lists them, `field` is the first path. A model with no steps, items, ideas or options (an untouched starter) is an error, "The map is empty", unless `validate` or `render` gets `--allow-empty`. |
 | `invalid_input` | 1 | Another input problem: an unknown template or role, a review for another model, a bad `--score`, a web address for `map` with no `--page` or `--allow-network`, a folder with nothing readable. |
 | `folder_not_empty`, `already_exists` | 1 | `example` or `new` would overwrite files. |
 | `file_error` | 1 | The file could not be read for another reason. |
 | `provider_not_configured` | 3 | A provider key, model name or SDK is missing. |
 | `no_write_access` | 3 | The output folder can't be written. |
 | `missing_prerequisite` | 3 | An optional package is needed, for example `mcp`. |
+| `missing_resource` | 3 | A file the tool ships with (the model format, an example) is missing from this installation, for example a skill folder built without it. The hint says how to rebuild or where to read it instead. |
 | `setup_incomplete` | 3 | `doctor` found something every user needs that is broken. |
 | `model_call_failed` | 4 | The provider or `--complete-cmd` failed. |
 | `reply_invalid` | 4 | The model's reply was still invalid after one repair. |

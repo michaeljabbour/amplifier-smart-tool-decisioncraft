@@ -275,6 +275,8 @@ def build() -> SkillParser:
     g.add_argument("--out", metavar="FILE", help="Where to write the HTML.")
     g.add_argument("--open", action="store_true", help="Open it in your browser.")
     g.add_argument("--watch", action="store_true", help="Draw again whenever an input file changes.")
+    g.add_argument("--allow-empty", action="store_true",
+                   help="Draw a model with no boxes yet (an unfinished starter) instead of refusing.")
 
     c = cmd("doctor")
     g = c.add_argument_group("What to check")
@@ -366,7 +368,10 @@ def build() -> SkillParser:
     g.add_argument("new", help="The later model JSON.")
 
     c = cmd("validate")
-    c.add_argument_group("Input").add_argument("model", help="The model JSON file.")
+    g = c.add_argument_group("Input")
+    g.add_argument("model", help="The model JSON file.")
+    g.add_argument("--allow-empty", action="store_true",
+                   help="Accept a model with no steps, items, ideas or options yet (an unfinished starter).")
 
     c = cmd("handoff")
     g = c.add_argument_group("Input")
@@ -737,7 +742,7 @@ def _render_once(run: Run, out_path: Path | None) -> Out:
     since = run.load(a.since) if a.since else None
     run.file = a.model
     run.term.say("Checking it and drawing the canvas ...")
-    html = lib.render(model, merged=merged, since=since)
+    html = lib.render(model, merged=merged, since=since, allow_empty=getattr(a, "allow_empty", False))
     info = {"summary": summary(model), "bytes": len(html.encode("utf-8"))}
     if out_path is None:
         return Out(data={**info, "path": None}, text=html)
@@ -886,7 +891,7 @@ def _pretty_problems(problems: list[dict], term: Term) -> str:
 
 def do_validate(run: Run) -> Out:
     model = run.load(run.args.model)
-    problems = lib.validate(model)
+    problems = lib.validate(model, allow_empty=getattr(run.args, "allow_empty", False))
     errs = [p for p in problems if p["level"] == "error"]
     err = None
     if errs:

@@ -16,7 +16,8 @@ from decisioncraft.review import blank_review
 @pytest.fixture
 def model():
     m = dc.new("opportunity-tree", "Local review", "Which trial should we run?")
-    m["maps"][0]["root"].update(id="goal", title="Choose a trial", children=[])
+    m["maps"][0]["root"].update(id="goal", title="Choose a trial",
+                                children=[dict(id="pilot", title="Run a two-week pilot", text="", children=[])])
     m["notes"] = [
         dict(
             id="Q1",

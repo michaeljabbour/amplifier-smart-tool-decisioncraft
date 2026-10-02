@@ -166,9 +166,10 @@ def build_server():
         }
 
     @server.tool(structured_output=True)
-    def decisioncraft_validate(model: dict) -> dict[str, Any]:
-        """Check a model before opening it. No credentials or model call."""
-        problems = lib.validate(model)
+    def decisioncraft_validate(model: dict, allow_empty: bool = False) -> dict[str, Any]:
+        """Check a model before opening it. No credentials or model call. A model with no
+        steps, items, ideas or options is an error unless allow_empty is true."""
+        problems = lib.validate(model, allow_empty=allow_empty)
         return {
             "valid": not any(p["level"] == "error" for p in problems),
             "problems": problems,
@@ -224,15 +225,17 @@ def build_server():
         reviews: list[dict] | None = None,
         merged: dict | None = None,
         since: dict | None = None,
+        allow_empty: bool = False,
     ) -> dict[str, Any]:
-        """Draw a model as one offline HTML canvas and return where it was written."""
+        """Draw a model as one offline HTML canvas and return where it was written. Refuses a
+        model with no boxes yet unless allow_empty is true."""
         if "/" in filename or "\\" in filename or not filename.endswith(".html"):
             raise ValueError("filename must be a plain name ending in .html, for example canvas.html.")
         if directory:
             _writable_dir(directory)
         folder = Path(directory).expanduser() if directory else Path(tempfile.mkdtemp(prefix="decisioncraft-"))
         folder.mkdir(parents=True, exist_ok=True)
-        html = lib.render(model, reviews=reviews, merged=merged, since=since)
+        html = lib.render(model, reviews=reviews, merged=merged, since=since, allow_empty=allow_empty)
         path = folder / filename
         path.write_text(html, encoding="utf-8")
         return {"path": str(path.resolve()), "bytes": len(html.encode("utf-8")), "summary": summary(model)}

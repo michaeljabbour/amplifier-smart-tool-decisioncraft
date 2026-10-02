@@ -107,6 +107,8 @@ def test_completion_preserves_answers_requirements_and_uncertainty():
 
 def test_current_map_and_blank_answers_do_not_become_a_proposal():
     model = dc.new("customer-journey", "A journey", "What should we change?")
+    model["maps"][0]["journeys"] = [{"id": "j1", "title": "Today", "steps": [
+        {"id": "s1", "lane": model["maps"][0]["lanes"][0]["id"], "text": "They hear about it", "status": "works"}]}]
     result = dc.handoff(model, blank_review(model))
     assert result["proposed_model"] is None and result["user_stories"] == []
     assert any("No proposed-state map" in item for item in result["missing"])

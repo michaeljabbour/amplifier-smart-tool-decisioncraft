@@ -52,7 +52,16 @@ def example(name: str) -> dict:
         raise ValueError(f"Unknown example: {name}. Choose one of {', '.join(EXAMPLES)}.")
     root = _root(name)
     if root is None:
-        raise FileNotFoundError(f"The {name} example is missing from this installation.")
+        from .errors import SETUP, ToolError
+
+        folder = FOLDERS.get(name, name)
+        raise ToolError(
+            "missing_resource",
+            f"The {name} example (examples/{folder}/model.json) is missing from this installation.",
+            hint="Reinstall Decisioncraft. In skill mode the examples live in "
+            "scripts/decisioncraft/examples/; rebuild the skill with scripts/build-skill-zip.py.",
+            exit_code=SETUP,
+        )
     model = json.loads(root.joinpath("model.json").read_text(encoding="utf-8"))
     material = []
     mat = root.joinpath("material")

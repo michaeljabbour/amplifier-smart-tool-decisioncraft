@@ -24,7 +24,8 @@ TINY = {
     "evidence": [], "gaps": [], "notes": [], "decisions": [], "outcomes": [],
     "maps": [{"id": "m1", "template": "opportunity-tree", "title": "x", "intro": "x",
               "levels": ["Outcome", "Need or pain", "Idea", "Quick test"],
-              "root": {"id": "root", "title": "x", "text": "", "children": []}}],
+              "root": {"id": "root", "title": "x", "text": "", "children": [
+                  {"id": "n1", "title": "An idea", "text": "", "children": []}]}}],
 }
 
 

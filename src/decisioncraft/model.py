@@ -433,8 +433,44 @@ def _as_list(value) -> list:
     return value if isinstance(value, list) else []
 
 
-def validate(model: dict) -> list[dict]:
+EMPTY_MAP_MESSAGE = (
+    "The map is empty: no steps, items, ideas or options yet. Fill it in from the material "
+    "(read FILL-IN.md and `decisioncraft guide`), then check it again. To check an unfinished "
+    "starter on purpose, pass --allow-empty."
+)
+
+
+def content_count(model: dict) -> int:
+    """How many boxes carry the substance of a model: journey steps, chain items, tree ideas
+    under the root, and options. A starter straight from `new`, `map --starter` or a template
+    has none. Tolerates a malformed model."""
+    if not isinstance(model, dict):
+        return 0
+    n = sum(1 for o in _as_list(model.get("options")) if isinstance(o, dict))
+    for m in _as_list(model.get("maps")):
+        if not isinstance(m, dict):
+            continue
+        for j in _as_list(m.get("journeys")):
+            if isinstance(j, dict):
+                n += sum(1 for s in _as_list(j.get("steps")) if isinstance(s, dict))
+        for st in _as_list(m.get("stages")):
+            if isinstance(st, dict):
+                n += sum(1 for it in _as_list(st.get("items")) if isinstance(it, dict))
+        root = m.get("root")
+        stack = list(_as_list(root.get("children"))) if isinstance(root, dict) else []
+        while stack:
+            node = stack.pop()
+            if isinstance(node, dict):
+                n += 1
+                stack.extend(_as_list(node.get("children")))
+    return n
+
+
+def validate(model: dict, *, allow_empty: bool = False) -> list[dict]:
     """Check a model. Returns problems: {level: error|warning, path, message}.
+
+    A model with no content at all (see `content_count`) is an error unless `allow_empty`:
+    an untouched starter must not pass as a finished map.
 
     Errors make a model unusable; warnings are worth fixing (plain words, missing evidence).
     Never raises on a malformed model -- a wrong type in place of a list or object is
@@ -844,6 +880,8 @@ def validate(model: dict) -> list[dict]:
         for w in PLAIN_WORDS:
             if re.search(r"\b" + re.escape(w) + r"\b", low):
                 warn(path, f"Use plainer words than {w!r}.")
+    if not allow_empty and raw_maps and content_count(model) == 0:
+        err("maps", EMPTY_MAP_MESSAGE)
     return out
 
 
@@ -859,9 +897,9 @@ def _texts(value, path=""):
             yield from _texts(v, f"{path}[{i}]")
 
 
-def require_valid(model: dict) -> dict:
+def require_valid(model: dict, *, allow_empty: bool = False) -> dict:
     """Raise ModelError when a model has errors; return it unchanged otherwise."""
-    errors = [p for p in validate(model) if p["level"] == "error"]
+    errors = [p for p in validate(model, allow_empty=allow_empty) if p["level"] == "error"]
     if errors:
         raise ModelError(errors)
     return model

@@ -21,15 +21,16 @@ def _embed(value) -> str:
 
 
 def render(model: dict, *, reviews: list[dict] | None = None, merged: dict | None = None,
-           since: dict | None = None) -> str:
+           since: dict | None = None, allow_empty: bool = False) -> str:
     """Render a model as a single HTML file that works offline.
 
     reviews: saved review files to show as agree/disagree tallies (merged here).
     merged: an already merged review set (from `merge`), used instead of `reviews`.
     since: an earlier version of the same model; boxes added or changed since then
     are marked "New" or "Changed".
+    allow_empty: draw a model with no boxes yet (an unfinished starter) instead of refusing.
     """
-    require_valid(model)
+    require_valid(model, allow_empty=allow_empty)
     if reviews and merged is None:
         merged = merge(reviews, model)
     changes = diff_models(since, model) if since else None

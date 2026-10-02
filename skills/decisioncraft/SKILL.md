@@ -51,7 +51,8 @@ when the tool changes. Each command has its own: `decisioncraft <command> --help
 
 **Filling in a model yourself** (no model routing, or after an interview): read
 `decisioncraft guide`, which lists every field with its rules, edit `model.json`, and run
-`decisioncraft validate` until it reports no errors. You don't need the tool's source.
+`decisioncraft validate` until it reports no errors. You don't need the tool's source. An
+untouched starter fails on purpose ("The map is empty"): never hand over an empty canvas.
 
 **Personal and household choices** (a car, a home, a job offer): the interview writes a
 `personal-decision` model with must-haves, weighted scores and a computed "what would change

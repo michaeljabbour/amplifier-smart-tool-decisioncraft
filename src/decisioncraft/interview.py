@@ -493,7 +493,7 @@ def finish(directory, state: dict | None = None) -> dict:
         raise ValueError("No interview in this folder. Start one with: decisioncraft interview --dir FOLDER")
     folder = Path(directory).expanduser().resolve()
     model = build_model(state)
-    problems = [p for p in validate(model) if p.get("level") == "error"]
+    problems = [p for p in validate(model, allow_empty=True) if p.get("level") == "error"]
     if problems:
         raise ValueError("The starter model has problems: " + "; ".join(p["message"] for p in problems[:5]))
     stakes = _stakes(state)

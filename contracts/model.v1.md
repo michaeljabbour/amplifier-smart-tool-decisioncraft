@@ -42,6 +42,11 @@ remain available in the detail panel even when both endpoints cannot be drawn to
 
 ## Map shapes
 
+A model needs content to pass `validate`: at least one journey step, chain item, idea under a
+tree's root, or option. A starter straight from `new`, `map --starter` or a template has none,
+so it fails with "The map is empty" until it is filled in. `validate --allow-empty` and
+`render --allow-empty` accept an unfinished starter on purpose.
+
 - **Journeys** (`system-journeys`, `customer-journey`, `service-blueprint`): `lanes[{id, label, sub, summary, detail, color}]`
   and `journeys[{id, title, summary, creates[], steps[]}]`. A step:
   `{id, lane, text, status, when (today|planned|both), replaces, detail, pain, moment, feeling, checked, evidence[]}`.

@@ -77,6 +77,16 @@ def guide() -> dict:
         repo = Path(__file__).resolve().parents[2] / "contracts" / "model.v1.md"
         if repo.is_file():
             fmt = repo.read_text(encoding="utf-8")
+    if not fmt.strip():
+        from .errors import SETUP, ToolError
+
+        raise ToolError(
+            "missing_resource",
+            "The model format (resources/model-format.md) is missing from this installation.",
+            hint="Reinstall Decisioncraft. In skill mode, read references/model-format.md in the "
+            "skill folder instead, and rebuild the skill with scripts/build-skill-zip.py.",
+            exit_code=SETUP,
+        )
     return {"model_format": fmt, "writing_guide": _guide()}
 
 

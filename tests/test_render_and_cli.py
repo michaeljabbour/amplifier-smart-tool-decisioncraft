@@ -46,7 +46,7 @@ def test_render_is_self_contained(name):
 
 def test_render_escapes_script_endings_inside_the_model():
     m = dc.new("decision-chain", "A </script><script>alert(1)</script> title", "Q?")
-    page = dc.render(m)
+    page = dc.render(m, allow_empty=True)
     assert "</script><script>alert(1)" not in page
 
 
@@ -135,7 +135,7 @@ def test_cli_deterministic_paths_run_without_credentials(tmp_path):
         "--out",
         str(model),
     )
-    run("validate", str(model))
+    run("validate", str(model), "--allow-empty")
     run(
         "render", str(EX / "business" / "model.json"), "--out", str(tmp_path / "c.html")
     )
@@ -204,7 +204,8 @@ def test_complete_cmd_runs_the_model_backed_path_with_no_sdk_and_no_key(tmp_path
         "    'evidence': [], 'gaps': [], 'notes': [], 'decisions': [], 'outcomes': [],\n"
         "    'maps': [{'id': 'm1', 'template': 'opportunity-tree', 'title': 'x', 'intro': 'x',\n"
         "              'levels': ['Outcome', 'Need or pain', 'Idea', 'Quick test'],\n"
-        "              'root': {'id': 'root', 'title': 'x', 'text': '', 'children': []}}],\n"
+        "              'root': {'id': 'root', 'title': 'x', 'text': '',\n"
+        "                       'children': [{'id': 'n1', 'title': 'An idea', 'text': '', 'children': []}]}}],\n"
         "}))\n"
     )
     r = run(

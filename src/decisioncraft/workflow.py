@@ -199,7 +199,7 @@ def handoff(model: dict, review: dict) -> dict:
         proposed["reading"] = (
             "This shows the proposed work and retained context. It does not mean the owner has approved it."
         )
-        require_valid(proposed)
+        require_valid(proposed, allow_empty=True)
         proposed_model = proposed
     else:
         missing.append(

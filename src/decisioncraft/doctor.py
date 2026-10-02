@@ -36,6 +36,9 @@ def _writable(folder: Path) -> bool:
         return False
 
 
+SKILL_MODE = "Skill mode: your host's model does the thinking; no keys or installs needed."
+
+
 def doctor(*, directory: str = ".", complete_cmd: str | None = None, live: bool = False) -> dict:
     """Check Python, optional packages, provider keys, host-model routing and write access.
 
@@ -68,6 +71,24 @@ def doctor(*, directory: str = ".", complete_cmd: str | None = None, live: bool 
         add("temp_folder", "ok", f"Temporary folder {tmp} is writable")
     else:
         add("temp_folder", "fail", f"Can't write to the temporary folder {tmp}.", "Set TMPDIR to a folder you can write to.")
+
+    if os.environ.get("DECISIONCRAFT_HOST", "").strip().lower() == "skill":
+        # Skill mode (the bundled runner sets this): the host agent is the model. Provider
+        # packages, keys, --complete-cmd and MCP don't apply, so don't suggest installing them.
+        add("skill_mode", "ok", SKILL_MODE)
+        failed = any(c["status"] == "fail" for c in checks)
+        ready = {
+            "deterministic": not failed,
+            "draft_with_anthropic": False,
+            "draft_with_openai": False,
+            "draft_with_complete_cmd": False,
+            "draft_by_default": False,
+            "mcp": False,
+            "host": "skill",
+            "map_uses_host_model": True,
+        }
+        text = "Some things need fixing before you start (marked fix)." if failed else SKILL_MODE
+        return {"checks": checks, "ready": ready, "summary": text}
 
     sdks = {}
     for pkg, env in (("anthropic", "ANTHROPIC_API_KEY"), ("openai", "OPENAI_API_KEY")):

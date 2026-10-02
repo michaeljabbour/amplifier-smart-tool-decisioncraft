@@ -413,7 +413,9 @@ def map_starter(target: str, *, roles: list[str] | None = None, question: str = 
         "4. Add one note per role in `roles` (" + ", ".join(r["label"] for r in model["roles"]) + "), "
         "each pointing at a box and ending in one question.\n"
         "5. Run `decisioncraft validate model.json` until it reports no errors, then "
-        "`decisioncraft render model.json --open`.\n"
+        "`decisioncraft render model.json --open`.\n\n"
+        "The starter has no boxes yet, so `validate` reports the map as empty until you fill it in. "
+        "That is on purpose: never hand over an empty canvas as a finished map.\n"
     )
     return {"model": model, "digest": digest, "instructions": instructions,
             "plan": plan_map(target, roles=roles, budget=budget, answers=answers)}

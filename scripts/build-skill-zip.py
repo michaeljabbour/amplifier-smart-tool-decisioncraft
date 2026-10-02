@@ -7,7 +7,10 @@ under scripts/decisioncraft/, a runner (scripts/dc.py) and references/ (model fo
 guide, modes, interview questions, templates, roles). It needs no API key, pip or network: the
 host's own model writes the map; Decisioncraft checks and draws it.
 
-Usage: python3 scripts/build-skill-zip.py [--out dist/decisioncraft-skill.zip]
+Usage: python3 scripts/build-skill-zip.py [--out dist/decisioncraft-skill.zip] [--no-test]
+
+The build ends with scripts/test-skill-zip.py, so a zip missing a file the library reads
+never gets released.
 """
 
 from __future__ import annotations
@@ -16,7 +19,9 @@ import argparse
 import json
 import re
 import shutil
+import subprocess
 import sys
+import tomllib
 import zipfile
 from pathlib import Path
 
@@ -69,7 +74,8 @@ When someone uploads files or a folder and asks how it works or what is missing:
    `map/model.json` from the digest: how it works today (each step with evidence quoted exactly,
    with its file and line), the planned way, the gaps as user stories with "done when" checks,
    and a short note from each role that ends in a question.
-3. `python3 scripts/dc.py validate map/model.json --json`. Fix every error it lists.
+3. `python3 scripts/dc.py validate map/model.json --json`. Fix every error it lists. The
+   untouched starter fails on purpose ("The map is empty"): never hand over an empty canvas.
 4. `python3 scripts/dc.py render map/model.json --out map/canvas.html --json`.
 5. Give the person `map/canvas.html` as a downloadable file. It opens offline in any browser.
    Summarise in a few plain sentences what it shows and the most urgent questions
@@ -81,6 +87,8 @@ could not check.
 ## Other useful commands
 
 - `guide`: the model format and writing guide (same as `references/`).
+- `example car --out car --json` (or business, technical, engineering, medical, map): a finished
+  example to show what a map looks like; render it with `render car/model.json`.
 - `words model.json`: the whole model as readable text.
 - `merge model.json review1.json review2.json`: where reviewers agree and split.
 - `diff old.json new.json`: what changed between versions.
@@ -140,6 +148,15 @@ if __name__ == "__main__":
 '''
 
 
+def wheel_extras() -> dict[str, str]:
+    """The files the wheel adds to the package (pyproject force-include): repository path ->
+    path inside the installed package. The skill copies exactly the same set, so `guide`,
+    `example` and anything else that reads package data work the same in skill mode."""
+    cfg = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    extra = cfg["tool"]["hatch"]["build"]["targets"]["wheel"].get("force-include", {})
+    return {src: dst.split("/", 1)[1] for src, dst in extra.items() if dst.startswith("decisioncraft/")}
+
+
 def build(out: Path) -> Path:
     stage = out.parent / "skill-build"
     if stage.exists():
@@ -150,6 +167,17 @@ def build(out: Path) -> Path:
     (root / "SKILL.md").write_text(frontmatter() + BODY.lstrip("\n"), encoding="utf-8")
     shutil.copytree(SRC, root / "scripts" / "decisioncraft",
                     ignore=lambda d, names: [n for n in names if n in SKIP or n.endswith(".pyc")])
+    pkg = root / "scripts" / "decisioncraft"
+    for src, dst in wheel_extras().items():
+        source, target = ROOT / src, pkg / dst
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if source.is_dir():
+            shutil.copytree(source, target, dirs_exist_ok=True,
+                            ignore=lambda d, names: [n for n in names if n in SKIP or n.endswith(".pyc")])
+        elif source.is_file():
+            shutil.copy2(source, target)
+        else:
+            raise SystemExit(f"pyproject force-include names {src}, which does not exist")
     (root / "scripts" / "dc.py").write_text(RUNNER, encoding="utf-8")
     for name, text in references().items():
         (root / "references" / name).write_text(text, encoding="utf-8")
@@ -167,11 +195,19 @@ def build(out: Path) -> Path:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--out", default=str(ROOT / "dist" / "decisioncraft-skill.zip"))
-    out = build(Path(ap.parse_args().out))
+    ap.add_argument("--no-test", action="store_true",
+                    help="Skip the smoke test (unzip, run every key command offline, compare with the wheel).")
+    args = ap.parse_args()
+    out = build(Path(args.out))
     with zipfile.ZipFile(out) as z:
         skill = z.read("decisioncraft/SKILL.md").decode("utf-8")
         print(f"Wrote {out} ({len(z.namelist())} files; SKILL.md ~{len(skill) // 4} tokens)")
-    return 0
+    if args.no_test:
+        return 0
+    test = subprocess.run([sys.executable, str(ROOT / "scripts" / "test-skill-zip.py"), str(out)])
+    if test.returncode:
+        print("The skill zip failed its smoke test; not fit to release.", file=sys.stderr)
+    return test.returncode
 
 
 if __name__ == "__main__":

@@ -40,7 +40,9 @@ def test_every_template_is_used_by_an_example():
 @pytest.mark.parametrize("template", [t["id"] for t in dc.templates()])
 def test_new_model_from_each_template_is_valid(template):
     m = dc.new(template, "Title", "What should we do?")
-    assert [p for p in dc.validate(m) if p["level"] == "error"] == []
+    assert [p for p in dc.validate(m, allow_empty=True) if p["level"] == "error"] == []
+    # Untouched, it is a starter, not a map: plain validate says the map is empty.
+    assert any("map is empty" in p["message"] for p in dc.validate(m) if p["level"] == "error")
 
 
 def test_unknown_template_is_refused():
