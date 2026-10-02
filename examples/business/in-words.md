@@ -261,6 +261,21 @@ Charging cards, handling declines, and seeing whether the box pays.
 
 Each stage is one step from a customer's words to a box on the shelf, and whether it worked.
 
+### What changes
+
+7 new · 2 changed · 1 goes away.
+
+- **New:** Start with collection only
+- **New:** Saturday pickup, Thursday bake
+- **New:** Steady weekday income, less waste
+- **New:** One box, two sizes, a gluten-free swap
+- **New:** Payment and skip rules
+- **Goes away:** Half-price bags at closing
+- **New:** Pilot at Mill Lane for 8 weeks
+- **New:** Before launch
+- **Changed:** Trial box costed → Pilot boxes packed and costed weekly
+- **Changed:** Customer list cleaned → Customer list owned and cleaned
+
 ### Source
 Where it was said or measured
 
@@ -321,10 +336,10 @@ Planned:
 What we chose, and why
 
 Planned:
-- **Start with collection only** (Planned): Most people prefer collecting, and delivery eats the margin.
+- **Start with collection only** (Planned) (planned): Most people prefer collecting, and delivery eats the margin.
   > “Of those 41, 29 prefer collecting and 12 prefer delivery.” — Survey of regulars, 64 slips, Survey totals [E17]
   > “Local courier: £4.20 per drop within 3 miles, Tuesday or Friday only.” — Sales and costs, last 12 months, Quotes [E8]
-- **Saturday pickup, Thursday bake** (Planned): Avoids the tight Friday afternoon and uses idle ovens.
+- **Saturday pickup, Thursday bake** (Planned) (planned): Avoids the tight Friday afternoon and uses idle ovens.
   > “Friday afternoon is already our tightest time.” — Staff meeting, Station Road, Head baker [E9]
   > “Ovens sit idle from 1pm to 4pm Monday to Thursday.” — Waste log, Mill Lane, February, Notes under the table [E14]
 - **Owner note (Must decide): Pilot in one shop first.** Mill Lane has the most regulars asking. A cap keeps the bake manageable.
@@ -336,7 +351,7 @@ Planned:
 The result we want, in plain words
 
 Planned:
-- **Steady weekday income, less waste** (Planned): Bake to a known number midweek instead of guessing.
+- **Steady weekday income, less waste** (Planned) (planned): Bake to a known number midweek instead of guessing.
   > “Owner wants the box to cut waste, not add to it, and proposes baking box items on Thursday.” — Staff meeting, Station Road, Owner [E31]
 - **Owner note (Should decide): The box is for steady midweek income.** The point is to bake to a known number on quiet days, not to sell more on busy ones.
   We suggest: Judge the pilot on midweek waste and steady income, not on total sales.
@@ -352,10 +367,10 @@ Planned:
 What it must do, and how we will know
 
 Planned:
-- **One box, two sizes, a gluten-free swap** (Planned): Small £18, family £25. Skip by text before Wednesday.
+- **One box, two sizes, a gluten-free swap** (Planned) (planned): Small £18, family £25. Skip by text before Wednesday.
   > “24 of 64 ticked £25 as a fair price; only 8 ticked £30 or more.” — Survey of regulars, 64 slips, Price question [E18]
   > “11 of 64 (17%) avoid gluten, nuts or dairy.” — Survey of regulars, 64 slips, Diet question [E19]
-- **Payment and skip rules** (Planned): Hold unpaid boxes; unlimited skips with a deadline.
+- **Payment and skip rules** (Planned) (planned): Hold unpaid boxes; unlimited skips with a deadline.
   > “If a stored-card charge fails, the till marks it declined in a daily report. It does not retry and does not tell the customer.” — Till supplier call, Payments [E24]
   > “The cheese shop lets people skip any month online before the 20th; the veg box allows four weeks of pause a year.” — Other local boxes, Skip rules [E29]
 - **Finance note (Must decide): The box makes money at £25, but not with delivery.** Ingredients, packaging and packing time come to about £14. Card fees take another 43p. Delivery at £4.20 leaves little.
@@ -367,10 +382,15 @@ Planned:
 ### Plan
 Pieces of work, in order
 
+Today:
+- **Half-price bags at closing** (Works today) (today only): Leftover loaves sold off cheaply after four; the plan bakes to a known number instead.
+  > “Monday waste is 13% of what is baked; Saturday is 5%.” — Waste log, Mill Lane, February, Waste by day [E13]
+  > “Ovens sit idle from 1pm to 4pm Monday to Thursday.” — Waste log, Mill Lane, February, Notes under the table [E14]
+
 Planned:
-- **Pilot at Mill Lane for 8 weeks** (Planned): Collection only, capped at 30 boxes.
+- **Pilot at Mill Lane for 8 weeks** (Planned) (planned): Collection only, capped at 30 boxes.
   > “41 of 64 regulars said they would probably or definitely try a monthly box.” — Survey of regulars, 64 slips, Survey totals [E16]
-- **Before launch** (Planned): Counter card and photo, packing list, text add-on, GF shelf.
+- **Before launch** (Planned) (planned): Counter card and photo, packing list, text add-on, GF shelf.
   > “All three local boxes show a photo of this month's box on their front page.” — Other local boxes, Websites [E28]
   > “The till can send a text through an add-on at 4p per message.” — Till supplier call, Messages [E25]
 
@@ -378,9 +398,15 @@ Planned:
 What was actually built or changed
 
 Today:
-- **Trial box costed** (Works today): £11.40 plus 14 minutes of packing.
+- **Trial box costed** (Works today) (today only): £11.40 plus 14 minutes of packing.
   > “A trial box costs £11.40 in ingredients and packaging, plus about 14 minutes of staff time to pack.” — Sales and costs, last 12 months, Costs section [E6]
-- **Customer list cleaned** (Missing): Not started; nobody owns the list.
+- **Customer list cleaned** (Missing) (today only): Not started; nobody owns the list.
+  > “Nobody owns the customer list today. Loyalty data lives in the till system.” — Staff meeting, Station Road, Meeting notes [E12]
+
+Planned:
+- **Pilot boxes packed and costed weekly** (Planned) (planned): Packing time and cost per box tracked every Friday of the pilot.
+  > “A trial box costs £11.40 in ingredients and packaging, plus about 14 minutes of staff time to pack.” — Sales and costs, last 12 months, Costs section [E6]
+- **Customer list owned and cleaned** (Planned) (planned): One named person keeps the list; people opt in at the counter.
   > “Nobody owns the customer list today. Loyalty data lives in the till system.” — Staff meeting, Station Road, Meeting notes [E12]
 
 ### Outcome

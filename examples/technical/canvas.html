@@ -7,11 +7,20 @@
 <meta name="generator" content="decisioncraft">
 <title>Moving file uploads</title>
 <style>
+/* Decisioncraft canvas. One visual language:
+   - a dotted canvas;
+   - the chain as bold blocks, purple first and warm yellow after, joined by dashed arrows
+     that name what each step does to the next;
+   - white cards with a solid status tag, lane colours on journey steps;
+   - sticky notes in each role's colour, slightly tilted, with an urgency edge;
+   - plan changes as ribbons: teal New, amber Changed, grey Goes away. */
 :root{
-  --bg:#f5f4f0; --dot:#d6d3cb; --ink:#1d1d1b; --ink2:#46453f; --muted:#6a6862; --line:#d9d6ce;
-  --panel:#ffffff; --soft:#efede7; --accent:#2f5bd3; --accent-ink:#ffffff;
-  --works:#1f7a4a; --partial:#9a5b00; --missing:#b3261e; --planned:#0d6e74;
-  --must:#b3261e; --should:#9a5b00; --info:#4a5a72;
+  --bg:#f4f3ef; --dot:#cdc9bf; --ink:#1d1d1f; --ink2:#43423d; --muted:#6a6862; --line:#dcd9d0;
+  --panel:#ffffff; --soft:#efede6; --accent:#2f5bd3; --accent-soft:#e8eefc;
+  --purple:#7350e0; --purple-ink:#ffffff; --yellow:#f7cd60; --yellow-edge:#e5b641; --yellow-ink:#3a2a00;
+  --works:#1f7a4a; --partial:#985800; --missing:#b3261e; --planned:#0b6b72;
+  --new:#0e8a84; --new-soft:#e6f6f4; --changed:#c27c00; --changed-soft:#fff4dc; --gone:#86837b; --gone-soft:#f1efea;
+  --must:#b3261e; --should:#a86400; --info:#4a5a72;
   --z:1; --inv:1;
   font-synthesis:none;
 }
@@ -20,115 +29,319 @@ html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--
   font:14px/1.42 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
 button,select,input,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
+button:disabled{cursor:default;opacity:.55}
 :focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.small{font-size:12.5px;color:var(--muted)}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:12px;top:60px;z-index:80;background:#fff;padding:6px 10px;border-radius:6px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 
-/* canvas */
-#viewport{position:fixed;inset:0;cursor:grab;touch-action:none}
-body.dots #viewport{background-image:radial-gradient(var(--dot) 1.1px,transparent 1.1px);background-size:22px 22px}
-#viewport.dragging{cursor:grabbing}
-#world{position:absolute;left:0;top:0;transform-origin:0 0}
+/* ---------- canvas ---------- */
+#viewport,#viewport2{position:fixed;inset:0;cursor:grab;touch-action:none;overflow:hidden}
+body.dots #viewport,body.dots #viewport2{background-image:radial-gradient(var(--dot) 1.1px,transparent 1.1px);background-size:22px 22px}
+#viewport.dragging,#viewport2.dragging{cursor:grabbing}
+#viewport2{display:none}
+#world,#world2{position:absolute;left:0;top:0;transform-origin:0 0}
+.panelabel{display:none}
 svg.links{position:absolute;left:0;top:0;overflow:visible;pointer-events:none;z-index:1}
-svg.links path{fill:none;stroke:#9a978f;stroke-width:2}
+svg.links path{fill:none;stroke:#a19d93;stroke-width:2}
+svg.links path.flow{stroke:#a19d93}
 svg.links path.hot{stroke:var(--accent);stroke-width:3}
-svg.links text{font-size:15px;font-weight:600;fill:#5d5b55;paint-order:stroke;stroke:var(--bg);stroke-width:4px}
+svg.links path.spine{stroke:#8f8a7e;stroke-width:2.5;stroke-dasharray:7 6}
+svg.links text{font-size:14px;font-weight:600;fill:#5d5a52;paint-order:stroke;stroke:var(--bg);stroke-width:5px}
+svg.links text.verb{font-size:14px;font-weight:600;fill:#6b6658}
+svg.links path.notelink{stroke-width:1.6;stroke-dasharray:3 5;opacity:.55}
 
-.box{position:absolute;border-radius:10px;background:var(--panel);border:1px solid var(--line);padding:10px 12px;
-  box-shadow:0 1px 2px rgba(0,0,0,.05);cursor:pointer;transition:opacity .15s,box-shadow .15s;overflow:hidden;z-index:2}
-.box:hover{box-shadow:0 4px 16px rgba(0,0,0,.12)}
-.box.sel{outline:3px solid var(--accent);outline-offset:2px}
-.box h3,.box h4{margin:0 0 4px;font-size:15px;line-height:1.25}
+/* ---------- boxes ---------- */
+.box{position:absolute;border-radius:12px;background:var(--panel);border:1px solid var(--line);padding:11px 13px 12px;
+  box-shadow:0 1px 2px rgba(0,0,0,.05),0 4px 14px rgba(40,35,20,.05);cursor:pointer;transition:opacity .15s,box-shadow .15s,transform .15s;overflow:hidden;z-index:2}
+.box:hover{box-shadow:0 2px 4px rgba(0,0,0,.07),0 10px 26px rgba(40,35,20,.13)}
+.box.sel{outline:3px solid var(--accent);outline-offset:3px}
+.box.pair{outline:2px solid rgba(47,91,211,.45);outline-offset:3px}
+.box h3,.box h4{margin:0 0 4px;font-size:15px;line-height:1.28;font-weight:650}
 .box p{margin:0;color:var(--ink2)}
-.box .t{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
-.box .meta{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
-body.dim .box.inj:not(.hot){opacity:.28}
-body.dim .notecard.inj:not(.hot){opacity:.28}
+.box .t{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;font-size:13.5px}
+.box .meta{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;align-items:center}
+body.dim .box.inj:not(.hot),body.dim .notecard.inj:not(.hot),body.dim .steplabel:not(.hot){opacity:.25}
+body.dim svg.links path.inj:not(.hot){opacity:.25}
 
-.lanehead{position:absolute;font-weight:700;font-size:15px;color:var(--ink)}
-.lanehead small{display:block;font-weight:400;color:var(--muted);font-size:12.5px}
-.lanebg{position:absolute;z-index:0;background:rgba(255,255,255,.45);border-radius:14px;border:1px dashed #e0ddd5}
-.label{position:absolute;white-space:nowrap;color:var(--muted);font-size:12px;letter-spacing:.06em;text-transform:uppercase;font-weight:600}
-.maptitle{position:absolute;font-size:34px;font-weight:800;letter-spacing:-.01em;line-height:1.1}
-.mapintro{position:absolute;color:var(--ink2);font-size:15px;max-width:760px}
-.stamp{position:absolute;white-space:nowrap;font-size:12px;font-weight:700;color:#fff;background:#3b4a63;border-radius:6px;padding:3px 8px}
+.stamp{position:absolute;white-space:nowrap;font-size:11.5px;font-weight:700;color:#fff;background:#3b4a63;border-radius:6px;padding:3px 9px;letter-spacing:.02em}
+.maptitle{position:absolute;font-size:34px;font-weight:800;letter-spacing:-.015em;line-height:1.1}
+.mapintro{position:absolute;color:var(--ink2);font-size:15.5px;line-height:1.45;max-width:780px}
+.label{position:absolute;white-space:nowrap;color:var(--muted);font-size:12px;letter-spacing:.07em;text-transform:uppercase;font-weight:700}
+.modebar{position:absolute;white-space:nowrap;display:flex;align-items:center;gap:8px;flex-wrap:nowrap;
+  background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 14px 6px 12px;font-size:13.5px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.modebar .hint-sbs{color:var(--muted);margin-left:4px}
+.emptyslot{position:absolute;border:2px dashed #d3cfc4;border-radius:12px;padding:16px 14px;color:var(--muted);font-size:13.5px;background:rgba(255,255,255,.35)}
 
-.jhead{background:#fbfaf6}
-.jhead .n,.step .n{display:inline-grid;place-items:center;min-width:24px;height:24px;border-radius:12px;
-  background:var(--ink);color:#fff;font-size:12px;font-weight:700;margin-right:6px;padding:0 6px}
-.step{display:flex;flex-direction:column}
-.step .row1{display:flex;align-items:flex-start;gap:6px}
-.stage{background:#f6d77b;border-color:#e2bf55;display:flex;flex-direction:column;justify-content:center}
-.stage h3{font-size:19px}
-.stage p{color:#3d3200}
-.item.planned-new{border:2px dashed var(--planned)}
+/* journeys: lanes as columns, a header card per journey, numbered steps with lane colours */
+.lanehead{position:absolute;font-weight:700;font-size:15px;color:var(--ink);padding-left:2px}
+.lanehead i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:7px;vertical-align:1px}
+.lanehead small{display:block;font-weight:400;color:var(--muted);font-size:12.5px;line-height:1.3;margin-top:2px}
+.lanebg{position:absolute;z-index:0;background:rgba(255,255,255,.5);border-radius:16px;border:1px dashed #dcd8ce;
+  box-shadow:inset 0 3px 0 color-mix(in srgb,var(--lane) 55%,transparent)}
+.jhead,.timeline-title{background:#fffdf7;border-color:#e6dfc9}
+.jhead h3,.timeline-title h3{font-size:17px;display:flex;align-items:flex-start;gap:8px}
+.jhead p,.timeline-title p{font-size:13.5px}
+.jhead .creates,.timeline-title .creates{margin-top:10px;padding:8px 10px;background:#f7f3e6;border-radius:9px;font-size:12.5px}
+.creates b{display:block;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:#6b5a26;margin-bottom:3px}
+.creates ul{margin:0;padding-left:17px;color:var(--ink2)}
+.creates.changes{background:#f3f7f6}
+.creates.changes p{display:flex;gap:5px;flex-wrap:wrap}
+.jhead .n,.timeline-title .n,.step .n{display:inline-grid;place-items:center;flex:0 0 auto;min-width:24px;height:24px;border-radius:12px;
+  background:var(--ink);color:#fff;font-size:12px;font-weight:700;padding:0 6px}
+.step{display:flex;flex-direction:column;border-left:5px solid var(--lane,#999)}
+.step .row1{display:flex;align-items:flex-start;gap:8px}
+.step .n{background:var(--lane,#1d1d1f)}
+.step .t{font-size:14px;color:var(--ink);-webkit-line-clamp:3}
+.customer-step{border-top:5px solid var(--lane,#5b78b9)}
+.customer-step h4{font-weight:600;font-size:14.5px}
+.steplabel{position:absolute;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.03em}
+.steplabel i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px}
+.links .customer-flow{stroke:#9aa6c2;stroke-width:2.2}
+
+/* chain: a purple first stage, yellow stages after, items in a calm grid */
+.box.stage{background:var(--yellow);border:0;color:var(--yellow-ink);display:flex;flex-direction:column;justify-content:center;
+  padding:16px 20px;box-shadow:0 2px 0 var(--yellow-edge),0 8px 22px rgba(120,90,10,.16);border-radius:14px}
+.box.stage h3{font-size:22px;font-weight:700;margin:0}
+.box.stage p{color:#4b3c06;font-size:13.5px;margin-top:3px}
+.box.stage.first-stage{background:var(--purple);color:var(--purple-ink);box-shadow:0 2px 0 #5737bd,0 8px 22px rgba(70,40,170,.25)}
+.box.stage.first-stage p{color:#ece6ff}
+.stagenum{position:absolute;right:14px;top:10px;font-size:12px;font-weight:800;opacity:.55}
+.item h4{font-size:15px}
 .tree-node{background:#fff}
-.tree-node.l0{background:#1d1d1b;color:#fff;border-color:#1d1d1b}
+.tree-node.l0{background:var(--ink);color:#fff;border-color:var(--ink)}
 .tree-node.l0 p{color:#ddd}
+.tree-node.l1{border-top:5px solid var(--purple)}
+.tree-node.l2{border-top:5px solid var(--yellow-edge)}
+.tree-node.l3{border-top:5px solid var(--new)}
+.jindex{cursor:default;background:#fbfaf6}
 
-.pill{display:inline-block;font-size:11.5px;font-weight:700;border-radius:999px;padding:1px 8px;color:#fff;white-space:nowrap}
+/* tags */
+.pill{display:inline-block;font-size:11.5px;font-weight:700;border-radius:999px;padding:2px 9px;color:#fff;white-space:nowrap;letter-spacing:.01em}
 .pill.works{background:var(--works)} .pill.partial{background:var(--partial)}
 .pill.missing{background:var(--missing)} .pill.planned{background:var(--planned)}
-.chip{display:inline-block;font-size:11.5px;border-radius:6px;padding:1px 6px;background:var(--soft);color:var(--ink2);white-space:nowrap}
-.chip.new{background:#dff3e6;color:#145c36;font-weight:700}
-.chip.changed{background:#fff0c9;color:#6b4800;font-weight:700}
+.chip{display:inline-block;font-size:11.5px;border-radius:6px;padding:2px 7px;background:var(--soft);color:var(--ink2);white-space:nowrap}
+.chip.since{background:#e9eefb;color:#203f8f;font-weight:700}
 .chip.stale{background:#f4e1df;color:#7d1d16}
 .chip.moment{background:#ece4fb;color:#4b2a8a;font-weight:700}
 .chip.pain{background:#fde6e3;color:#8a1f16}
-.feel{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:3px;vertical-align:middle}
+.feel{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:middle}
 .feel.good{background:#2f9e6a}.feel.ok{background:#d9a21e}.feel.bad{background:#d1543f}
+.techname{display:block;margin-top:6px;font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#3b4a63;
+  background:#eef1f7;border-radius:6px;padding:3px 7px;white-space:normal}
+/* the compact note count: a little stack of the speakers' paper colours */
+.notebadge{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;border-radius:7px;padding:2px 8px 2px 5px;
+  background:#2b2a27;color:#fff;white-space:nowrap}
+.notebadge.must{background:var(--must)}
+.notebadge .stack{display:inline-flex}
+.notebadge .stack i{display:block;width:11px;height:11px;border:1.5px solid;border-radius:2px;margin-left:-4px;transform:rotate(-6deg);box-shadow:1px 1px 0 rgba(0,0,0,.25)}
+.notebadge .stack i:first-child{margin-left:0}
+.notebadge .stack i:nth-child(2){transform:rotate(5deg)}
 
-/* notes: a column beside each row, sized so they never cover any box */
-.notecard{position:absolute;z-index:2;border-radius:8px;padding:8px 10px 9px 12px;cursor:pointer;
-  border:1px solid rgba(0,0,0,.08);box-shadow:0 1px 2px rgba(0,0,0,.05);overflow:hidden;transition:opacity .15s}
-.notecard:hover{box-shadow:0 4px 14px rgba(0,0,0,.12)}
-.notecard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--info)}
-.notecard.must::before{background:var(--must)} .notecard.should::before{background:var(--should)}
-.notecard .who{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ink2)}
-.notecard .urg{font-size:11px;font-weight:700;margin-left:6px}
+/* ---------- plan changes ---------- */
+.ribbon,.ribbon-today{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
+  border-radius:6px;padding:2px 7px;white-space:nowrap;color:#fff}
+.ribbon.new{background:var(--new)} .ribbon.changed{background:var(--changed)} .ribbon.gone{background:var(--gone)}
+.box > .ribbon,.box > .ribbon-today{position:relative;margin:-1px 0 7px;vertical-align:top;align-self:flex-start;width:max-content}
+.box.stage > .ribbon{display:none}
+.ribbon-today{display:none}
+.ribbon-today.changed{background:var(--changed)} .ribbon-today.gone{background:var(--gone)}
+.box.chg-new{border:2px dashed var(--new);background:var(--new-soft)}
+.box.chg-changed{border:2px solid var(--changed);box-shadow:0 0 0 4px var(--changed-soft),0 4px 14px rgba(40,35,20,.06)}
+.box.chg-gone{background:var(--gone-soft);border:1.5px dashed #bdb9af;box-shadow:none}
+.box.chg-gone .vwrap,.box.chg-gone h4,.box.chg-gone .row1 .t{text-decoration:line-through;text-decoration-color:rgba(0,0,0,.45);color:var(--muted)}
+.box.chg-gone .meta,.box.chg-gone p{opacity:.6}
+.box.chg-same{opacity:.92}
+.vwrap{display:grid}
+.vwrap > div{grid-area:1/1;min-width:0}
+.v-before{visibility:hidden}
+.ghostlabel{display:none}
+.chg-legend{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 8px}
+
+/* side by side: today on the left, the plan on the right, rows aligned */
+body.sbs #viewport2{display:block;border-left:2px solid #c9c4b8}
+body.sbs .panelabel{display:block;position:absolute;left:12px;top:60px;z-index:5;background:#fff;border:1px solid var(--line);
+  border-radius:999px;padding:4px 12px;font-size:12.5px;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,.06)}
+body.sbs #viewport .panelabel{border-color:#c9c4b8}
+body.sbs #viewport2 .panelabel{border-color:var(--new);color:var(--new)}
+.pane-today .ribbon{display:none}
+.pane-today .ribbon-today{display:inline-block}
+.pane-today .chg-new > .ribbon{display:inline-block}
+.pane-today .chg-changed .v-now{visibility:hidden}
+.pane-today .chg-changed .v-before{visibility:visible}
+.pane-today .box.chg-changed{box-shadow:none;border:1.5px solid var(--changed)}
+.pane-today .box.chg-gone{background:var(--panel);border:1px solid var(--line)}
+.pane-today .box.chg-gone .vwrap,.pane-today .box.chg-gone h4,.pane-today .box.chg-gone .row1 .t{text-decoration:none;color:inherit}
+.pane-today .box.chg-gone .meta,.pane-today .box.chg-gone p{opacity:1}
+.pane-today .box.chg-new,.pane-planned .box.chg-gone{background:transparent;border:2px dashed #d0ccc1;box-shadow:none}
+.pane-today .box.chg-new > :not(.ghostlabel),.pane-planned .box.chg-gone > :not(.ghostlabel){visibility:hidden}
+.pane-today .box.chg-new .ghostlabel,.pane-planned .box.chg-gone .ghostlabel{display:flex;position:absolute;inset:0;align-items:center;justify-content:center;
+  color:var(--muted);font-size:13px;font-weight:600}
+#pairline{position:fixed;z-index:27;height:0;border-top:2px dashed rgba(47,91,211,.55);transform-origin:0 0;pointer-events:none;display:none}
+
+/* ---------- sticky notes ---------- */
+.notecard{position:absolute;z-index:2;cursor:pointer;overflow:hidden;transition:opacity .15s,transform .15s,box-shadow .15s;
+  border-radius:3px 3px 14px 3px;border:1px solid rgba(70,55,20,.12);border-left:6px solid var(--info);padding:13px 14px 12px 13px;
+  box-shadow:0 2px 2px rgba(0,0,0,.05),2px 8px 14px rgba(0,0,0,.12);transform:rotate(var(--note-tilt,0deg))}
+.notecard.must{border-left-color:var(--must)} .notecard.should{border-left-color:var(--should)}
+.notecard::before{content:"";position:absolute;top:-4px;left:calc(50% - 22px);width:44px;height:12px;
+  background:rgba(255,255,255,.6);transform:rotate(-3deg);border:1px solid rgba(255,255,255,.7)}
+.notecard::after{content:"";position:absolute;right:0;bottom:0;width:13px;height:13px;
+  background:linear-gradient(135deg,transparent 48%,rgba(0,0,0,.1) 50%,rgba(255,255,255,.75));border-radius:0 0 12px 0}
+.notecard:hover,.notecard:focus-visible{transform:none;box-shadow:2px 12px 20px rgba(0,0,0,.18)}
+.notehead{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.notecard .who{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--ink2);min-width:0;
+  background:rgba(255,255,255,.7);border-radius:999px;padding:1px 8px 1px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.notecard .who i{flex:0 0 auto}
+.notecard .urg{white-space:nowrap;flex:0 0 auto}
+.notecard .who i{width:9px;height:9px;border-radius:50%}
+.notecard .urg{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
 .notecard.must .urg{color:var(--must)} .notecard.should .urg{color:var(--should)} .notecard.info .urg{color:var(--info)}
-.notecard h5{margin:3px 0 3px;font-size:13.5px;line-height:1.25}
-.notecard .q{font-size:12.5px;color:var(--ink2);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
-.morenotes{position:absolute;z-index:2;border:1px dashed #b9b5aa;background:rgba(255,255,255,.7);border-radius:8px;
-  padding:6px 10px;font-size:12.5px;color:var(--ink2);cursor:pointer}
+.notecard h5{margin:8px 0 5px;font-size:15px;line-height:1.3}
+.notecard .q{font-size:13px;font-weight:600;color:#2b2a26;line-height:1.42;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
+.morenotes{position:absolute;z-index:2;border:1.5px dashed #b9b5aa;background:rgba(255,255,255,.75);border-radius:9px;
+  padding:7px 11px;font-size:12.5px;font-weight:600;color:var(--ink2);cursor:pointer}
+#role-strip{position:fixed;top:62px;z-index:29;display:flex;align-items:center;gap:7px;width:max-content;
+  max-width:calc(100vw - 24px);overflow-x:auto;background:rgba(255,255,255,.97);border:1px solid var(--line);border-radius:12px;padding:6px 9px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+#role-strip[hidden]{display:none}
+#role-strip button{display:flex;align-items:center;gap:6px;white-space:nowrap;border:1px solid var(--line);border-radius:8px;background:#faf9f5;padding:4px 9px}
+#role-strip button[aria-pressed="true"]{background:#eef0ff;border-color:#b8b4dc}
+#role-strip button[aria-pressed="false"]{color:var(--muted);opacity:.7}
+.paper-swatch{width:14px;height:14px;border:1px solid;box-shadow:1px 2px 2px rgba(0,0,0,.12);transform:rotate(-5deg)}
+.role-caption{font-size:12px;color:var(--muted);white-space:nowrap}
+body.sbs #role-strip{top:96px}
 
 /* far zoom: keep the main words readable, drop the small print */
-body.z-far .box .meta > :not(.notebadge),body.z-far .box p.sub,body.z-far .notecard .q,body.z-far .notecard .who{display:none}
+body.z-far .box .meta > :not(.notebadge):not(.pill),body.z-far .box p,body.z-far .creates,body.z-far .notecard .q,body.z-far .notecard .notehead{display:none}
 body.z-far .box .t,body.z-far .box h3,body.z-far .box h4,body.z-far .notecard h5{font-size:calc(14px * var(--inv));line-height:1.15}
 body.z-far .box .t{-webkit-line-clamp:2}
+body.z-far .box .meta .notebadge,body.z-far .box .meta .pill{font-size:calc(11.5px * var(--inv))}
+body.z-far .techname{font-size:calc(12px * var(--inv))}
+body.z-far .box > .ribbon{font-size:calc(11px * var(--inv))}
 
 .term{border-bottom:1px dotted currentColor;cursor:help}
 #gloss{position:fixed;z-index:60;max-width:300px;background:#1d1d1b;color:#fff;border-radius:8px;padding:8px 10px;
   font-size:13px;display:none;pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.2)}
 #gloss b{display:block;margin-bottom:2px}
 
-/* side panel */
-#panel{position:fixed;top:64px;right:10px;bottom:10px;width:min(460px,calc(100vw - 20px));z-index:35;background:#fff;
-  border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 34px rgba(0,0,0,.14);display:none;flex-direction:column}
-#panel.open{display:flex}
+/* ---------- one quiet top bar ---------- */
+#top{position:fixed;left:0;right:0;top:0;height:52px;z-index:30;display:flex;align-items:center;gap:8px;
+  padding:0 12px;background:rgba(255,255,255,.97);border-bottom:1px solid var(--line);white-space:nowrap}
+#top .title{font-weight:700;font-size:15px;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto;min-width:0}
+#top > button{flex:0 0 auto;border:1px solid var(--line);background:#fff;border-radius:9px;padding:6px 12px;min-height:34px}
+#top > button:hover{background:var(--soft)}
+#top .primary{background:#fff6dc;border-color:#e9cf86;font-weight:600}
+#top .count{display:inline-block;min-width:1.6em;padding:0 6px;margin-left:6px;border-radius:9px;background:rgba(0,0,0,.08);font-size:12px;text-align:center}
+.save-primary,#top .save-primary{background:var(--accent);color:#fff;border:1px solid var(--accent);border-radius:9px;padding:7px 12px;font-weight:600}
+#top .save-primary:hover{background:#2448a8}
+.short-label{display:none}
+/* the view switch: words on a segmented control */
+.seg{display:inline-flex;align-items:stretch;border:1px solid var(--line);border-radius:10px;background:#f6f5f1;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;border-radius:7px;padding:5px 11px;font-size:13.5px;color:var(--ink2);white-space:nowrap}
+.seg button:hover{background:#fff}
+.seg button[aria-pressed="true"]{background:#fff;color:var(--ink);font-weight:650;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.seg button[data-mode="changes"][aria-pressed="true"]{color:var(--new)}
+.seg .sbs{margin-left:6px;border-left:1px solid var(--line);border-radius:0 7px 7px 0;padding-left:12px}
+.seg .sbs[aria-pressed="true"]{color:var(--new)}
+#top .seg{flex:0 0 auto}
+#menu{position:fixed;z-index:45;background:#fff;border:1px solid var(--line);border-radius:12px;padding:6px;
+  box-shadow:0 10px 30px rgba(0,0,0,.15);display:none;min-width:270px;max-height:calc(100vh - 70px);overflow-y:auto}
+#menu.open{display:block}
+#menu button{display:flex;justify-content:space-between;gap:12px;width:100%;text-align:left;border:0;background:none;padding:9px 10px;border-radius:7px}
+#menu button:hover{background:var(--soft)}
+#menu .state{color:var(--muted);font-size:12.5px}
+#menu [role=menuitemcheckbox][aria-checked="true"] .state{color:var(--accent);font-weight:700}
+
+/* ---------- left story list ---------- */
+#story{position:fixed;left:0;top:52px;bottom:0;width:320px;z-index:25;background:#fbfaf7;border-right:1px solid var(--line);
+  overflow:auto;padding:14px 14px 30px}
+body.nostory #story{display:none}
+#storytab{position:fixed;left:10px;top:62px;z-index:26;display:none;border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 11px}
+body.nostory #storytab{display:block}
+#story .q{font-size:15px;font-weight:650;line-height:1.35;margin:2px 0 12px}
+#story .walkbtn{display:block;width:100%;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:10px;font-weight:650;font-size:14.5px;margin:4px 0}
+#story .walkbtn:hover{background:#2a50bb}
+#story .walkbtn.alt{background:#fff;color:var(--new);border:1.5px solid var(--new)}
+#story .walkbtn.alt:hover{background:var(--new-soft)}
+#story .hide{border:0;background:none;color:var(--muted);font-size:12.5px;padding:4px 0;float:right}
+#story h2{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:20px 0 6px}
+#story ol{list-style:none;margin:0;padding:0}
+#story li{margin:0}
+#story .view{display:block;width:100%;text-align:left;border:1px solid transparent;background:none;border-radius:9px;padding:8px 9px;margin:2px 0}
+#story .view:hover{background:#fff;border-color:var(--line)}
+#story .view[aria-current="true"]{background:#fff;border-color:#9fb4ee}
+#story .view b{display:block;font-size:14.5px}
+#story .view span{display:block;font-size:12.5px;color:var(--muted);line-height:1.35}
+#story .view .viewtag{display:inline-block;margin-top:4px;color:var(--new);font-weight:650}
+#story li.cur > .top-view{background:#fff;border-color:var(--line)}
+#story .sub{padding-left:12px;border-left:2px solid var(--line);margin:4px 0 8px 12px}
+#story .sub .view b{font-size:13.5px;font-weight:600}
+#story .view span.num{display:inline-block;min-width:1.8em;color:var(--muted);font-weight:700;font-size:inherit;line-height:inherit}
+#story .seg{display:flex;margin:6px 0 6px 10px;flex-wrap:wrap}
+#story .seg button{flex:1 1 auto;padding:6px 6px;font-size:13px}
+#story .seg .sbs{flex-basis:100%;margin:3px 0 0;border-left:0;border-top:1px solid var(--line);border-radius:0 0 7px 7px;padding-left:6px}
+#story .changes .view{display:flex;flex-direction:column;gap:3px}
+#story .changes .ribbon{align-self:flex-start}
+#story .view span.ribbon,#story .chg-legend .ribbon{display:inline-block;color:#fff;font-size:11px;line-height:1.5}
+#story .more button{display:block;width:100%;text-align:left;border:1px solid transparent;background:none;border-radius:9px;padding:7px 9px}
+#story .more button:hover{background:#fff;border-color:var(--line)}
+#story .more button[aria-current="true"]{background:#eaf0ff;border-color:#9fb4ee;color:#244ca6}
+#story .workflow button{padding:11px 9px;font-weight:600}
+
+/* ---------- zoom, walk-through, hint ---------- */
+#zoom{position:fixed;right:14px;bottom:14px;z-index:28;display:flex;flex-direction:column;gap:6px}
+#zoom button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:7px 12px;min-width:132px;text-align:left;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+#zoom button:hover{background:var(--soft)}
+#walk{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:32;width:min(580px,calc(100vw - 40px));
+  background:#1d1d1b;color:#fff;border-radius:14px;padding:14px 16px;box-shadow:0 12px 32px rgba(0,0,0,.28);display:none}
+body:not(.nostory) #walk{left:calc(50% + 160px)}
+body.panel-open #walk{left:270px;transform:none;width:min(560px,calc(100vw - 270px - clamp(320px,30vw,460px) - 190px))}
+body.panel-open.nostory #walk{left:20px;width:min(560px,calc(100vw - 20px - clamp(320px,30vw,460px) - 190px))}
+#walk.open{display:block}
+#walk .step{font-size:12px;color:#c9c6bd;letter-spacing:.04em;text-transform:uppercase}
+#walk h3{margin:5px 0 5px;font-size:17px;display:flex;align-items:center;gap:8px}
+#walk p{margin:0 0 10px;color:#e8e6df}
+#walk .row{display:flex;gap:8px;align-items:center}
+#walk button{white-space:nowrap;border:1px solid #55534d;background:#2c2b28;color:#fff;border-radius:8px;padding:7px 14px}
+#walk button.next{background:#fff;color:#1d1d1b;border-color:#fff;font-weight:650}
+#walk .grow{flex:1}
+#hint{position:fixed;left:340px;bottom:18px;z-index:31;max-width:440px;background:#fff8e1;border:1px solid #ecd48e;border-radius:12px;
+  padding:11px 13px;box-shadow:0 6px 18px rgba(0,0,0,.1);display:none}
+body.nostory #hint{left:110px}
+#hint.open{display:block}
+#hint button{margin-top:7px;border:1px solid #d9bf73;background:#fff;border-radius:7px;padding:4px 11px}
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#1d1d1b;color:#fff;border-radius:9px;
+  padding:8px 14px;z-index:70;display:none}
+
+/* ---------- detail panel ---------- */
+#panel{position:fixed;top:62px;right:10px;bottom:10px;width:min(460px,calc(100vw - 20px));z-index:35;background:#fff;
+  border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 36px rgba(0,0,0,.15);display:none;flex-direction:column}
+#panel.open,body.panel-open #panel{display:flex}
 #panel header{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
 #panel header h2{margin:0;font-size:17px;flex:1}
-#panel header button{border:1px solid var(--line);background:#fff;border-radius:8px;min-width:32px;min-height:32px}
+#panel header button{border:1px solid var(--line);background:#fff;border-radius:8px;min-width:32px;min-height:32px;padding:4px 10px}
 #panel .body{overflow:auto;padding:12px 14px 20px}
 #panel h3{font-size:14px;margin:16px 0 6px}
 #panel h3:first-child{margin-top:0}
 #panel p{margin:4px 0}
-.card{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0;background:#fff}
+.card{border:1px solid var(--line);border-radius:11px;padding:10px 12px;margin:8px 0;background:#fff}
 .card.must{border-left:5px solid var(--must)} .card.should{border-left:5px solid var(--should)} .card.info{border-left:5px solid var(--info)}
 .quote{border-left:3px solid #c9c4b6;padding:2px 0 2px 10px;margin:6px 0;color:var(--ink2);font-style:italic}
 .quote .src{display:block;font-style:normal;font-size:12px;color:var(--muted);margin-top:2px}
 .quote.voice{border-left-color:#d99a1e}
-.answer{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+.answer{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
 .answer button,.mini{border:1px solid var(--line);background:#fff;border-radius:7px;padding:3px 9px;min-height:28px}
-.answer button[aria-pressed="true"]{background:#e6ecfb;border-color:#9fb4ee;font-weight:600}
+.answer button[aria-pressed="true"]{background:var(--accent-soft);border-color:#9fb4ee;font-weight:600}
 .dots{display:inline-flex;align-items:center;gap:4px;margin-left:auto}
 .dots .n{min-width:1.5em;text-align:center;font-weight:700}
-textarea,input[type=text],input[type=date],select.field{width:100%;border:1px solid var(--line);border-radius:7px;padding:6px 8px;margin-top:4px;background:#fff}
-textarea{min-height:52px;resize:vertical}
+textarea,input[type=text],input[type=date],select.field{width:100%;border:1px solid var(--line);border-radius:8px;padding:6px 8px;margin-top:4px;background:#fff}
+textarea{min-height:56px;resize:vertical}
 .row{display:flex;gap:8px;align-items:center}
 .row > *{flex:1}
 .tally{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--soft);margin:6px 0 2px}
 .tally i{display:block;height:100%}
 .tally .a{background:#2f9e6a}.tally .c{background:#d1543f}.tally .u{background:#c9c4b6}
-.small{font-size:12.5px;color:var(--muted)}
 .badge{display:inline-block;font-size:11px;font-weight:700;border-radius:5px;padding:1px 6px;background:var(--soft)}
 .badge.split{background:#fde6e3;color:#8a1f16}
 .meter{display:inline-flex;gap:2px;vertical-align:middle}
@@ -137,132 +350,70 @@ textarea{min-height:52px;resize:vertical}
 .rolerow{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--soft)}
 .rolerow input{margin-top:4px;width:18px;height:18px}
 .swatch{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
-.legend span{margin-right:10px;white-space:nowrap}
-#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#1d1d1b;color:#fff;border-radius:8px;
-  padding:8px 14px;z-index:70;display:none}
-.skip{position:absolute;left:-9999px}
-.skip:focus{left:12px;top:60px;z-index:80;background:#fff;padding:6px 10px;border-radius:6px}
-.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
-
-@media print{
-  #bar,#panel,#more,#toast,#gloss{display:none !important}
-  html,body{overflow:visible;height:auto;background:#fff}
-  #viewport{position:static;background:none !important}
-  #world{position:relative}
-  .box,.notecard{box-shadow:none;break-inside:avoid}
-}
-
-.jindex{cursor:default;background:#fbfaf6}
-.jindex .meta{gap:6px}
-body.z-far .jindex .mini{font-size:calc(13px * var(--inv))}
-
-/* ---------- chrome: one quiet top bar ---------- */
-#top{position:fixed;left:0;right:0;top:0;height:52px;z-index:30;display:flex;align-items:center;gap:8px;
-  padding:0 12px;background:rgba(255,255,255,.97);border-bottom:1px solid var(--line);white-space:nowrap}
-#top .title{font-weight:700;font-size:15px;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto;min-width:0}
-#top button{flex:0 0 auto;border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 11px;min-height:34px}
-#top button:hover{background:var(--soft)}
-#top .primary{background:#fff6dc;border-color:#e9cf86;font-weight:600}
-#top .count{display:inline-block;min-width:1.6em;padding:0 6px;margin-left:5px;border-radius:9px;background:rgba(0,0,0,.07);font-size:12px}
-#menu{position:fixed;z-index:45;background:#fff;border:1px solid var(--line);border-radius:10px;padding:6px;
-  box-shadow:0 8px 28px rgba(0,0,0,.14);display:none;min-width:270px;max-height:calc(100vh - 70px);overflow-y:auto}
-#menu.open{display:block}
-#menu button{display:flex;justify-content:space-between;gap:12px;width:100%;text-align:left;border:0;background:none;padding:9px 10px;border-radius:6px}
-#menu button:hover{background:var(--soft)}
-#menu .state{color:var(--muted);font-size:12.5px}
-#menu hr{border:0;border-top:1px solid var(--soft);margin:4px 0}
-
-/* ---------- left story list ---------- */
-#story{position:fixed;left:0;top:52px;bottom:0;width:320px;z-index:25;background:#fbfaf7;border-right:1px solid var(--line);
-  overflow:auto;padding:14px 14px 30px}
-body.nostory #story{display:none}
-#storytab{position:fixed;left:10px;top:62px;z-index:26;display:none;border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 11px}
-body.nostory #storytab{display:block}
-#story .q{font-size:15px;font-weight:600;line-height:1.35;margin:2px 0 10px}
-#story .walkbtn{width:100%;background:#2f5bd3;color:#fff;border:0;border-radius:9px;padding:10px;font-weight:600;font-size:15px}
-#story .walkbtn:hover{background:#2a50bb}
-#story .hide{border:0;background:none;color:var(--muted);font-size:12.5px;padding:4px 0;float:right}
-#story h2{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
-#story ol{list-style:none;margin:0;padding:0}
-#story li{margin:0}
-#story .view{display:block;width:100%;text-align:left;border:1px solid transparent;background:none;border-radius:8px;padding:8px 9px;margin:2px 0}
-#story .view:hover{background:#fff;border-color:var(--line)}
-#story .view[aria-current="true"]{background:#fff;border-color:#9fb4ee}
-#story .view b{display:block;font-size:14.5px}
-#story .view span{display:block;font-size:12.5px;color:var(--muted);line-height:1.35}
-#story .sub{padding-left:14px;border-left:2px solid var(--line);margin:2px 0 8px 12px}
-#story .sub .view b{font-size:13.5px;font-weight:600}
-#story .num{display:inline-block;min-width:1.7em;color:var(--muted);font-weight:700}
-#story .seg{display:flex;margin:4px 0 6px 12px}
-#story .seg button{flex:1;border:1px solid var(--line);background:#fff;padding:6px;font-size:13px}
-#story .seg button:first-child{border-radius:8px 0 0 8px}
-#story .seg button:last-child{border-radius:0 8px 8px 0;border-left:0}
-#story .seg button[aria-pressed="true"]{background:#e6ecfb;border-color:#9fb4ee;font-weight:600}
-#story .more button{display:block;width:100%;text-align:left;border:1px solid transparent;background:none;border-radius:8px;padding:7px 9px}
-#story .more button:hover{background:#fff;border-color:var(--line)}
-
-/* ---------- zoom, walk-through, hint ---------- */
-#zoom{position:fixed;right:14px;bottom:14px;z-index:28;display:flex;flex-direction:column;gap:6px}
-body.panel-open #zoom{right:494px}
-#zoom button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 12px;min-width:128px;text-align:left;box-shadow:0 2px 8px rgba(0,0,0,.08)}
-#zoom button:hover{background:var(--soft)}
-#walk{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:32;width:min(560px,calc(100vw - 40px));
-  background:#1d1d1b;color:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 10px 30px rgba(0,0,0,.25);display:none}
-body:not(.nostory) #walk{left:calc(50% + 160px)}
-body.panel-open #walk{left:calc(50% - 80px)}
-#walk.open{display:block}
-#walk .step{font-size:12px;color:#c9c6bd;letter-spacing:.04em;text-transform:uppercase}
-#walk h3{margin:4px 0 4px;font-size:17px}
-#walk p{margin:0 0 10px;color:#e8e6df}
-#walk .row{display:flex;gap:8px;align-items:center}
-#walk button{white-space:nowrap;border:1px solid #55534d;background:#2c2b28;color:#fff;border-radius:8px;padding:7px 14px}
-#walk button.next{background:#fff;color:#1d1d1b;border-color:#fff;font-weight:600}
-#walk .grow{flex:1}
-#hint{position:fixed;left:340px;top:66px;z-index:31;max-width:420px;background:#fff8e1;border:1px solid #ecd48e;border-radius:10px;
-  padding:10px 12px;box-shadow:0 4px 16px rgba(0,0,0,.1);display:none}
-body.nostory #hint{left:110px}
-#hint.open{display:block}
-#hint button{margin-top:6px;border:1px solid #d9bf73;background:#fff;border-radius:7px;padding:4px 10px}
-
-/* the panel sits under the top bar */
-#panel{top:62px}
-body.panel-open #panel{display:flex}
-.techname{display:block;margin-top:4px;font:12px/1.3 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#3b4a63;
-  background:#eef1f7;border-radius:5px;padding:2px 6px;white-space:normal}
-body.z-far .techname{font-size:calc(12px * var(--inv))}
+.legend span{margin-right:8px;white-space:nowrap}
 .switch{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2)}
 .switch input{width:18px;height:18px}
-.notebadge{display:inline-block;font-size:11.5px;font-weight:700;border-radius:6px;padding:1px 7px;background:#1d1d1b;color:#fff}
-.notebadge.must{background:var(--must)}
-body.z-far .box .meta .notebadge{font-size:calc(11.5px * var(--inv))}
-#story .reading{margin:0 0 10px;font-size:13.5px;line-height:1.45}
-#story .reading summary{cursor:pointer;color:#2f5bd3;font-weight:600}
-#story .reading p{margin:6px 0 0}
-
-/* Review actions stay visible and say where the file goes. */
-.save-primary,#top .save-primary{background:var(--accent);color:#fff;border:1px solid var(--accent);border-radius:8px;padding:7px 11px;font-weight:600}
-#top .save-primary:hover{background:#2448a8}
-.review-next{border:1px solid var(--line);background:#f3f6fd;border-radius:9px;padding:12px;margin-bottom:16px}
+.word-meanings dt{font-weight:700;margin-top:16px}
+.word-meanings dd{margin:4px 0 0}
+.connection-description{border-left:3px solid var(--purple);padding-left:8px}
+.connection-description.evidence{border-color:#4675ba}
+.connection-description.feedback{border-color:#c54d46}
+.review-next{border:1px solid var(--line);background:#f3f6fd;border-radius:10px;padding:12px;margin-bottom:16px}
 .answer-label{display:block;font-weight:600;margin-top:10px}
 .review-answer{white-space:pre-wrap;border-left:3px solid var(--accent);padding-left:8px}
-
 .review-nav{display:flex;gap:8px;justify-content:space-between;margin:20px 0 12px}
 .review-nav button{border:1px solid var(--line);border-radius:8px;padding:8px 12px}
 .support{margin:14px 0}
 .support summary{cursor:pointer;color:var(--accent);font-weight:600}
-.decision-question{font-size:19px;font-weight:600;line-height:1.35}
+.decision-question{font-size:19px;font-weight:650;line-height:1.35}
+.recommendation{background:#f3f6fd;border-left:3px solid var(--accent);padding:10px 12px;margin:12px 0;border-radius:0 8px 8px 0}
+.recommendation p{margin:4px 0 0}
+/* before and after, in the panel */
+.change{border-radius:11px;padding:10px 12px;margin:0 0 12px}
+.change.new{background:var(--new-soft);border:1.5px dashed var(--new)}
+.change.gone{background:var(--gone-soft);border:1.5px dashed #bdb9af}
+.change.changed{background:var(--changed-soft);border:1.5px solid #ecc97a}
+.change p{margin:6px 0 0}
+.ba{margin-top:10px;display:grid;gap:6px}
+.ba-row{display:grid;grid-template-columns:78px 1fr 1fr;gap:6px;align-items:start}
+.ba-row.head .ba-cell{font-size:11.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;background:none;padding:0 2px;color:var(--muted)}
+.ba-row.head .ba-cell.after{color:var(--new)}
+.ba-label{font-size:12px;color:var(--muted);font-weight:600;padding-top:6px}
+.ba-cell{background:#fff;border-radius:8px;padding:6px 8px;font-size:13px;line-height:1.4}
+.ba-cell.before{border:1px solid #e3ddcf}
+.ba-cell.after{border:1px solid #9fd6d0}
+.ba del{background:#fbe0dc;color:#7d1d16;text-decoration:line-through;border-radius:3px;padding:0 1px}
+.ba ins{background:#d8f2ee;color:#0b5a55;text-decoration:none;font-weight:600;border-radius:3px;padding:0 1px}
 
-.short-label{display:none}
+/* ---------- layout with the side lists open ---------- */
+body.panel-open #panel{width:clamp(320px,30vw,460px)}
+body.panel-open #story{width:250px}
+body.panel-open #zoom{right:calc(clamp(320px,30vw,460px) + 24px)}
+@media(max-width:1100px){
+  body.panel-open #story{display:none}
+  body.panel-open #storytab{display:block}
+  #top .seg.in-top{display:none}
+}
+@media(min-width:721px) and (max-width:1100px){body.panel-open.show-navigation #story{display:block}}
 @media(max-width:720px){
   #top{gap:5px;padding:6px}
-  #top .title,#top .wide-label,#top .count,#tkeys{display:none}
+  #top .title,#top .wide-label{display:none}
   #top .short-label{display:inline}
-  #top button{padding:6px 8px;font-size:13px}
+  #top > button{padding:6px 8px;font-size:13px}
+  #top .count{margin-left:4px}
   #hint{left:10px;right:10px;max-width:none}
+  body.panel-open #panel{width:calc(100vw - 20px);top:auto;height:48vh}
+  body.panel-open #zoom{display:none}
 }
 
+/* ---------- print ---------- */
 #paper-review{display:none}
 @media print{
+  #top,#panel,#toast,#gloss,#zoom,#story,#storytab,#walk,#hint,#role-strip,#menu{display:none !important}
+  html,body{overflow:visible;height:auto;background:#fff}
+  #viewport{position:static;background:none !important}
+  #world{position:relative}
+  .box,.notecard{box-shadow:none;break-inside:avoid}
   body.print-review{height:auto;overflow:visible;background:#fff}
   body.print-review > *{display:none!important}
   body.print-review #paper-review{display:block!important;padding:16px}
@@ -270,79 +421,6 @@ body.z-far .box .meta .notebadge{font-size:calc(11.5px * var(--inv))}
   #paper-review h2{font-size:17px}
   .paper-space{height:90px;border-bottom:1px solid #ccc}
 }
-
-.recommendation{background:#f3f6fd;border-left:3px solid var(--accent);padding:10px 12px;margin:12px 0}
-.recommendation p{margin:4px 0 0}
-
-#story .workflow button{padding:12px 9px;font-weight:600}
-#story .more button[aria-current="true"]{background:#eaf0ff;border-color:#9fb4ee;color:#244ca6}
-
-/* Display controls have names on hover or focus, and a visible switch state. */
-#top .display-controls{display:flex;gap:5px;align-items:center}
-#top .icon-control{position:relative;width:36px;height:36px;padding:5px 6px 9px}
-.icon-control svg{display:block;width:22px;height:22px}
-#top .icon-control[aria-pressed="true"]{background:#eaf0ff;color:#244ca6;border-color:#9fb4ee}
-.toggle-state{position:absolute;bottom:3px;left:13px;width:11px;height:4px;border-radius:4px;background:#aaa}
-[aria-pressed="true"] .toggle-state{background:#244ca6}
-.control-tip{display:none;position:absolute;top:calc(100% + 9px);right:0;background:#1d1d1b;color:#fff;
-  font-size:12px;padding:6px 9px;border-radius:6px;pointer-events:none;z-index:60}
-.icon-control:hover .control-tip,.icon-control:focus-visible .control-tip{display:block}
-.word-meanings dt{font-weight:700;margin-top:16px}
-.word-meanings dd{margin:4px 0 0}
-@media(max-width:720px){#top .display-controls{gap:3px}#top .icon-control{width:32px;padding:5px 4px 9px}}
-
-/* Keep space for the drawing when details are open. */
-body.panel-open #panel{width:clamp(320px,30vw,460px)}
-body.panel-open #story{width:240px}
-body.panel-open #zoom{right:calc(clamp(320px,30vw,460px) + 24px)}
-.customer-step{border-top:4px solid #5b78b9}
-.timeline-title{background:#eef3ff;border-color:#b9c9ea}
-.links .customer-flow{stroke:#5b78b9;stroke-width:2}
-#story .seg button{padding:6px 4px}
-@media(max-width:1100px){body.panel-open #story{display:none}body.panel-open #storytab{display:block}}
-@media(max-width:720px){body.panel-open #panel{width:calc(100vw - 20px)}body.panel-open #zoom{display:none}}
-
-/* A stage spine anchors the work; proposals and feedback have distinct styles. */
-.box.stage{background:#f9d46b;border-color:#e5bd51;color:#3a2a00}
-.box.stage h3{font-size:23px;font-weight:600}
-.box.stage.first-stage{background:#7652d9;color:#fff;border-color:#7652d9}
-.box.stage.first-stage p{color:#fff}
-.box.planned-new{background:#effaf8;border-color:#81c9c1}
-.links .connection path{stroke:#7652d9;stroke-width:1.8;fill:none;opacity:.55}
-.links .connection.evidence path{stroke:#4675ba}
-.links .connection.feedback path{stroke:#c54d46;stroke-dasharray:6 4}
-.links .connection.active path{opacity:1;stroke-width:2.5}
-body.connection-focus .box:not(.connected){opacity:.4}
-.connection-description{border-left:3px solid #7652d9;padding-left:8px}
-.connection-description.evidence{border-color:#4675ba}
-.connection-description.feedback{border-color:#c54d46}
-@media(max-width:720px){#top .display-controls{flex:1;min-width:0;overflow-x:auto}#top .icon-control{flex-shrink:0}}
-
-#view-version{border:1px solid var(--line);border-radius:8px;background:#fff;padding:7px;font-size:13px;min-width:88px}
-@media(max-width:720px){body.panel-open #panel{top:auto;height:48vh}#top .display-controls select{flex-shrink:0}}
-
-@media(min-width:721px) and (max-width:1100px){body.panel-open.show-navigation #story{display:block}}
-
-/* Paper notes stay beside the work, with space for each person's perspective. */
-.notecard{border-radius:3px 3px 12px 3px;border:1px solid rgba(70,55,20,.12);padding:14px 14px 12px;
-  box-shadow:0 2px 2px rgba(0,0,0,.05),2px 7px 13px rgba(0,0,0,.13);transform:rotate(var(--note-tilt,0deg))}
-.notecard::before{top:-5px;bottom:auto;left:calc(50% - 22px);width:44px;height:12px;
-  background:rgba(255,255,255,.55)!important;transform:rotate(-3deg);border:1px solid rgba(255,255,255,.6)}
-.notecard::after{content:"";position:absolute;right:0;bottom:0;width:12px;height:12px;
-  background:linear-gradient(135deg,transparent 48%,rgba(0,0,0,.09) 50%,rgba(255,255,255,.7));border-radius:0 0 10px 0}
-.notecard:hover,.notecard:focus-visible{transform:none;box-shadow:2px 10px 18px rgba(0,0,0,.18)}
-.notecard .who{text-transform:none;letter-spacing:0;font-size:12px}
-.notecard h5{font-size:15px;line-height:1.3;margin:7px 0}
-.notecard .q{line-height:1.45}
-#role-strip{position:fixed;top:64px;z-index:29;display:flex;align-items:center;gap:7px;width:max-content;
-  max-width:calc(100vw - 24px);overflow-x:auto;background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:10px;padding:6px 9px}
-#role-strip[hidden]{display:none}
-#role-strip button{display:flex;align-items:center;gap:6px;white-space:nowrap;border:1px solid var(--line);border-radius:7px;background:#faf9f5;padding:4px 8px}
-#role-strip button[aria-pressed="true"]{background:#eef0ff;border-color:#b8b4dc}
-#role-strip button[aria-pressed="false"]{color:var(--muted);opacity:.7}
-.paper-swatch{width:14px;height:14px;border:1px solid;box-shadow:1px 2px 2px rgba(0,0,0,.12);transform:rotate(-5deg)}
-.role-caption{font-size:12px;color:var(--muted);white-space:nowrap}
-@media print{#role-strip{display:none!important}}
 
 </style>
 </head>
@@ -352,7 +430,9 @@ body.connection-focus .box:not(.connected){opacity:.4}
 <div id="menu" role="menu"></div>
 <aside id="story" aria-label="What is in this decision"></aside>
 <button id="storytab" type="button">Show list</button>
-<main id="viewport" aria-label="Decision map. Use Tab to move between boxes and Enter to open one."><div id="world"></div></main>
+<main id="viewport" aria-label="Decision map. Use Tab to move between boxes and Enter to open one."><div class="panelabel">Today</div><div id="world"></div></main>
+<div id="viewport2" aria-hidden="true"><div class="panelabel">In the plan</div><div id="world2"></div></div>
+<div id="pairline" aria-hidden="true"></div>
 <aside id="panel" aria-live="polite"></aside>
 <div id="zoom" role="group" aria-label="Zoom">
   <button id="zin" type="button">+ Zoom in</button>
@@ -363,15 +443,17 @@ body.connection-focus .box:not(.connected){opacity:.4}
 <div id="hint" role="note"></div>
 <div id="gloss" role="tooltip"></div>
 <div id="toast" role="status"></div>
-<script type="application/json" id="dc-model">{"format":"decisioncraft/1","title":"Moving file uploads","question":"Should we move customer file uploads to a new storage provider, change how uploads reach storage, or both?","summary":"A mid-size web team stores customers' files with one storage provider. Large uploads time out, and the transfer bill keeps growing. This map shows how an upload works today, what each option changes, and what the team still has to decide. All figures are made up.","freshness_days":30,"reading":"The first view, How an upload works, has six journeys: an upload today, the proposed direct upload, downloading and sharing, deleting, moving existing files, and what happens when something goes wrong. Each column is a part of the system, from the customer's browser on the left to the storage provider on the right, so you can see where each step happens. The second view, Options, starts from the outcome we want and branches into problems, ideas and quick tests. Turn on Show technical names in any box to see the services and settings involved. Notes from security, finance, support and others sit on the steps they are about.","checked":{"date":"2026-05-20","note":"Checked against the incident review, April upload numbers, 31 support tickets, a provider comparison and call notes, the scanning and retention setup, and a team discussion."},"glossary":{"signed link":"A web address that lets one browser upload or download one file for a few minutes, without a password.","proxy":"When our servers pass every byte between the customer and storage, instead of the customer talking to storage directly.","resumable upload":"An upload sent in pieces, so a dropped connection only loses the last piece.","data out":"Files sent from storage to anyone outside it. Providers charge for this.","CDN":"A network of servers close to customers that keeps copies of popular files, so they download faster and cost less.","checksum":"A short fingerprint of a file. If two copies have the same checksum, they are the same.","holding area":"A place where new files wait, unseen by anyone else, until the virus scan passes.","recycle area":"Where a provider keeps deleted files for a few days in case they were deleted by mistake."},"sources":[{"id":"S1","title":"Incident review: slow uploads","kind":"document","date":"2026-05-04","ref":"material/incident-notes.md"},{"id":"S2","title":"Storage providers compared","kind":"data","date":"2026-05-12","ref":"material/provider-comparison.md"},{"id":"S3","title":"Team discussion","kind":"meeting","date":"2026-05-15","ref":"material/team-discussion.md"},{"id":"S4","title":"Support tickets, sample of 31","kind":"document","date":"2026-05-09","ref":"material/support-tickets.md"},{"id":"S5","title":"Upload numbers, April","kind":"data","date":"2026-05-06","ref":"material/upload-metrics.md"},{"id":"S6","title":"Provider B call notes and draft terms","kind":"document","date":"2026-05-14","ref":"material/provider-b-terms.md"},{"id":"S7","title":"Scanning and retention setup","kind":"document","date":"2026-05-10","ref":"material/scanning-and-retention.md"}],"evidence":[{"id":"E1","source":"S1","kind":"data","text":"Uploads over 200 MB timed out for about 40 minutes.","where":"Summary"},{"id":"E2","source":"S1","kind":"quote","text":"Half our servers were just shovelling bytes. Nothing else could get through.","where":"On-call engineer"},{"id":"E3","source":"S1","kind":"data","text":"Our storage bill grew 22% last quarter, mostly from data transfer out, not storage.","where":"Costs"},{"id":"E4","source":"S1","kind":"data","text":"Support received 31 tickets. Most from customers uploading video.","where":"Support"},{"id":"E5","source":"S2","kind":"data","text":"Data out: $90 per TB today; $0 to our CDN with provider B.","where":"Comparison table"},{"id":"E6","source":"S2","kind":"data","text":"Moving 180 TB at current transfer prices would cost about $16,000 once. Provider B offers free one-time transfer over 100 TB, on request.","where":"Notes under the table"},{"id":"E7","source":"S3","kind":"quote","text":"The real problem is the proxy, not the provider. Direct uploads fix the timeouts wherever the files live.","where":"Backend lead"},{"id":"E8","source":"S3","kind":"observation","voice":true,"text":"Customers ask for a progress bar and the ability to resume after a dropped connection.","where":"Product manager, from support tickets"},{"id":"E9","source":"S3","kind":"observation","text":"Signed links must expire in minutes and only allow one file path.","where":"Security engineer"},{"id":"E10","source":"S3","kind":"observation","text":"Nobody has tested how virus scanning works if files no longer pass through our servers.","where":"Open point"},{"id":"E11","source":"S4","kind":"data","text":"19 of 31 tickets were video uploads over 200 MB; 8 said it got to 90% and then failed.","where":"Ticket tags"},{"id":"E12","source":"S4","kind":"quote","text":"I lost two hours re-uploading the same file three times.","where":"Wedding videographer","voice":true},{"id":"E13","source":"S4","kind":"quote","text":"Just show me how far along it is. I can't tell if it's stuck.","where":"Agency producer","voice":true},{"id":"E14","source":"S4","kind":"quote","text":"Our firewall blocks some sites. Will the new way still work here?","where":"School office","voice":true},{"id":"E15","source":"S5","kind":"data","text":"3.1% of uploads were over 200 MB, but they were 71% of all bytes uploaded.","where":"April totals"},{"id":"E16","source":"S5","kind":"data","text":"Failure rate for uploads over 200 MB: 6.2% in busy hours, 1.4% at night.","where":"Failures"},{"id":"E17","source":"S5","kind":"data","text":"Upload servers spend about 55% of their time passing bytes to storage.","where":"Server time"},{"id":"E18","source":"S5","kind":"data","text":"18% of files are downloaded more than 10 times and make up 80% of data out.","where":"Downloads"},{"id":"E19","source":"S6","kind":"data","text":"Free one-time transfer needs a written request and approval, usually 2 to 3 weeks.","where":"Transfer"},{"id":"E20","source":"S6","kind":"data","text":"Provider B keeps deleted files 7 days in a recycle area unless turned off.","where":"Deletes"},{"id":"E21","source":"S6","kind":"data","text":"Upload completion messages go to a web address we choose; they retry for 24 hours.","where":"Notifications"},{"id":"E22","source":"S6","kind":"data","text":"Their EU region is in a different country from our current one. Legal must check our customer contracts.","where":"Region"},{"id":"E23","source":"S7","kind":"data","text":"Files are shown to the customer before the scan finishes; downloads are blocked only if the scan fails.","where":"Scanning"},{"id":"E24","source":"S7","kind":"data","text":"Scanning takes about 9 seconds under 100 MB and up to 4 minutes for 5 GB.","where":"Scanning"},{"id":"E25","source":"S7","kind":"data","text":"Our terms promise deleted files are gone within 30 days, including backups.","where":"Retention"},{"id":"E26","source":"S6","kind":"data","text":"Bucket names at provider B are global; ours must be renamed.","where":"Setup"},{"id":"E28","source":"S6","kind":"observation","text":"Their onboarding team suggests writing new files to both providers for at least a month and comparing checksums on every file before switching reads.","where":"Onboarding advice"},{"id":"E27","source":"S3","kind":"observation","text":"Finance wants the transfer bill down before the September budget review.","where":"Finance"}],"maps":[{"id":"m-how","template":"system-journeys","title":"How an upload works","intro":"Six journeys from the customer's browser to the storage provider. Each column is the part of the system that does that step.","lanes":[{"id":"people","label":"Customer","sub":"In their browser"},{"id":"front","label":"Web app","sub":"Pages and buttons"},{"id":"core","label":"Our servers","sub":"Checks and rules"},{"id":"records","label":"Database","sub":"What we record"},{"id":"background","label":"Background jobs","sub":"Work that runs later"},{"id":"outside","label":"Storage provider","sub":"Where files live"}],"journeys":[{"id":"j-today","title":"Upload today","summary":"Every byte passes through our servers on its way to storage.","creates":["A file record","The file in storage","A scan result"],"steps":[{"id":"t1","lane":"people","text":"Customer picks a file and presses Upload","status":"works","detail":"Upload button on the files page; no size limit shown.","feeling":"ok"},{"id":"t2","lane":"front","text":"Browser sends the whole file to our servers","status":"works","detail":"One HTTP request per file, no pieces.","pain":"No progress bar; people cannot tell if it is stuck.","evidence":["E8","E13"]},{"id":"t3","lane":"core","text":"Our servers pass the bytes on to storage","status":"partial","detail":"Streaming proxy in the upload service; 60-second idle timeout at the load balancer.","moment":true,"evidence":["E1","E2","E17"]},{"id":"t3b","lane":"core","text":"Long uploads hold a server connection open","status":"partial","detail":"Each upload ties up one worker for its whole length.","pain":"Other customers' requests queue behind them.","evidence":["E2","E17"]},{"id":"t3c","lane":"people","text":"On weak wifi the upload fails and starts again from zero","status":"missing","detail":"No resume; the browser retries the whole request.","feeling":"bad","moment":true,"evidence":["E12","E16"]},{"id":"t4","lane":"records","text":"File record is saved and the file shown to the customer","status":"works","detail":"Row in the files table with size, type and owner.","evidence":["E23"]},{"id":"t5","lane":"background","text":"A job scans the file for viruses","status":"works","detail":"Scanner reads the file from storage after the upload finishes.","evidence":["E24"]},{"id":"t6","lane":"records","text":"If the scan fails, downloads are blocked","status":"partial","detail":"Until then the file can already be shared and downloaded.","pain":"A bad file can be downloaded for up to 4 minutes.","evidence":["E23"]}]},{"id":"j-direct","title":"Upload with direct links (proposed)","summary":"The browser sends the file straight to storage in pieces, using a short-lived signed link.","creates":["A file record in 'uploading' state","The file in a holding area","A scan result","A ready file"],"steps":[{"id":"d1","lane":"people","text":"Customer picks a file and presses Upload","status":"works","detail":"Same button; size limit shown up front.","feeling":"good"},{"id":"d2","lane":"core","text":"Our servers check the customer may upload, and issue a signed link for one file","status":"planned","detail":"Signed link valid 10 minutes, one path, one content type.","moment":true,"evidence":["E9"]},{"id":"d2b","lane":"records","text":"A file record is created in 'uploading' state","status":"planned","detail":"Status column: uploading, scanning, ready, rejected."},{"id":"d3","lane":"outside","text":"Browser uploads straight to storage in pieces, with a progress bar","status":"planned","detail":"Multipart upload, 16 MB pieces, three in parallel.","feeling":"good","evidence":["E7","E8","E13"]},{"id":"d3b","lane":"people","text":"If the connection drops, the upload resumes from the last piece","status":"planned","detail":"Browser keeps the upload id and finished pieces in local storage.","moment":true,"evidence":["E12","E11"]},{"id":"d3c","lane":"people","text":"Some office firewalls may block the storage address","status":"missing","detail":"Fallback: the old proxy path for customers who cannot reach storage directly.","pain":"Schools and offices with strict firewalls.","evidence":["E14"]},{"id":"d3d","lane":"outside","text":"File lands in a holding area nobody else can read","status":"planned","detail":"Separate bucket prefix with no public or shared access.","evidence":["E9","E23"]},{"id":"d4","lane":"background","text":"Storage tells us the upload finished; a job scans it","status":"missing","detail":"Completion message to our web address, retried for 24 hours.","evidence":["E10","E21","E24"]},{"id":"d5","lane":"records","text":"File is marked ready only after a clean scan","status":"planned","detail":"Moved out of the holding area, status set to ready.","evidence":["E23"]},{"id":"d6","lane":"front","text":"Customer sees 'Ready' or a plain message if it was rejected","status":"planned","detail":"Rejected files are deleted after 7 days; owner gets an email."}]},{"id":"j-download","title":"Downloading and sharing","summary":"A customer or someone they share with downloads a file.","creates":["A short-lived download link","A download count"],"steps":[{"id":"dl1","lane":"people","text":"Customer clicks Download, or opens a share link","status":"works","detail":"Share links never expire unless the owner turns them off."},{"id":"dl2","lane":"core","text":"Our servers check they may see the file","status":"works","detail":"Owner, team member, or holder of a share link."},{"id":"dl3","lane":"core","text":"Our servers make a signed download link","status":"works","detail":"Valid 5 minutes, one file.","evidence":["E9"]},{"id":"dl4","lane":"outside","text":"Storage sends the file to the browser","status":"works","detail":"Every download is billed as data out at $90 per TB.","pain":"This is where the bill grows.","evidence":["E5","E3"]},{"id":"dl5","lane":"outside","text":"Popular files could come from the CDN instead","status":"missing","detail":"18% of files make 80% of data out; caching them at the CDN cuts the bill.","moment":true,"evidence":["E18","E5"]},{"id":"dl6","lane":"records","text":"We count the download","status":"works","detail":"Download counter on the file record."},{"id":"dl7","lane":"people","text":"A file still being scanned cannot be downloaded","status":"planned","detail":"Today it can; in the planned flow it waits.","evidence":["E23"]}]},{"id":"j-delete","title":"Deleting a file","summary":"A customer deletes a file, or closes their account.","creates":["A deleted mark","A purge job","A deletion log entry"],"steps":[{"id":"x1","lane":"people","text":"Customer deletes a file","status":"works","detail":"Moves to the customer's trash for 30 days."},{"id":"x2","lane":"records","text":"File is marked deleted and hidden","status":"works","detail":"Deleted-at column set; share links stop working."},{"id":"x3","lane":"background","text":"After 30 days a job removes it from storage","status":"works","detail":"Nightly purge job.","evidence":["E25"]},{"id":"x4","lane":"outside","text":"At provider B, deleted files sit in a recycle area for 7 more days","status":"missing","detail":"Must be turned off, or counted inside our 30 days.","moment":true,"evidence":["E20","E25"]},{"id":"x5","lane":"outside","text":"During a move, the file may exist at both providers","status":"missing","detail":"Deletes must reach both until the old copy is gone.","pain":"A deleted file could survive at the old provider.","evidence":["E25"]},{"id":"x6","lane":"background","text":"Account closure deletes everything after 14 days","status":"works","detail":"Same purge job, per account.","evidence":["E25"]},{"id":"x7","lane":"records","text":"We log that the file is gone","status":"partial","detail":"Logged for account closures only."}]},{"id":"j-move","title":"Moving existing files to provider B","summary":"Copying 180 TB without customers noticing, if we decide to move.","creates":["A copy of every file at provider B","A checksum report","A switch-over date"],"steps":[{"id":"mv1","lane":"core","text":"Ask provider B for free transfer in writing","status":"missing","detail":"2 to 3 weeks for approval.","moment":true,"evidence":["E19","E6"]},{"id":"mv2","lane":"core","text":"Legal checks the new region against customer contracts","status":"missing","detail":"Different EU country from today.","evidence":["E22"]},{"id":"mv3","lane":"outside","text":"Create buckets at provider B with new names","status":"planned","detail":"Names are global; ours must change.","evidence":["E26"]},{"id":"mv4","lane":"background","text":"Copy new uploads to both providers for a month","status":"planned","detail":"Dual writes from the upload service.","evidence":["E28"]},{"id":"mv5","lane":"background","text":"Copy older files in batches overnight","status":"planned","detail":"Largest and most-downloaded first, to cut data out soonest.","evidence":["E18"]},{"id":"mv6","lane":"background","text":"Compare checksums for every file","status":"planned","detail":"A report of any file that does not match.","evidence":["E28"]},{"id":"mv7","lane":"core","text":"Switch reads to provider B, then writes","status":"planned","detail":"One setting per customer group, so we can switch back."},{"id":"mv8","lane":"outside","text":"Keep the old copy for 30 days, then delete it","status":"planned","detail":"Deletes made in those 30 days go to both.","evidence":["E25"]}]},{"id":"j-fail","title":"When something goes wrong","summary":"A storage outage, a stuck upload, or a missed completion message.","creates":["An alert","A retry","A message to the customer"],"steps":[{"id":"f1","lane":"outside","text":"Storage provider has an outage","status":"partial","detail":"Today uploads fail with a generic error.","evidence":["E1"]},{"id":"f2","lane":"front","text":"Customer sees a plain message and their upload pauses","status":"planned","detail":"Resume when storage is back, without starting over.","evidence":["E12"]},{"id":"f3","lane":"background","text":"A completion message never arrives","status":"missing","detail":"Nightly job finds files stuck in 'uploading' for over 24 hours.","evidence":["E21"]},{"id":"f4","lane":"background","text":"Stuck files are checked against storage and fixed or cleaned up","status":"missing","detail":"If the file is complete in storage, scan it; if not, delete the record."},{"id":"f5","lane":"core","text":"On-call is alerted when large-upload failures pass 2%","status":"missing","detail":"Today nobody is alerted; support finds out from tickets.","moment":true,"evidence":["E4","E16"]},{"id":"f6","lane":"front","text":"Support can see a customer's recent uploads and why they failed","status":"missing","detail":"A simple page for support, read-only.","evidence":["E4"]}]}]},{"id":"m-options","template":"opportunity-tree","title":"Options","intro":"The outcome at the top, then the problems that stand in its way, the ideas for each, and the quick tests that would prove an idea.","levels":["Outcome","Problem","Idea","Quick test"],"root":{"id":"o-root","title":"Big uploads always finish, and the transfer bill falls","text":"By the September budget review.","children":[{"id":"o-timeouts","title":"Large uploads time out","status":"missing","evidence":["E1","E4"],"children":[{"id":"o-direct","title":"Direct uploads with signed links","status":"planned","evidence":["E7"],"children":[{"id":"o-test-direct","title":"Ship to 5% of video uploads for two weeks","text":"Compare failure rate and server load."}]},{"id":"o-bigger","title":"Raise timeouts and add servers","status":"works","text":"Cheap now, costly later.","children":[{"id":"o-test-bigger","title":"Raise the idle timeout to 10 minutes on one server","text":"Watch for queueing."}]}]},{"id":"o-bill","title":"Data out costs keep growing","status":"partial","evidence":["E3","E5"],"children":[{"id":"o-move","title":"Move files to provider B","status":"planned","evidence":["E5","E6"],"children":[{"id":"o-test-move","title":"Copy one month of new files to B and serve them through the CDN","text":"Measure the bill and download speed."}]},{"id":"o-cache","title":"Cache popular downloads at the CDN","status":"missing","children":[{"id":"o-test-cache","title":"Turn on caching for public files only","text":"One week, then compare data out."}]}]}]}}],"gaps":[{"id":"G1","title":"Direct uploads with a progress bar and resume","why":"Fixes the timeouts no matter which provider we use; uploads over 200 MB are 71% of all bytes.","anchors":["d2","d3","d3b","o-direct"],"impact":5,"effort":3,"stories":[{"as":"As a customer uploading a large video on a weak connection, I want the upload to resume where it stopped, so I do not start again.","done_when":["a 2 GB upload survives a 30-second disconnect","the progress bar matches the bytes received","our servers handle no file bytes"]},{"as":"As a producer uploading a 4 GB video, I want to see how far along it is, so I know it is not stuck.","done_when":["a progress bar shows percent and time left","it updates at least every 2 seconds"]},{"as":"As a school office behind a strict firewall, I want uploads to still work, so we are not locked out.","done_when":["if the storage address cannot be reached within 5 seconds, the upload falls back to the old path","support can see which customers used the fallback"]}]},{"id":"G2","title":"Scan files that never touch our servers","why":"Today scanning assumes we saw the upload, and a bad file can be downloaded for up to 4 minutes.","anchors":["d4","d3d","t6"],"impact":4,"effort":2,"stories":[{"as":"As the security engineer, I want every upload scanned before anyone can download it, so direct uploads add no risk.","done_when":["a file is not downloadable until its scan passes","an infected test file is quarantined and the customer is told"]},{"as":"As a customer, I want to know my file is being checked, so a short wait makes sense.","done_when":["the file shows 'Checking' until the scan passes","files under 100 MB are ready within 15 seconds"]}]},{"id":"G3","title":"Move existing files to provider B","why":"Cuts the data-out bill; only worth it if the free transfer is granted.","anchors":["o-move","mv1","mv5"],"impact":3,"effort":4,"stories":[{"as":"As finance, I want the move to cost nothing up front, so the saving shows before the September review.","done_when":["provider B confirms free transfer in writing","every file's checksum matches after the copy","downloads switch over with no broken links"]},{"as":"As the engineering lead, I want to switch back within an hour, so a bad move does not become an outage.","done_when":["reads and writes switch by one setting per customer group","a dry run of switching back is done before the move"]}]},{"id":"G4","title":"Serve popular files from the CDN","why":"18% of files cause 80% of data out; caching them cuts the bill with either provider.","anchors":["dl5","o-cache"],"impact":4,"effort":2,"stories":[{"as":"As finance, I want popular downloads to stop counting as data out, so the bill falls before September.","done_when":["public and shared files are served from the CDN","data out falls at least 30% in the first month"]},{"as":"As a security engineer, I want private files never cached, so nobody gets someone else's file.","done_when":["only files marked public or shared go to the CDN","a private file request always checks permission first"]}]},{"id":"G5","title":"Deletes reach every copy","why":"Our terms promise deleted files are gone within 30 days; provider B keeps a 7-day recycle area and a move means two copies.","anchors":["x4","x5","mv8"],"impact":4,"effort":2,"stories":[{"as":"As a customer who deleted a file, I want it gone everywhere within 30 days, as the terms promise.","done_when":["provider B's recycle area is off, or our purge runs 7 days early","deletes during the move go to both providers","a monthly check finds no deleted file older than 30 days"]}]},{"id":"G6","title":"Know about failures before customers tell us","why":"Support found out about the 2 May incident from 31 tickets.","anchors":["f5","f6","f3"],"impact":3,"effort":2,"stories":[{"as":"As on-call, I want an alert when large uploads start failing, so I can act in minutes, not hours.","done_when":["an alert fires when failures over 200 MB pass 2% for 10 minutes","the alert links to a page showing the failing step"]},{"as":"As support, I want to see a customer's recent uploads and why they failed, so I can answer the ticket.","done_when":["a read-only page lists the last 20 uploads with status and error","it never shows file contents"]}]}],"notes":[{"id":"N1","role":"engineer","anchor":"t3","title":"The proxy is the bottleneck","body":"Servers hold a connection for the whole upload. That is why everything slowed down.","recommend":"Do direct uploads first; it is independent of the provider choice.","question":"Do we agree to separate the two decisions: direct uploads now, provider later?","urgency":"must","evidence":["E2","E7"]},{"id":"N2","role":"security","anchor":"d2","title":"Signed links must be narrow","body":"A link that allows any path, or lasts hours, would let anyone write files into our storage.","recommend":"Links last 10 minutes, cover one path, and set a size limit.","question":"Is 10 minutes long enough for the slowest customers, given uploads resume in pieces?","urgency":"must","evidence":["E9"]},{"id":"N3","role":"security","anchor":"d4","title":"Nothing is downloadable before it is scanned","body":"With direct uploads, a file lands in storage before we have looked at it.","recommend":"Upload into a holding area; move it to the live area only after a clean scan.","question":"Who builds and tests the holding area before the 5% trial?","urgency":"must","evidence":["E10"]},{"id":"N4","role":"voice","anchor":"d3","title":"Customers asked for two things","body":"A progress bar and resuming after a dropped connection. Neither needs a new provider.","recommend":"Ship both with direct uploads, and tell the 31 customers who raised tickets.","question":"Do we contact the customers who reported the problem when the fix ships?","urgency":"should","evidence":["E4","E8"]},{"id":"N5","role":"finance","anchor":"o-bill","title":"The bill problem is data out, not storage","body":"Storage grew a little; data out grew a lot.","recommend":"Try CDN caching first; it is cheap and fast to test.","question":"How much must data out fall by September for this to count as fixed?","urgency":"must","evidence":["E3","E5"]},{"id":"N6","role":"finance","anchor":"G3","title":"Only move if the transfer is free","body":"At $16,000, the move pays back in about seven months. Free transfer makes it pay back at once.","recommend":"Ask provider B for free transfer in writing before deciding.","question":"Who asks provider B, and by when?","urgency":"should","evidence":["E6"]},{"id":"N7","role":"owner","anchor":"o-root","title":"Two outcomes, two clocks","body":"Timeouts hurt customers now. The bill matters by September.","recommend":"Fix timeouts this month; decide the provider in July with test results in hand.","question":"Is July the right month to make the provider decision?","urgency":"should","evidence":["E1","E3"]},{"id":"N8","role":"analyst","anchor":"o-test-direct","title":"Say what the trial must show","body":"Without a target, a two-week trial cannot pass or fail.","recommend":"Pass if failed uploads drop below 1% and no server spends more than 5% of its time on uploads.","question":"Are those the right pass marks for the trial?","urgency":"should","evidence":["E1"]},{"id":"N9","role":"designer","anchor":"t2","title":"Tell people what is happening","body":"Today a big upload shows a spinner with no end.","recommend":"Show bytes sent, time left, and a clear message if the connection drops.","question":"Should a dropped upload resume by itself, or ask first?","urgency":"info","evidence":["E8"]},{"id":"N10","role":"agent","anchor":"G3","title":"An assistant can check the copy","body":"Comparing checksums for millions of files is repetitive and easy to get wrong by hand.","recommend":"Let an agent run and report the checksum comparison; a person signs off the switch-over.","question":"Who signs off the switch-over once the agent's report is clean?","urgency":"info","evidence":["E6"]},{"id":"N11","role":"engineer","anchor":"o-move","title":"Nobody has run provider B","body":"Four years of experience with the current provider; none with B.","recommend":"Run the one-month copy test before committing.","question":"Are we willing to run two providers for a few months during the move?","urgency":"should","evidence":["E6"]},{"id":"N12","role":"voice","anchor":"t3c","title":"Starting again from zero is the real pain","body":"The videographer lost two hours re-uploading the same file; four tickets came from hotel or train wifi.","recommend":"Make resume the first thing the trial measures.","question":"Do we promise resume in the help pages before the trial ends?","urgency":"must","evidence":["E12","E11"]},{"id":"N13","role":"voice","anchor":"d3c","title":"Strict firewalls could lock some customers out","body":"A school office asked if the new way would work behind their firewall.","recommend":"Keep the old path as a fallback and tell support how to spot it.","question":"How long do we keep the old proxy path running as a fallback?","urgency":"should","evidence":["E14"]},{"id":"N14","role":"designer","anchor":"d6","title":"Say plainly why a file was rejected","body":"Customers see 'Error' today, which looks like our fault.","recommend":"Show 'This file was blocked because it may contain a virus' and what to do next.","question":"Do we tell free-plan users the scanner's reason, or only that it was blocked?","urgency":"should","evidence":["E23"]},{"id":"N15","role":"designer","anchor":"d3","title":"Show time left, not just percent","body":"A producer could not tell whether the upload was stuck.","recommend":"Show percent, speed and time left, updated every two seconds.","question":"Is time left accurate enough on weak connections to show it?","urgency":"info","evidence":["E13"]},{"id":"N16","role":"analyst","anchor":"d2b","title":"One status field for every file","body":"Uploading, checking, ready and rejected must mean the same thing on every page.","recommend":"Write the four states down and use them in the app, support page and alerts.","question":"Do we need a separate state for files waiting on a fallback upload?","urgency":"should","evidence":["E23"]},{"id":"N17","role":"analyst","anchor":"f3","title":"Decide what counts as stuck","body":"Completion messages retry for 24 hours, so 'stuck' must be longer than that.","recommend":"Call a file stuck after 26 hours in 'uploading'.","question":"Is 26 hours too long for customers waiting on a file?","urgency":"should","evidence":["E21"]},{"id":"N18","role":"engineer","anchor":"d4","title":"We must answer completion messages quickly","body":"Provider B retries for 24 hours if we do not answer; slow answers cause duplicates.","recommend":"Answer at once and do the scan in a background job; ignore duplicates by upload id.","question":"Who owns the completion endpoint and its alerts?","urgency":"must","evidence":["E21"]},{"id":"N19","role":"engineer","anchor":"mv4","title":"Dual writes double the risk of half-done uploads","body":"For a month every upload goes to two places.","recommend":"Treat the old provider as the source of truth until the switch; log every mismatch.","question":"Do we pause the move if mismatches pass 0.1%?","urgency":"should","evidence":["E28"]},{"id":"N20","role":"engineer","anchor":"f5","title":"No alert today","body":"Support found the incident from tickets; nobody was paged.","recommend":"Alert on large-upload failure rate, not on server errors alone.","question":"What failure rate should wake someone at night?","urgency":"should","evidence":["E4","E16"]},{"id":"N21","role":"owner","anchor":"G4","title":"Caching may beat moving","body":"Caching popular files cuts most data out without moving anything.","recommend":"Run the one-week caching test before deciding on provider B.","question":"If caching cuts data out by 30%, do we still move?","urgency":"must","evidence":["E18","E5"]},{"id":"N22","role":"owner","anchor":"d3c","title":"Keep the fallback small","body":"A permanent second upload path doubles what we support.","recommend":"Keep the fallback for six months, then review who still uses it.","question":"Who reviews the fallback numbers in six months?","urgency":"info","evidence":["E14"]},{"id":"N23","role":"security","anchor":"x4","title":"The recycle area breaks our deletion promise","body":"Provider B keeps deleted files 7 days unless it is turned off; our terms promise 30 days in total.","recommend":"Turn the recycle area off, or purge 7 days early.","question":"Which do we choose: turn it off, or purge early?","urgency":"must","evidence":["E20","E25"]},{"id":"N24","role":"security","anchor":"dl5","title":"Never cache private files","body":"A cache mistake could show one customer's file to another.","recommend":"Cache only files marked public or shared; check permission for everything else.","question":"Who reviews the cache rules before the test?","urgency":"should","evidence":["E18"]},{"id":"N25","role":"security","anchor":"mv2","title":"A new country needs a legal check","body":"Provider B's EU region is in a different country, and some contracts name the country.","recommend":"Ask legal for a list of affected customers before any copy starts.","question":"Do we need to tell customers before their files move country?","urgency":"must","evidence":["E22"]},{"id":"N26","role":"agent","anchor":"f4","title":"An agent can clean up stuck uploads","body":"Checking each stuck record against storage is routine and rule-based.","recommend":"Let an agent fix or remove stuck records nightly and post a summary.","question":"Should the agent delete stuck records itself, or only list them for a person?","urgency":"info","evidence":["E21"]},{"id":"N27","role":"agent","anchor":"f6","title":"An agent can draft the first support reply","body":"Most tickets ask the same three things.","recommend":"Draft a reply from the customer's upload history for support to check and send.","question":"Are we comfortable with an agent reading upload history to draft replies?","urgency":"info","evidence":["E4","E11"]},{"id":"N28","role":"agent","anchor":"mv6","title":"Checksum reports are a good job for an agent","body":"Comparing 180 TB of checksums is long and repetitive.","recommend":"Let an agent run the comparison and flag only mismatches.","question":"Who acts on a mismatch: the agent, or a person?","urgency":"info","evidence":["E28","E6"]},{"id":"N29","role":"finance","anchor":"dl4","title":"Every download costs money today","body":"$90 per TB of data out is most of the bill growth.","recommend":"Measure data out per customer plan so we know who drives it.","question":"Should heavy-download plans pay more?","urgency":"must","evidence":["E5","E3"]},{"id":"N30","role":"finance","anchor":"mv1","title":"No written transfer, no move","body":"Moving 180 TB costs about $16,000 without the free transfer.","recommend":"Send the written request this week; it takes 2 to 3 weeks.","question":"Who sends the request, and do we wait for it before any other work?","urgency":"should","evidence":["E19","E6"]},{"id":"N31","role":"finance","anchor":"o-root","title":"September is the deadline that matters","body":"Finance wants the bill down before the September review.","recommend":"Plan so that caching or the move shows in the August bill.","question":"Is the August bill the one we judge by?","urgency":"info","evidence":["E27"]},{"id":"N32","role":"analyst","anchor":"G6","title":"Measure the same thing before and after","body":"Failure rates differ a lot between busy hours and night.","recommend":"Report busy-hour and night rates separately.","question":"Do we judge the trial on busy-hour rates only?","urgency":"info","evidence":["E16"]},{"id":"N33","role":"voice","anchor":"dl7","title":"A short wait to download is fine if it is explained","body":"Customers accept 'Checking' if they can see it.","recommend":"Show 'Checking for viruses, usually under 15 seconds'.","question":"Do we let the uploader download their own file before the scan?","urgency":"info","evidence":["E23","E24"]}],"decisions":[{"id":"D1","question":"Do we build direct uploads now, separately from the provider choice?","notes":["N1","N4"],"options":["Yes, now","Wait for the provider decision"],"owner":"Backend lead","status":"decided","decided_by":"Engineering lead","decision":"Yes. Direct uploads ship to 5% of video uploads in June.","due":"2026-05-29"},{"id":"D2","question":"Do we move to provider B?","notes":["N5","N6","N11"],"options":["Move all files","Move new files only","Stay, and add CDN caching"],"owner":"Engineering lead","status":"open","due":"2026-07-15"},{"id":"D3","question":"How do signed links and scanning work?","notes":["N2","N3"],"owner":"Security engineer","status":"open","due":"2026-06-05"},{"id":"D4","question":"Do we run the one-week caching test before deciding on provider B?","notes":["N21","N24"],"options":["Yes, test caching first","No, decide on B now"],"owner":"Engineering lead","status":"open","due":"2026-06-10"},{"id":"D5","question":"How do we keep the 30-day deletion promise at provider B?","notes":["N23"],"options":["Turn the recycle area off","Purge 7 days early"],"owner":"Security engineer","status":"open","due":"2026-06-20"}],"outcomes":[{"id":"O1","measure":"Failed large uploads","baseline":"About 6% during busy hours","target":"Below 1%"},{"id":"O2","measure":"Data out cost per month","baseline":"Up 22% last quarter","target":"Down 30% by September"},{"id":"O3","measure":"Time from upload to 'Ready' for files under 100 MB","baseline":"Shown at once, scanned later","target":"Under 15 seconds, scanned first"},{"id":"O4","measure":"Upload tickets per month","baseline":"31 in the incident week","target":"Fewer than 5"}]}</script>
+<script type="application/json" id="dc-model">{"format":"decisioncraft/1","title":"Moving file uploads","question":"Should we move customer file uploads to a new storage provider, change how uploads reach storage, or both?","summary":"A mid-size web team stores customers' files with one storage provider. Large uploads time out, and the transfer bill keeps growing. This map shows how an upload works today, what each option changes, and what the team still has to decide. All figures are made up.","freshness_days":30,"reading":"The first view, How an upload works, has six journeys: an upload today, the proposed direct upload, downloading and sharing, deleting, moving existing files, and what happens when something goes wrong. Each column is a part of the system, from the customer's browser on the left to the storage provider on the right, so you can see where each step happens. The second view, Options, starts from the outcome we want and branches into problems, ideas and quick tests. Turn on Show technical names in any box to see the services and settings involved. Notes from security, finance, support and others sit on the steps they are about.","checked":{"date":"2026-05-20","note":"Checked against the incident review, April upload numbers, 31 support tickets, a provider comparison and call notes, the scanning and retention setup, and a team discussion."},"glossary":{"signed link":"A web address that lets one browser upload or download one file for a few minutes, without a password.","proxy":"When our servers pass every byte between the customer and storage, instead of the customer talking to storage directly.","resumable upload":"An upload sent in pieces, so a dropped connection only loses the last piece.","data out":"Files sent from storage to anyone outside it. Providers charge for this.","CDN":"A network of servers close to customers that keeps copies of popular files, so they download faster and cost less.","checksum":"A short fingerprint of a file. If two copies have the same checksum, they are the same.","holding area":"A place where new files wait, unseen by anyone else, until the virus scan passes.","recycle area":"Where a provider keeps deleted files for a few days in case they were deleted by mistake."},"sources":[{"id":"S1","title":"Incident review: slow uploads","kind":"document","date":"2026-05-04","ref":"material/incident-notes.md"},{"id":"S2","title":"Storage providers compared","kind":"data","date":"2026-05-12","ref":"material/provider-comparison.md"},{"id":"S3","title":"Team discussion","kind":"meeting","date":"2026-05-15","ref":"material/team-discussion.md"},{"id":"S4","title":"Support tickets, sample of 31","kind":"document","date":"2026-05-09","ref":"material/support-tickets.md"},{"id":"S5","title":"Upload numbers, April","kind":"data","date":"2026-05-06","ref":"material/upload-metrics.md"},{"id":"S6","title":"Provider B call notes and draft terms","kind":"document","date":"2026-05-14","ref":"material/provider-b-terms.md"},{"id":"S7","title":"Scanning and retention setup","kind":"document","date":"2026-05-10","ref":"material/scanning-and-retention.md"}],"evidence":[{"id":"E1","source":"S1","kind":"data","text":"Uploads over 200 MB timed out for about 40 minutes.","where":"Summary"},{"id":"E2","source":"S1","kind":"quote","text":"Half our servers were just shovelling bytes. Nothing else could get through.","where":"On-call engineer"},{"id":"E3","source":"S1","kind":"data","text":"Our storage bill grew 22% last quarter, mostly from data transfer out, not storage.","where":"Costs"},{"id":"E4","source":"S1","kind":"data","text":"Support received 31 tickets. Most from customers uploading video.","where":"Support"},{"id":"E5","source":"S2","kind":"data","text":"Data out: $90 per TB today; $0 to our CDN with provider B.","where":"Comparison table"},{"id":"E6","source":"S2","kind":"data","text":"Moving 180 TB at current transfer prices would cost about $16,000 once. Provider B offers free one-time transfer over 100 TB, on request.","where":"Notes under the table"},{"id":"E7","source":"S3","kind":"quote","text":"The real problem is the proxy, not the provider. Direct uploads fix the timeouts wherever the files live.","where":"Backend lead"},{"id":"E8","source":"S3","kind":"observation","voice":true,"text":"Customers ask for a progress bar and the ability to resume after a dropped connection.","where":"Product manager, from support tickets"},{"id":"E9","source":"S3","kind":"observation","text":"Signed links must expire in minutes and only allow one file path.","where":"Security engineer"},{"id":"E10","source":"S3","kind":"observation","text":"Nobody has tested how virus scanning works if files no longer pass through our servers.","where":"Open point"},{"id":"E11","source":"S4","kind":"data","text":"19 of 31 tickets were video uploads over 200 MB; 8 said it got to 90% and then failed.","where":"Ticket tags"},{"id":"E12","source":"S4","kind":"quote","text":"I lost two hours re-uploading the same file three times.","where":"Wedding videographer","voice":true},{"id":"E13","source":"S4","kind":"quote","text":"Just show me how far along it is. I can't tell if it's stuck.","where":"Agency producer","voice":true},{"id":"E14","source":"S4","kind":"quote","text":"Our firewall blocks some sites. Will the new way still work here?","where":"School office","voice":true},{"id":"E15","source":"S5","kind":"data","text":"3.1% of uploads were over 200 MB, but they were 71% of all bytes uploaded.","where":"April totals"},{"id":"E16","source":"S5","kind":"data","text":"Failure rate for uploads over 200 MB: 6.2% in busy hours, 1.4% at night.","where":"Failures"},{"id":"E17","source":"S5","kind":"data","text":"Upload servers spend about 55% of their time passing bytes to storage.","where":"Server time"},{"id":"E18","source":"S5","kind":"data","text":"18% of files are downloaded more than 10 times and make up 80% of data out.","where":"Downloads"},{"id":"E19","source":"S6","kind":"data","text":"Free one-time transfer needs a written request and approval, usually 2 to 3 weeks.","where":"Transfer"},{"id":"E20","source":"S6","kind":"data","text":"Provider B keeps deleted files 7 days in a recycle area unless turned off.","where":"Deletes"},{"id":"E21","source":"S6","kind":"data","text":"Upload completion messages go to a web address we choose; they retry for 24 hours.","where":"Notifications"},{"id":"E22","source":"S6","kind":"data","text":"Their EU region is in a different country from our current one. Legal must check our customer contracts.","where":"Region"},{"id":"E23","source":"S7","kind":"data","text":"Files are shown to the customer before the scan finishes; downloads are blocked only if the scan fails.","where":"Scanning"},{"id":"E24","source":"S7","kind":"data","text":"Scanning takes about 9 seconds under 100 MB and up to 4 minutes for 5 GB.","where":"Scanning"},{"id":"E25","source":"S7","kind":"data","text":"Our terms promise deleted files are gone within 30 days, including backups.","where":"Retention"},{"id":"E26","source":"S6","kind":"data","text":"Bucket names at provider B are global; ours must be renamed.","where":"Setup"},{"id":"E28","source":"S6","kind":"observation","text":"Their onboarding team suggests writing new files to both providers for at least a month and comparing checksums on every file before switching reads.","where":"Onboarding advice"},{"id":"E27","source":"S3","kind":"observation","text":"Finance wants the transfer bill down before the September budget review.","where":"Finance"}],"maps":[{"id":"m-how","template":"system-journeys","title":"How an upload works","intro":"Five journeys from the customer's browser to the storage provider. Each column is the part of the system that does that step. The upload journey shows today and the plan in one.","lanes":[{"id":"people","label":"Customer","sub":"In their browser"},{"id":"front","label":"Web app","sub":"Pages and buttons"},{"id":"core","label":"Our servers","sub":"Checks and rules"},{"id":"records","label":"Database","sub":"What we record"},{"id":"background","label":"Background jobs","sub":"Work that runs later"},{"id":"outside","label":"Storage provider","sub":"Where files live"}],"journeys":[{"id":"j-today","title":"Uploading a file","summary":"How an upload works today, and with direct links to storage. Use Today, Planned and What changes to read it.","creates":["A file record","The file in storage","A scan result"],"steps":[{"id":"t1","lane":"people","text":"Customer picks a file and presses Upload","status":"works","detail":"Upload button on the files page; no size limit shown.","feeling":"ok"},{"id":"t2","lane":"front","text":"Browser sends the whole file to our servers","status":"works","detail":"One HTTP request per file, no pieces.","pain":"No progress bar; people cannot tell if it is stuck.","evidence":["E8","E13"],"when":"today"},{"id":"d2","lane":"core","text":"Our servers check the customer may upload, and issue a signed link for one file","status":"planned","detail":"Signed link valid 10 minutes, one path, one content type.","moment":true,"evidence":["E9"],"when":"planned","replaces":"t2"},{"id":"d2b","lane":"records","text":"A file record is created in 'uploading' state","status":"planned","detail":"Status column: uploading, scanning, ready, rejected.","when":"planned"},{"id":"t3","lane":"core","text":"Our servers pass the bytes on to storage","status":"partial","detail":"Streaming proxy in the upload service; 60-second idle timeout at the load balancer.","moment":true,"evidence":["E1","E2","E17"],"when":"today"},{"id":"d3","lane":"outside","text":"Browser uploads straight to storage in pieces, with a progress bar","status":"planned","detail":"Multipart upload, 16 MB pieces, three in parallel.","feeling":"good","evidence":["E7","E8","E13"],"when":"planned","replaces":"t3"},{"id":"t3b","lane":"core","text":"Long uploads hold a server connection open","status":"partial","detail":"Each upload ties up one worker for its whole length.","pain":"Other customers' requests queue behind them.","evidence":["E2","E17"],"when":"today"},{"id":"t3c","lane":"people","text":"On weak wifi the upload fails and starts again from zero","status":"missing","detail":"No resume; the browser retries the whole request.","feeling":"bad","moment":true,"evidence":["E12","E16"],"when":"today"},{"id":"d3b","lane":"people","text":"If the connection drops, the upload resumes from the last piece","status":"planned","detail":"Browser keeps the upload id and finished pieces in local storage.","moment":true,"evidence":["E12","E11"],"when":"planned","replaces":"t3c"},{"id":"d3c","lane":"people","text":"Some office firewalls may block the storage address","status":"missing","detail":"Fallback: the old proxy path for customers who cannot reach storage directly.","pain":"Schools and offices with strict firewalls.","evidence":["E14"],"when":"planned"},{"id":"d3d","lane":"outside","text":"File lands in a holding area nobody else can read","status":"planned","detail":"Separate bucket prefix with no public or shared access.","evidence":["E9","E23"],"when":"planned"},{"id":"t4","lane":"records","text":"File record is saved and the file shown to the customer","status":"works","detail":"Row in the files table with size, type and owner.","evidence":["E23"]},{"id":"d4","lane":"background","text":"Storage tells us the upload finished; a job scans it","status":"missing","detail":"Completion message to our web address, retried for 24 hours.","evidence":["E10","E21","E24"],"when":"planned"},{"id":"t5","lane":"background","text":"A job scans the file for viruses","status":"works","detail":"Scanner reads the file from storage after the upload finishes.","evidence":["E24"]},{"id":"t6","lane":"records","text":"If the scan fails, downloads are blocked","status":"partial","detail":"Until then the file can already be shared and downloaded.","pain":"A bad file can be downloaded for up to 4 minutes.","evidence":["E23"],"when":"today"},{"id":"d5","lane":"records","text":"File is marked ready only after a clean scan","status":"planned","detail":"Moved out of the holding area, status set to ready.","evidence":["E23"],"when":"planned","replaces":"t6"},{"id":"d6","lane":"front","text":"Customer sees 'Ready' or a plain message if it was rejected","status":"planned","detail":"Rejected files are deleted after 7 days; owner gets an email.","when":"planned"}]},{"id":"j-download","title":"Downloading and sharing","summary":"A customer or someone they share with downloads a file.","creates":["A short-lived download link","A download count"],"steps":[{"id":"dl1","lane":"people","text":"Customer clicks Download, or opens a share link","status":"works","detail":"Share links never expire unless the owner turns them off."},{"id":"dl2","lane":"core","text":"Our servers check they may see the file","status":"works","detail":"Owner, team member, or holder of a share link."},{"id":"dl3","lane":"core","text":"Our servers make a signed download link","status":"works","detail":"Valid 5 minutes, one file.","evidence":["E9"]},{"id":"dl4","lane":"outside","text":"Storage sends the file to the browser","status":"works","detail":"Every download is billed as data out at $90 per TB.","pain":"This is where the bill grows.","evidence":["E5","E3"]},{"id":"dl5","lane":"outside","text":"Popular files could come from the CDN instead","status":"missing","detail":"18% of files make 80% of data out; caching them at the CDN cuts the bill.","moment":true,"evidence":["E18","E5"]},{"id":"dl6","lane":"records","text":"We count the download","status":"works","detail":"Download counter on the file record."},{"id":"dl7","lane":"people","text":"A file still being scanned cannot be downloaded","status":"planned","detail":"Today it can; in the planned flow it waits.","evidence":["E23"]}]},{"id":"j-delete","title":"Deleting a file","summary":"A customer deletes a file, or closes their account.","creates":["A deleted mark","A purge job","A deletion log entry"],"steps":[{"id":"x1","lane":"people","text":"Customer deletes a file","status":"works","detail":"Moves to the customer's trash for 30 days."},{"id":"x2","lane":"records","text":"File is marked deleted and hidden","status":"works","detail":"Deleted-at column set; share links stop working."},{"id":"x3","lane":"background","text":"After 30 days a job removes it from storage","status":"works","detail":"Nightly purge job.","evidence":["E25"]},{"id":"x4","lane":"outside","text":"At provider B, deleted files sit in a recycle area for 7 more days","status":"missing","detail":"Must be turned off, or counted inside our 30 days.","moment":true,"evidence":["E20","E25"]},{"id":"x5","lane":"outside","text":"During a move, the file may exist at both providers","status":"missing","detail":"Deletes must reach both until the old copy is gone.","pain":"A deleted file could survive at the old provider.","evidence":["E25"]},{"id":"x6","lane":"background","text":"Account closure deletes everything after 14 days","status":"works","detail":"Same purge job, per account.","evidence":["E25"]},{"id":"x7","lane":"records","text":"We log that the file is gone","status":"partial","detail":"Logged for account closures only."}]},{"id":"j-move","title":"Moving existing files to provider B","summary":"Copying 180 TB without customers noticing, if we decide to move.","creates":["A copy of every file at provider B","A checksum report","A switch-over date"],"steps":[{"id":"mv1","lane":"core","text":"Ask provider B for free transfer in writing","status":"missing","detail":"2 to 3 weeks for approval.","moment":true,"evidence":["E19","E6"]},{"id":"mv2","lane":"core","text":"Legal checks the new region against customer contracts","status":"missing","detail":"Different EU country from today.","evidence":["E22"]},{"id":"mv3","lane":"outside","text":"Create buckets at provider B with new names","status":"planned","detail":"Names are global; ours must change.","evidence":["E26"]},{"id":"mv4","lane":"background","text":"Copy new uploads to both providers for a month","status":"planned","detail":"Dual writes from the upload service.","evidence":["E28"]},{"id":"mv5","lane":"background","text":"Copy older files in batches overnight","status":"planned","detail":"Largest and most-downloaded first, to cut data out soonest.","evidence":["E18"]},{"id":"mv6","lane":"background","text":"Compare checksums for every file","status":"planned","detail":"A report of any file that does not match.","evidence":["E28"]},{"id":"mv7","lane":"core","text":"Switch reads to provider B, then writes","status":"planned","detail":"One setting per customer group, so we can switch back."},{"id":"mv8","lane":"outside","text":"Keep the old copy for 30 days, then delete it","status":"planned","detail":"Deletes made in those 30 days go to both.","evidence":["E25"]}]},{"id":"j-fail","title":"When something goes wrong","summary":"A storage outage, a stuck upload, or a missed completion message.","creates":["An alert","A retry","A message to the customer"],"steps":[{"id":"f1","lane":"outside","text":"Storage provider has an outage","status":"partial","detail":"Today uploads fail with a generic error.","evidence":["E1"]},{"id":"f2","lane":"front","text":"Customer sees a plain message and their upload pauses","status":"planned","detail":"Resume when storage is back, without starting over.","evidence":["E12"]},{"id":"f3","lane":"background","text":"A completion message never arrives","status":"missing","detail":"Nightly job finds files stuck in 'uploading' for over 24 hours.","evidence":["E21"]},{"id":"f4","lane":"background","text":"Stuck files are checked against storage and fixed or cleaned up","status":"missing","detail":"If the file is complete in storage, scan it; if not, delete the record."},{"id":"f5","lane":"core","text":"On-call is alerted when large-upload failures pass 2%","status":"missing","detail":"Today nobody is alerted; support finds out from tickets.","moment":true,"evidence":["E4","E16"]},{"id":"f6","lane":"front","text":"Support can see a customer's recent uploads and why they failed","status":"missing","detail":"A simple page for support, read-only.","evidence":["E4"]}]}]},{"id":"m-options","template":"opportunity-tree","title":"Options","intro":"The outcome at the top, then the problems that stand in its way, the ideas for each, and the quick tests that would prove an idea.","levels":["Outcome","Problem","Idea","Quick test"],"root":{"id":"o-root","title":"Big uploads always finish, and the transfer bill falls","text":"By the September budget review.","children":[{"id":"o-timeouts","title":"Large uploads time out","status":"missing","evidence":["E1","E4"],"children":[{"id":"o-direct","title":"Direct uploads with signed links","status":"planned","evidence":["E7"],"children":[{"id":"o-test-direct","title":"Ship to 5% of video uploads for two weeks","text":"Compare failure rate and server load."}]},{"id":"o-bigger","title":"Raise timeouts and add servers","status":"works","text":"Cheap now, costly later.","children":[{"id":"o-test-bigger","title":"Raise the idle timeout to 10 minutes on one server","text":"Watch for queueing."}]}]},{"id":"o-bill","title":"Data out costs keep growing","status":"partial","evidence":["E3","E5"],"children":[{"id":"o-move","title":"Move files to provider B","status":"planned","evidence":["E5","E6"],"children":[{"id":"o-test-move","title":"Copy one month of new files to B and serve them through the CDN","text":"Measure the bill and download speed."}]},{"id":"o-cache","title":"Cache popular downloads at the CDN","status":"missing","children":[{"id":"o-test-cache","title":"Turn on caching for public files only","text":"One week, then compare data out."}]}]}]}}],"gaps":[{"id":"G1","title":"Direct uploads with a progress bar and resume","why":"Fixes the timeouts no matter which provider we use; uploads over 200 MB are 71% of all bytes.","anchors":["d2","d3","d3b","o-direct"],"impact":5,"effort":3,"stories":[{"as":"As a customer uploading a large video on a weak connection, I want the upload to resume where it stopped, so I do not start again.","done_when":["a 2 GB upload survives a 30-second disconnect","the progress bar matches the bytes received","our servers handle no file bytes"]},{"as":"As a producer uploading a 4 GB video, I want to see how far along it is, so I know it is not stuck.","done_when":["a progress bar shows percent and time left","it updates at least every 2 seconds"]},{"as":"As a school office behind a strict firewall, I want uploads to still work, so we are not locked out.","done_when":["if the storage address cannot be reached within 5 seconds, the upload falls back to the old path","support can see which customers used the fallback"]}]},{"id":"G2","title":"Scan files that never touch our servers","why":"Today scanning assumes we saw the upload, and a bad file can be downloaded for up to 4 minutes.","anchors":["d4","d3d","t6"],"impact":4,"effort":2,"stories":[{"as":"As the security engineer, I want every upload scanned before anyone can download it, so direct uploads add no risk.","done_when":["a file is not downloadable until its scan passes","an infected test file is quarantined and the customer is told"]},{"as":"As a customer, I want to know my file is being checked, so a short wait makes sense.","done_when":["the file shows 'Checking' until the scan passes","files under 100 MB are ready within 15 seconds"]}]},{"id":"G3","title":"Move existing files to provider B","why":"Cuts the data-out bill; only worth it if the free transfer is granted.","anchors":["o-move","mv1","mv5"],"impact":3,"effort":4,"stories":[{"as":"As finance, I want the move to cost nothing up front, so the saving shows before the September review.","done_when":["provider B confirms free transfer in writing","every file's checksum matches after the copy","downloads switch over with no broken links"]},{"as":"As the engineering lead, I want to switch back within an hour, so a bad move does not become an outage.","done_when":["reads and writes switch by one setting per customer group","a dry run of switching back is done before the move"]}]},{"id":"G4","title":"Serve popular files from the CDN","why":"18% of files cause 80% of data out; caching them cuts the bill with either provider.","anchors":["dl5","o-cache"],"impact":4,"effort":2,"stories":[{"as":"As finance, I want popular downloads to stop counting as data out, so the bill falls before September.","done_when":["public and shared files are served from the CDN","data out falls at least 30% in the first month"]},{"as":"As a security engineer, I want private files never cached, so nobody gets someone else's file.","done_when":["only files marked public or shared go to the CDN","a private file request always checks permission first"]}]},{"id":"G5","title":"Deletes reach every copy","why":"Our terms promise deleted files are gone within 30 days; provider B keeps a 7-day recycle area and a move means two copies.","anchors":["x4","x5","mv8"],"impact":4,"effort":2,"stories":[{"as":"As a customer who deleted a file, I want it gone everywhere within 30 days, as the terms promise.","done_when":["provider B's recycle area is off, or our purge runs 7 days early","deletes during the move go to both providers","a monthly check finds no deleted file older than 30 days"]}]},{"id":"G6","title":"Know about failures before customers tell us","why":"Support found out about the 2 May incident from 31 tickets.","anchors":["f5","f6","f3"],"impact":3,"effort":2,"stories":[{"as":"As on-call, I want an alert when large uploads start failing, so I can act in minutes, not hours.","done_when":["an alert fires when failures over 200 MB pass 2% for 10 minutes","the alert links to a page showing the failing step"]},{"as":"As support, I want to see a customer's recent uploads and why they failed, so I can answer the ticket.","done_when":["a read-only page lists the last 20 uploads with status and error","it never shows file contents"]}]}],"notes":[{"id":"N1","role":"engineer","anchor":"t3","title":"The proxy is the bottleneck","body":"Servers hold a connection for the whole upload. That is why everything slowed down.","recommend":"Do direct uploads first; it is independent of the provider choice.","question":"Do we agree to separate the two decisions: direct uploads now, provider later?","urgency":"must","evidence":["E2","E7"]},{"id":"N2","role":"security","anchor":"d2","title":"Signed links must be narrow","body":"A link that allows any path, or lasts hours, would let anyone write files into our storage.","recommend":"Links last 10 minutes, cover one path, and set a size limit.","question":"Is 10 minutes long enough for the slowest customers, given uploads resume in pieces?","urgency":"must","evidence":["E9"]},{"id":"N3","role":"security","anchor":"d4","title":"Nothing is downloadable before it is scanned","body":"With direct uploads, a file lands in storage before we have looked at it.","recommend":"Upload into a holding area; move it to the live area only after a clean scan.","question":"Who builds and tests the holding area before the 5% trial?","urgency":"must","evidence":["E10"]},{"id":"N4","role":"voice","anchor":"d3","title":"Customers asked for two things","body":"A progress bar and resuming after a dropped connection. Neither needs a new provider.","recommend":"Ship both with direct uploads, and tell the 31 customers who raised tickets.","question":"Do we contact the customers who reported the problem when the fix ships?","urgency":"should","evidence":["E4","E8"]},{"id":"N5","role":"finance","anchor":"o-bill","title":"The bill problem is data out, not storage","body":"Storage grew a little; data out grew a lot.","recommend":"Try CDN caching first; it is cheap and fast to test.","question":"How much must data out fall by September for this to count as fixed?","urgency":"must","evidence":["E3","E5"]},{"id":"N6","role":"finance","anchor":"G3","title":"Only move if the transfer is free","body":"At $16,000, the move pays back in about seven months. Free transfer makes it pay back at once.","recommend":"Ask provider B for free transfer in writing before deciding.","question":"Who asks provider B, and by when?","urgency":"should","evidence":["E6"]},{"id":"N7","role":"owner","anchor":"o-root","title":"Two outcomes, two clocks","body":"Timeouts hurt customers now. The bill matters by September.","recommend":"Fix timeouts this month; decide the provider in July with test results in hand.","question":"Is July the right month to make the provider decision?","urgency":"should","evidence":["E1","E3"]},{"id":"N8","role":"analyst","anchor":"o-test-direct","title":"Say what the trial must show","body":"Without a target, a two-week trial cannot pass or fail.","recommend":"Pass if failed uploads drop below 1% and no server spends more than 5% of its time on uploads.","question":"Are those the right pass marks for the trial?","urgency":"should","evidence":["E1"]},{"id":"N9","role":"designer","anchor":"t2","title":"Tell people what is happening","body":"Today a big upload shows a spinner with no end.","recommend":"Show bytes sent, time left, and a clear message if the connection drops.","question":"Should a dropped upload resume by itself, or ask first?","urgency":"info","evidence":["E8"]},{"id":"N10","role":"agent","anchor":"G3","title":"An assistant can check the copy","body":"Comparing checksums for millions of files is repetitive and easy to get wrong by hand.","recommend":"Let an agent run and report the checksum comparison; a person signs off the switch-over.","question":"Who signs off the switch-over once the agent's report is clean?","urgency":"info","evidence":["E6"]},{"id":"N11","role":"engineer","anchor":"o-move","title":"Nobody has run provider B","body":"Four years of experience with the current provider; none with B.","recommend":"Run the one-month copy test before committing.","question":"Are we willing to run two providers for a few months during the move?","urgency":"should","evidence":["E6"]},{"id":"N12","role":"voice","anchor":"t3c","title":"Starting again from zero is the real pain","body":"The videographer lost two hours re-uploading the same file; four tickets came from hotel or train wifi.","recommend":"Make resume the first thing the trial measures.","question":"Do we promise resume in the help pages before the trial ends?","urgency":"must","evidence":["E12","E11"]},{"id":"N13","role":"voice","anchor":"d3c","title":"Strict firewalls could lock some customers out","body":"A school office asked if the new way would work behind their firewall.","recommend":"Keep the old path as a fallback and tell support how to spot it.","question":"How long do we keep the old proxy path running as a fallback?","urgency":"should","evidence":["E14"]},{"id":"N14","role":"designer","anchor":"d6","title":"Say plainly why a file was rejected","body":"Customers see 'Error' today, which looks like our fault.","recommend":"Show 'This file was blocked because it may contain a virus' and what to do next.","question":"Do we tell free-plan users the scanner's reason, or only that it was blocked?","urgency":"should","evidence":["E23"]},{"id":"N15","role":"designer","anchor":"d3","title":"Show time left, not just percent","body":"A producer could not tell whether the upload was stuck.","recommend":"Show percent, speed and time left, updated every two seconds.","question":"Is time left accurate enough on weak connections to show it?","urgency":"info","evidence":["E13"]},{"id":"N16","role":"analyst","anchor":"d2b","title":"One status field for every file","body":"Uploading, checking, ready and rejected must mean the same thing on every page.","recommend":"Write the four states down and use them in the app, support page and alerts.","question":"Do we need a separate state for files waiting on a fallback upload?","urgency":"should","evidence":["E23"]},{"id":"N17","role":"analyst","anchor":"f3","title":"Decide what counts as stuck","body":"Completion messages retry for 24 hours, so 'stuck' must be longer than that.","recommend":"Call a file stuck after 26 hours in 'uploading'.","question":"Is 26 hours too long for customers waiting on a file?","urgency":"should","evidence":["E21"]},{"id":"N18","role":"engineer","anchor":"d4","title":"We must answer completion messages quickly","body":"Provider B retries for 24 hours if we do not answer; slow answers cause duplicates.","recommend":"Answer at once and do the scan in a background job; ignore duplicates by upload id.","question":"Who owns the completion endpoint and its alerts?","urgency":"must","evidence":["E21"]},{"id":"N19","role":"engineer","anchor":"mv4","title":"Dual writes double the risk of half-done uploads","body":"For a month every upload goes to two places.","recommend":"Treat the old provider as the source of truth until the switch; log every mismatch.","question":"Do we pause the move if mismatches pass 0.1%?","urgency":"should","evidence":["E28"]},{"id":"N20","role":"engineer","anchor":"f5","title":"No alert today","body":"Support found the incident from tickets; nobody was paged.","recommend":"Alert on large-upload failure rate, not on server errors alone.","question":"What failure rate should wake someone at night?","urgency":"should","evidence":["E4","E16"]},{"id":"N21","role":"owner","anchor":"G4","title":"Caching may beat moving","body":"Caching popular files cuts most data out without moving anything.","recommend":"Run the one-week caching test before deciding on provider B.","question":"If caching cuts data out by 30%, do we still move?","urgency":"must","evidence":["E18","E5"]},{"id":"N22","role":"owner","anchor":"d3c","title":"Keep the fallback small","body":"A permanent second upload path doubles what we support.","recommend":"Keep the fallback for six months, then review who still uses it.","question":"Who reviews the fallback numbers in six months?","urgency":"info","evidence":["E14"]},{"id":"N23","role":"security","anchor":"x4","title":"The recycle area breaks our deletion promise","body":"Provider B keeps deleted files 7 days unless it is turned off; our terms promise 30 days in total.","recommend":"Turn the recycle area off, or purge 7 days early.","question":"Which do we choose: turn it off, or purge early?","urgency":"must","evidence":["E20","E25"]},{"id":"N24","role":"security","anchor":"dl5","title":"Never cache private files","body":"A cache mistake could show one customer's file to another.","recommend":"Cache only files marked public or shared; check permission for everything else.","question":"Who reviews the cache rules before the test?","urgency":"should","evidence":["E18"]},{"id":"N25","role":"security","anchor":"mv2","title":"A new country needs a legal check","body":"Provider B's EU region is in a different country, and some contracts name the country.","recommend":"Ask legal for a list of affected customers before any copy starts.","question":"Do we need to tell customers before their files move country?","urgency":"must","evidence":["E22"]},{"id":"N26","role":"agent","anchor":"f4","title":"An agent can clean up stuck uploads","body":"Checking each stuck record against storage is routine and rule-based.","recommend":"Let an agent fix or remove stuck records nightly and post a summary.","question":"Should the agent delete stuck records itself, or only list them for a person?","urgency":"info","evidence":["E21"]},{"id":"N27","role":"agent","anchor":"f6","title":"An agent can draft the first support reply","body":"Most tickets ask the same three things.","recommend":"Draft a reply from the customer's upload history for support to check and send.","question":"Are we comfortable with an agent reading upload history to draft replies?","urgency":"info","evidence":["E4","E11"]},{"id":"N28","role":"agent","anchor":"mv6","title":"Checksum reports are a good job for an agent","body":"Comparing 180 TB of checksums is long and repetitive.","recommend":"Let an agent run the comparison and flag only mismatches.","question":"Who acts on a mismatch: the agent, or a person?","urgency":"info","evidence":["E28","E6"]},{"id":"N29","role":"finance","anchor":"dl4","title":"Every download costs money today","body":"$90 per TB of data out is most of the bill growth.","recommend":"Measure data out per customer plan so we know who drives it.","question":"Should heavy-download plans pay more?","urgency":"must","evidence":["E5","E3"]},{"id":"N30","role":"finance","anchor":"mv1","title":"No written transfer, no move","body":"Moving 180 TB costs about $16,000 without the free transfer.","recommend":"Send the written request this week; it takes 2 to 3 weeks.","question":"Who sends the request, and do we wait for it before any other work?","urgency":"should","evidence":["E19","E6"]},{"id":"N31","role":"finance","anchor":"o-root","title":"September is the deadline that matters","body":"Finance wants the bill down before the September review.","recommend":"Plan so that caching or the move shows in the August bill.","question":"Is the August bill the one we judge by?","urgency":"info","evidence":["E27"]},{"id":"N32","role":"analyst","anchor":"G6","title":"Measure the same thing before and after","body":"Failure rates differ a lot between busy hours and night.","recommend":"Report busy-hour and night rates separately.","question":"Do we judge the trial on busy-hour rates only?","urgency":"info","evidence":["E16"]},{"id":"N33","role":"voice","anchor":"dl7","title":"A short wait to download is fine if it is explained","body":"Customers accept 'Checking' if they can see it.","recommend":"Show 'Checking for viruses, usually under 15 seconds'.","question":"Do we let the uploader download their own file before the scan?","urgency":"info","evidence":["E23","E24"]}],"decisions":[{"id":"D1","question":"Do we build direct uploads now, separately from the provider choice?","notes":["N1","N4"],"options":["Yes, now","Wait for the provider decision"],"owner":"Backend lead","status":"decided","decided_by":"Engineering lead","decision":"Yes. Direct uploads ship to 5% of video uploads in June.","due":"2026-05-29"},{"id":"D2","question":"Do we move to provider B?","notes":["N5","N6","N11"],"options":["Move all files","Move new files only","Stay, and add CDN caching"],"owner":"Engineering lead","status":"open","due":"2026-07-15"},{"id":"D3","question":"How do signed links and scanning work?","notes":["N2","N3"],"owner":"Security engineer","status":"open","due":"2026-06-05"},{"id":"D4","question":"Do we run the one-week caching test before deciding on provider B?","notes":["N21","N24"],"options":["Yes, test caching first","No, decide on B now"],"owner":"Engineering lead","status":"open","due":"2026-06-10"},{"id":"D5","question":"How do we keep the 30-day deletion promise at provider B?","notes":["N23"],"options":["Turn the recycle area off","Purge 7 days early"],"owner":"Security engineer","status":"open","due":"2026-06-20"}],"outcomes":[{"id":"O1","measure":"Failed large uploads","baseline":"About 6% during busy hours","target":"Below 1%"},{"id":"O2","measure":"Data out cost per month","baseline":"Up 22% last quarter","target":"Down 30% by September"},{"id":"O3","measure":"Time from upload to 'Ready' for files under 100 MB","baseline":"Shown at once, scanned later","target":"Under 15 seconds, scanned first"},{"id":"O4","measure":"Upload tickets per month","baseline":"31 in the incident week","target":"Fewer than 5"}]}</script>
 <script type="application/json" id="dc-merged"></script>
 <script type="application/json" id="dc-since"></script>
-<script type="application/json" id="dc-meta">{"fingerprint":"7348a292700d","generator":"decisioncraft"}</script>
+<script type="application/json" id="dc-meta">{"fingerprint":"078be30ac72d","generator":"decisioncraft"}</script>
 <script>
 /* Decisioncraft canvas engine. Reads a decision model from #dc-model and draws it.
    No outside requests. Plain DOM, no libraries.
    The page: one quiet top bar; a numbered story list on the left; the map in the middle;
-   a detail panel on the right; zoom buttons bottom right; a walk-through card. */
+   a detail panel on the right; zoom buttons bottom right; a walk-through card.
+   Maps that hold a plan can be read three ways: Today, Planned, and What changes (one map
+   where each box says whether it is new, changed or goes away), plus Side by side. */
 (function () {
 "use strict";
 
@@ -396,7 +478,7 @@ const DEFAULT_ROLES = [
 const KIND = {"system-journeys":"journeys","customer-journey":"journeys","service-blueprint":"journeys",
   "decision-chain":"chain","opportunity-tree":"tree"};
 const TREE_LEVELS = ["What we want","What needs attention","Possible next step","How we will check"];
-const MIN_Z = 0.15, MAX_Z = 2.2;
+const MIN_Z = 0.25, MAX_Z = 2.2;
 const STORY_W = 320, PANEL_W = 480, TOP_H = 52;
 
 const ROLES = (MODEL.roles && MODEL.roles.length ? MODEL.roles : DEFAULT_ROLES);
@@ -419,13 +501,14 @@ let saved = {}, storageOK = true;
 try { saved = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { saved = {}; storageOK = false; }
 const seed = SESSION ? {answers:SESSION.review.answers || {}, votes:SESSION.review.dots || {},
   decisions:SESSION.review.decisions || {}, reviewer:SESSION.review.reviewer || ""} : {};
-const S = Object.assign({map:0, mode:MODEL.maps[0].when === "planned" ? "planned" : "compare", journey:-1, tech:false, notesOnMap:false, lines:false, dots:true, story:true,
+const S = Object.assign({map:0, mode:"changes", sbs:false, journey:-1, tech:false, notesOnMap:false, lines:false, dots:true, story:true,
   hintSeen:false, roles:Object.fromEntries(ROLES.map(r => [r.id, true])),
   answers:{}, votes:{}, decisions:{}, reviewer:""}, seed, saved);
 if (SESSION && saved.syncedVersion !== SESSION.version) Object.assign(S, seed);
 if (SESSION) { S.syncedVersion = SESSION.version; S.sessionFinished = SESSION.state === "finished"; }
 ROLES.forEach(r => { if (!(r.id in S.roles)) S.roles[r.id] = true; });
 if (S.map >= MODEL.maps.length) S.map = 0;
+if (S.mode === "compare" || S.mode === "both") S.mode = "changes";
 let completedHandoff = SESSION && SESSION.handoff || null;
 let syncVersion = SESSION ? SESSION.version : 0, syncPromise = null, syncTimer = null;
 let syncState = SESSION ? "saved" : "", syncError = "", finishing = false;
@@ -534,13 +617,79 @@ MODEL.maps.forEach((m, mi) => {
 });
 GAPS.forEach(g => BOX[g.id] = {box:g, mi:-1, kind:"gap"});
 const notesOn = id => NOTES.filter(n => n.anchor === id && S.roles[n.role] !== false);
+
+/* ---------- today, planned and what changes ---------- */
+const MODES = {today:"Today", planned:"Planned", changes:"What changes"};
+const CHANGE_WORD = {new:"New", changed:"Changed", gone:"Goes away"};
+const groupsOf = m => [...(m.journeys || []).map(j => j.steps || []), ...(m.stages || []).map(st => st.items || [])];
+const hasChanges = m => groupsOf(m).some(g => g.some(b => b.when === "today" || b.when === "planned"));
+const modeOf = m => hasChanges(m) ? (MODES[S.mode] ? S.mode : "changes") : "all";
+const sbsOn = () => !!S.sbs && modeOf(MODEL.maps[S.map]) === "changes" && innerWidth >= 1000;
+/* One journey's steps or one stage's items, as slots for the mode. In What changes every
+   thing gets one slot in the plan's order: a planned box that replaces a today box is one
+   "changed" slot that carries both versions. */
+function arrange(boxes, mode) {
+  const byId = Object.fromEntries(boxes.map(b => [b.id, b]));
+  const replaced = new Set(boxes.filter(b => b.replaces && b.when === "planned").map(b => b.replaces));
+  const out = [];
+  boxes.forEach(b => {
+    const when = b.when || "both";
+    if (mode === "all") out.push({box:b, change:""});
+    else if (mode === "today") { if (when !== "planned") out.push({box:b, change:""}); }
+    else if (mode === "planned") { if (when !== "today") out.push({box:b, change:""}); }
+    else if (when === "today") { if (!replaced.has(b.id)) out.push({box:b, change:"gone"}); }
+    else if (when === "planned") { const before = b.replaces ? byId[b.replaces] : null; out.push({box:b, change:before ? "changed" : "new", before}); }
+    else out.push({box:b, change:"same"});
+  });
+  return out;
+}
+const changeList = m => groupsOf(m).flatMap(g => arrange(g, "changes").filter(s => s.change !== "same"));
+const CHANGE_INFO = {};
+MODEL.maps.forEach(m => changeList(m).forEach(s => {
+  CHANGE_INFO[s.box.id] = s;
+  if (s.before) CHANGE_INFO[s.before.id] = {change:"replaced", box:s.before, by:s.box};
+}));
+function changeCounts(list) {
+  const n = k => list.filter(s => s.change === k).length;
+  return [["new", n("new"), "new"], ["changed", n("changed"), "changed"], ["gone", n("gone"), n("gone") === 1 ? "goes away" : "go away"]].filter(c => c[1]);
+}
+const countsText = list => changeCounts(list).map(([, n, w]) => `${n} ${w}`).join(" · ");
+const countsHtml = list => changeCounts(list).map(([k, n, w]) => `<span class="ribbon ${k}">${n} ${w}</span>`).join("");
+/* A changed box carries both versions in one grid cell, so it is as tall as the taller one
+   and rows line up in Side by side. */
+const RIBBON = s => s.change && s.change !== "same"
+  ? `<span class="ribbon ${s.change}">${CHANGE_WORD[s.change]}</span>${s.change === "new" ? "" : `<span class="ribbon-today ${s.change}">${s.change === "changed" ? "Will change" : "Goes away"}</span>`}` : "";
+const GHOST = s => s.change === "new" ? `<span class="ghostlabel">Not there today</span>` : s.change === "gone" ? `<span class="ghostlabel">Goes away</span>` : "";
+function slotHtml(s, inner) {
+  const now = inner(s.box);
+  return RIBBON(s) + (s.before ? `<div class="vwrap"><div class="v-now">${now}</div><div class="v-before">${inner(s.before)}</div></div>` : now) + GHOST(s);
+}
+const slotLabel = (s, text) => (s.change && s.change !== "same" ? CHANGE_WORD[s.change] + ": " : "") + text;
+
+/* Word-level differences between two short texts, for the Before and After view. */
+function wordDiff(a, b) {
+  const A = String(a || "").split(/(\s+)/).filter(Boolean), B = String(b || "").split(/(\s+)/).filter(Boolean);
+  const n = A.length, m = B.length;
+  const dp = Array.from({length:n + 1}, () => new Uint16Array(m + 1));
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) dp[i][j] = A[i] === B[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+  const mark = (t, tag) => /^\s+$/.test(t) ? esc(t) : `<${tag}>${esc(t)}</${tag}>`;
+  let i = 0, j = 0, oa = "", ob = "";
+  while (i < n && j < m) {
+    if (A[i] === B[j]) { oa += esc(A[i]); ob += esc(B[j]); i++; j++; }
+    else if (dp[i + 1][j] >= dp[i][j + 1]) oa += mark(A[i++], "del");
+    else ob += mark(B[j++], "ins");
+  }
+  while (i < n) oa += mark(A[i++], "del");
+  while (j < m) ob += mark(B[j++], "ins");
+  return [oa, ob];
+}
 const mapOfAnchor = a => BOX[a] ? (BOX[a].mi >= 0 ? BOX[a].mi : mapOfAnchor((BOX[a].box.anchors || [])[0])) : -1;
 const titleOf = b => b.title || b.label || b.text || b.id;
 
 function badges(b) {
   const out = [];
-  if (sinceAdded.has(b.id)) out.push(`<span class="chip new">New</span>`);
-  else if (sinceChanged[b.id]) out.push(`<span class="chip changed">Changed</span>`);
+  if (sinceAdded.has(b.id)) out.push(`<span class="chip since">New since last review</span>`);
+  else if (sinceChanged[b.id]) out.push(`<span class="chip since">Changed since last review</span>`);
   const ref = (MODEL.checked || {}).date;
   if (b.checked && ref && days(ref, b.checked) > FRESH_DAYS) out.push(`<span class="chip stale" title="Checked ${esc(b.checked)}">May be out of date</span>`);
   if (b.moment) out.push(`<span class="chip moment">Moment that matters</span>`);
@@ -549,20 +698,23 @@ function badges(b) {
   const ev = (b.evidence || []).length;
   if (ev) out.push(`<span class="chip">Evidence: ${ev}</span>`);
   const notes = notesOn(b.id);
-  if (notes.length) out.push(`<span class="notebadge${notes.some(n => n.urgency === "must") ? " must" : ""}">${plural(notes.length, "note")}</span>`);
+  if (notes.length) {
+    const colours = [...new Set(notes.map(n => (ROLE[n.role] || {}).color || "#888"))].slice(0, 3);
+    out.push(`<span class="notebadge${notes.some(n => n.urgency === "must") ? " must" : ""}"><span class="stack" aria-hidden="true">${colours.map(c => `<i style="background:${tint(c)};border-color:${c}"></i>`).join("")}</span>${plural(notes.length, "note")}</span>`);
+  }
   return out.join("");
 }
 const tech = b => S.tech && b.detail ? `<span class="techname">${esc(b.detail)}</span>` : "";
 
 /* ---------- DOM helpers ---------- */
 const world = $("#world"), viewport = $("#viewport");
-let nodes = {}, rows = [], svg;
+let nodes = {}, rows = [], svg, K = 0;
 function place(cls, x, y, w, html, data, label) {
   const d = document.createElement("div");
   d.className = cls; d.style.left = x + "px"; d.style.top = y + "px";
   if (w) d.style.width = w + "px";
   d.innerHTML = html;
-  if (data) { d.tabIndex = 0; d.setAttribute("role", "button"); d.setAttribute("aria-label", label || ""); d._data = data; }
+  if (data) { d.tabIndex = 0; d.setAttribute("role", "button"); d.setAttribute("aria-label", label || ""); d._data = data; d.dataset.k = ++K; }
   world.appendChild(d);
   return d;
 }
@@ -574,7 +726,8 @@ function link(x1, y1, x2, y2, cls, label) {
   svg.appendChild(p);
   if (label) {
     const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    t.setAttribute("x", (x1 + x2) / 2 + 10); t.setAttribute("y", my + 5); t.textContent = label;
+    t.setAttribute("x", (x1 + x2) / 2 + 16); t.setAttribute("y", my + 5); t.textContent = label;
+    t.setAttribute("class", "verb");
     svg.appendChild(t);
   }
   return p;
@@ -603,12 +756,13 @@ function notePile(anchors, x, y, max, rowKey) {
     const c = colH[0] <= colH[1] ? 0 : 1;
     const r = ROLE[n.role] || {label:n.role, color:"#888"};
     const el = place(`notecard ${n.urgency || "info"} inj`, x + c * (NOTE_W + NOTE_GAP), y + colH[c], NOTE_W,
-      `<div><span class="who">${esc(r.label)}</span><span class="urg">${URG[n.urgency || "info"]}</span></div>
+      `<div class="notehead"><span class="who"><i style="background:${r.color}"></i>${esc(r.label)}</span><span class="urg">${URG[n.urgency || "info"]}</span></div>
        <h5>${esc(n.title)}</h5><div class="q">${esc(n.question || n.body || "")}</div>`,
       {type:"note", n}, `${r.label} note: ${n.title}`);
     el.style.background = tint(r.color);
-    el.style.setProperty("--note-tilt", [-0.7, 0.5, -0.3, 0.6][i % 4] + "deg");
-    el.dataset.row = rowKey;
+    el.style.setProperty("--note-tilt", [-1.1, 0.8, -0.5, 1][i % 4] + "deg");
+    el.style.setProperty("--role", r.color);
+    el.dataset.row = rowKey; el.dataset.anchor = n.anchor;
     colH[c] += el.offsetHeight + NOTE_GAP;
   });
   let h = Math.max(colH[0], colH[1]);
@@ -626,46 +780,74 @@ function header(m, width) {
   place("stamp", 0, 6, 0, (MODEL.checked && MODEL.checked.date) ? `Checked against the sources on ${esc(MODEL.checked.date)}` : "Not yet checked against sources");
   const t = place("maptitle", 0, 40, Math.max(width, 600), esc(m.title || MODEL.title));
   const q = place("mapintro", 0, 40 + t.offsetHeight + 8, Math.min(Math.max(width, 600), 900), gl(m.intro || ""));
-  return 40 + t.offsetHeight + 8 + q.offsetHeight + 40;
+  let y = 40 + t.offsetHeight + 8 + q.offsetHeight;
+  const mode = modeOf(m);
+  if (mode !== "all") {
+    const list = changeList(m);
+    const text = mode === "today" ? "<b>Today.</b> What exists now, before any change." :
+      mode === "planned" ? "<b>Planned.</b> How it works once the plan is done." :
+      `<b>What changes.</b> The plan, with every change marked. ${countsHtml(list)}`;
+    const lg = place("modebar", 0, y + 14, 0, `${text}${mode === "changes" ? `<span class="hint-sbs">${sbsOn() ? "Left: today. Right: the plan. Rows line up." : "Faded boxes go away. Open a box to compare before and after."}</span>` : ""}`);
+    y += 14 + lg.offsetHeight;
+  }
+  return y + 40;
 }
 
 /* ---------- journeys ---------- */
-const J = {laneW:260, laneGap:22, stepW:236, stepH:84, rowGap:16, headW:330, headGap:40, bandGap:70};
+/* Each lane keeps one colour, so a step's edge says which part of the system it runs in. */
+const LANE_COLORS = ["#4f7fd8", "#8a5cd6", "#d99a1e", "#2f9e6a", "#d1543f", "#1f9aa6", "#b5568c", "#7a7a72"];
+const laneColor = i => LANE_COLORS[i % LANE_COLORS.length];
+const J = {laneW:262, laneGap:20, stepW:238, stepH:86, rowGap:18, headW:330, headGap:44, bandGap:76};
+function stepInner(n) {
+  return b => `<div class="row1"><span class="n">${n}</span><div class="t">${gl(b.text)}</div></div>${tech(b)}
+    <div class="meta">${pill(b.status)}${badges(b)}</div>`;
+}
+function journeyHead(m, j, ji, slots, mode) {
+  const changed = mode === "changes" ? slots.filter(s => s.change && s.change !== "same") : [];
+  return `<h3><span class="n">${ji + 1}</span>${gl(j.title)}</h3><p>${gl(j.summary || "")}</p>
+    ${(j.creates || []).length ? `<div class="creates"><b>What gets created</b><ul>${j.creates.map(c => `<li>${esc(c)}</li>`).join("")}</ul></div>` : ""}
+    ${changed.length ? `<div class="creates changes"><b>What changes</b><p>${countsHtml(changed)}</p></div>` : ""}
+    ${tech(j)}<div class="meta">${badges(j)}<span class="chip">${plural(slots.length, "step")}</span></div>`;
+}
 function renderJourneys(m) {
   const lanes = m.lanes || [];
+  const mode = modeOf(m);
   const LI = Object.fromEntries(lanes.map((l, i) => [l.id, i]));
   const laneX = i => J.headW + J.headGap + i * (J.laneW + J.laneGap);
   const lanesRight = laneX(lanes.length - 1) + J.laneW;
-  const notesX = lanesRight + 48;
+  const notesX = lanesRight + 56;
   const W = lanesRight + notesWidth();
   let y = header(m, W);
-  lanes.forEach((l, i) => place("lanehead", laneX(i), y, J.laneW, `${esc(l.label)}<small>${esc(l.sub || "")}</small>`));
+  lanes.forEach((l, i) => {
+    const h = place("lanehead", laneX(i), y, J.laneW, `<i style="background:${laneColor(i)}"></i>${esc(l.label)}<small>${esc(l.sub || "")}</small>`);
+    h.style.setProperty("--lane", laneColor(i));
+  });
   if (S.notesOnMap) place("label", notesX, y + 4, 0, "Notes from each role");
-  y += 60;
-  const laneTop = y - 70;
+  y += 66;
+  const laneTop = y - 78;
   (m.journeys || []).forEach((j, ji) => {
     const y0 = y;
-    const hd = place("box jhead inj", 0, y0, J.headW,
-      `<h3><span class="n">${ji + 1}</span>${gl(j.title)}</h3><p>${gl(j.summary || "")}</p>
-       ${(j.creates || []).length ? `<p class="sub small"><b>What it leaves behind:</b> ${j.creates.map(esc).join(", ")}</p>` : ""}
-       ${tech(j)}<div class="meta">${badges(j)}<span class="chip">${plural((j.steps || []).length, "step")}</span></div>`,
+    const slots = arrange(j.steps || [], mode);
+    const hd = place("box jhead inj", 0, y0, J.headW, journeyHead(m, j, ji, slots, mode),
       {type:"box", id:j.id}, `Journey ${ji + 1}: ${j.title}`);
     hd.dataset.row = "j" + ji;
     nodes[j.id] = hd;
     let sy = y0, prev = null;
-    (j.steps || []).forEach((s, k) => {
-      const x = laneX(LI[s.lane] || 0) + (J.laneW - J.stepW) / 2;
-      const el = place("box step inj", x, sy, J.stepW,
-        `<div class="row1"><span class="n">${k + 1}</span><div class="t">${gl(s.text)}</div></div>${tech(s)}
-         <div class="meta">${pill(s.status)}${badges(s)}</div>`,
-        {type:"box", id:s.id}, `Step ${k + 1} of journey ${ji + 1}: ${s.text}`);
+    slots.forEach((slot, k) => {
+      const s = slot.box;
+      const li = LI[s.lane] || 0;
+      const x = laneX(li) + (J.laneW - J.stepW) / 2;
+      const el = place(`box step inj${slot.change ? " chg-" + slot.change : ""}`, x, sy, J.stepW,
+        slotHtml(slot, stepInner(k + 1)),
+        {type:"box", id:s.id}, slotLabel(slot, `Step ${k + 1} of journey ${ji + 1}: ${s.text}`));
       el.style.minHeight = J.stepH + "px";
+      el.style.setProperty("--lane", laneColor(li));
       el.dataset.row = "j" + ji;
       nodes[s.id] = el;
       const h = el.offsetHeight;
       if (prev) {
-        const p = link(prev.x + J.stepW / 2, prev.y + prev.h, x + J.stepW / 2, sy - 2, "inj");
-        p.dataset.row = "j" + ji; arrowHead(x + J.stepW / 2, sy - 2);
+        const p = link(prev.x + J.stepW / 2, prev.y + prev.h, x + J.stepW / 2, sy - 3, "inj flow");
+        p.dataset.row = "j" + ji; arrowHead(x + J.stepW / 2, sy - 3);
       }
       prev = {x, y:sy, h};
       sy += h + J.rowGap;
@@ -677,7 +859,8 @@ function renderJourneys(m) {
   });
   lanes.forEach((l, i) => {
     const bg = document.createElement("div"); bg.className = "lanebg";
-    Object.assign(bg.style, {left:(laneX(i) - 8) + "px", top:laneTop + "px", width:(J.laneW + 16) + "px", height:(y - laneTop) + "px"});
+    Object.assign(bg.style, {left:(laneX(i) - 9) + "px", top:laneTop + "px", width:(J.laneW + 18) + "px", height:(y - laneTop - J.bandGap + 24) + "px"});
+    bg.style.setProperty("--lane", laneColor(i));
     world.prepend(bg);
   });
   return {x:0, y:0, w:W, h:y};
@@ -685,34 +868,41 @@ function renderJourneys(m) {
 
 /* A customer's actions run left to right, in the supplied order. */
 function renderCustomerJourney(m) {
-  const cardW = 250, gap = 64;
-  const count = Math.max(1, ...(m.journeys || []).map(j => (j.steps || []).length));
+  const cardW = 252, gap = 62;
+  const mode = modeOf(m);
+  const all = (m.journeys || []).map(j => arrange(j.steps || [], mode));
+  const count = Math.max(1, ...all.map(s => s.length));
   const timelineW = count * (cardW + gap) - gap;
-  const notesX = timelineW + 48;
+  const notesX = timelineW + 56;
   const W = timelineW + notesWidth();
+  const LI = Object.fromEntries((m.lanes || []).map((l, i) => [l.id, i]));
   let y = header(m, W);
   (m.journeys || []).forEach((j, ji) => {
     const start = y;
-    const hd = place("box timeline-title inj", 0, y, Math.min(600, timelineW),
-      `<h3>${gl(j.title)}</h3><p>${gl(j.summary || "")}</p>${tech(j)}<div class="meta">${badges(j)}</div>`,
-      {type:"box", id:j.id}, j.title);
+    const slots = all[ji];
+    const hd = place("box timeline-title inj", 0, y, Math.min(640, timelineW),
+      journeyHead(m, j, ji, slots, mode), {type:"box", id:j.id}, j.title);
     nodes[j.id] = hd; hd.dataset.row = "j" + ji;
-    y += hd.offsetHeight + 48;
+    y += hd.offsetHeight + 52;
     let maxH = 0, prev = null;
-    (j.steps || []).forEach((step, i) => {
+    slots.forEach((slot, i) => {
+      const step = slot.box;
       const x = i * (cardW + gap);
-      const lane = (m.lanes || []).find(l => l.id === step.lane);
-      place("label", x, y - 26, cardW, `${i + 1}. ${esc(lane ? lane.label : "Next step")}`);
-      const card = place("box customer-step inj", x, y, cardW,
-        `<h4>${gl(step.text)}</h4>${tech(step)}<div class="meta">${pill(step.status)}${badges(step)}</div>`,
-        {type:"box", id:step.id}, `Step ${i + 1}: ${step.text}`);
+      const li = LI[step.lane];
+      const lane = (m.lanes || [])[li];
+      const lb = place("steplabel", x, y - 28, cardW, `<i style="background:${laneColor(li || 0)}"></i>${i + 1}. ${esc(lane ? lane.label : "Next step")}`);
+      lb.dataset.row = "j" + ji;
+      const card = place(`box customer-step inj${slot.change ? " chg-" + slot.change : ""}`, x, y, cardW,
+        slotHtml(slot, b => `<h4>${gl(b.text)}</h4>${tech(b)}<div class="meta">${pill(b.status)}${badges(b)}</div>`),
+        {type:"box", id:step.id}, slotLabel(slot, `Step ${i + 1}: ${step.text}`));
+      card.style.setProperty("--lane", laneColor(li || 0));
       card.dataset.row = "j" + ji; nodes[step.id] = card;
       maxH = Math.max(maxH, card.offsetHeight);
       if (prev !== null) {
-        const line = link(prev + cardW, y + 30, x - 8, y + 30, "inj customer-flow");
+        const line = link(prev + cardW + 6, y + 32, x - 10, y + 32, "inj customer-flow");
         line.dataset.row = "j" + ji;
         const arrow = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        arrow.setAttribute("d", `M${x - 16},${y + 24} L${x - 8},${y + 30} L${x - 16},${y + 36}`);
+        arrow.setAttribute("d", `M${x - 18},${y + 26} L${x - 10},${y + 32} L${x - 18},${y + 38}`);
         arrow.setAttribute("class", "customer-flow"); svg.appendChild(arrow);
       }
       prev = x;
@@ -720,59 +910,56 @@ function renderCustomerJourney(m) {
     const nh = notePile([j.id, ...(j.steps || []).map(step => step.id)], notesX, start, 4, "j" + ji);
     const h = Math.max(y - start + maxH, nh);
     rows.push({key:"j" + ji, y:start, h, x:0, w:W});
-    y = start + h + 64;
+    y = start + h + 70;
   });
   return {x:0, y:0, w:W, h:y};
 }
 
 /* ---------- chain ---------- */
-const C = {stageW:300, stageH:96, itemW:250, itemGap:14, perRow:3, gap:64};
+const C = {stageW:300, stageH:104, itemW:262, itemGap:16, perRow:3, gap:70};
+const itemInner = b => `<h4>${gl(b.title)}</h4><p class="t">${gl(b.text || "")}</p>${tech(b)}<div class="meta">${pill(b.status)}${badges(b)}</div>`;
 function renderChain(m) {
-  const compare = S.mode === "compare";
-  const itemsX = C.stageW + 50;
-  const perRow = compare ? 2 : C.perRow;
-  const columnW = perRow * (C.itemW + C.itemGap) - C.itemGap;
-  const versions = compare ? ["today", "planned"] : [S.mode];
-  const notesX = itemsX + versions.length * (columnW + 44) + 34;
-  const W = notesX - 34 + notesWidth();
+  const mode = modeOf(m);
+  const itemsX = C.stageW + 64;
+  const columnW = C.perRow * (C.itemW + C.itemGap) - C.itemGap;
+  const notesX = itemsX + columnW + 56;
+  const W = notesX - 56 + notesWidth();
   let y = header(m, W);
-  place("label", 0, y, 0, "Stage");
-  versions.forEach((version, i) => place("label", itemsX + i * (columnW + 44), y, columnW,
-    version === "today" ? "Current" : "Proposed · dashed boxes are new"));
+  place("label", 0, y, 0, "The chain");
+  place("label", itemsX, y, columnW, {today:"What exists today", planned:"What the plan puts in place", changes:"The plan, with every change marked", all:"What is here"}[mode]);
   if (S.notesOnMap) place("label", notesX, y, 0, "Notes from each role");
-  y += 30;
+  y += 34;
   let prevStage = null;
   (m.stages || []).forEach((st, si) => {
     const y0 = y;
     const stEl = place(`box stage inj${si === 0 ? " first-stage" : ""}`, 0, y0, C.stageW,
-      `<h3>${gl(st.label)}</h3><p>${gl(st.sub || "")}</p>${tech(st)}<div class="meta">${badges(st)}</div>`,
+      `<span class="stagenum">${si + 1}</span><h3>${gl(st.label)}</h3><p>${gl(st.sub || "")}</p>${tech(st)}<div class="meta">${badges(st)}</div>`,
       {type:"box", id:st.id}, `Stage ${si + 1}: ${st.label}`);
     stEl.style.minHeight = C.stageH + "px";
     stEl.dataset.row = "s" + si; nodes[st.id] = stEl;
-    let ih = 0;
-    versions.forEach((version, vi) => {
-      const items = (st.items || []).filter(it => (it.when || "both") === "both" || it.when === version);
-      const columnX = itemsX + vi * (columnW + 44);
-      let rowMax = 0, iy = y0, col = 0;
-      items.forEach(it => {
-        const el = place(`box item inj${it.when === "planned" ? " planned-new" : ""}`,
-          columnX + col * (C.itemW + C.itemGap), iy, C.itemW,
-          `<h4>${gl(it.title)}</h4><p class="t">${gl(it.text || "")}</p>${tech(it)}<div class="meta">${pill(it.status)}${badges(it)}${compare && (it.when || "both") === "both" ? '<span class="chip">Unchanged</span>' : ""}</div>`,
-          {type:"box", id:it.id}, `${compare ? version === "today" ? "Current: " : "Proposed: " : ""}${it.title}`);
-        el.dataset.row = "s" + si;
-        if (!nodes[it.id]) nodes[it.id] = el;
-        rowMax = Math.max(rowMax, el.offsetHeight);
-        if (++col === perRow) { col = 0; iy += rowMax + C.itemGap; rowMax = 0; }
-      });
-      ih = Math.max(ih, iy - y0 + rowMax);
-      if (!items.length) { place("label", columnX, y0 + 10, columnW, version === "planned" ? "Nothing proposed here" : "Nothing here today"); ih = Math.max(ih, 40); }
+    const slots = arrange(st.items || [], mode);
+    let rowMax = 0, iy = y0, col = 0;
+    slots.forEach(slot => {
+      const it = slot.box;
+      const el = place(`box item inj${slot.change ? " chg-" + slot.change : ""}`,
+        itemsX + col * (C.itemW + C.itemGap), iy, C.itemW, slotHtml(slot, itemInner),
+        {type:"box", id:it.id}, slotLabel(slot, it.title));
+      el.dataset.row = "s" + si;
+      nodes[it.id] = el;
+      rowMax = Math.max(rowMax, el.offsetHeight);
+      if (++col === C.perRow) { col = 0; iy += rowMax + C.itemGap; rowMax = 0; }
     });
+    let ih = iy - y0 + rowMax;
+    if (!slots.length) {
+      const e = place("emptyslot", itemsX, y0, C.itemW, mode === "today" ? "Nothing here today" : mode === "planned" ? "Nothing planned here" : "Nothing here yet");
+      e.dataset.row = "s" + si; ih = e.offsetHeight;
+    }
     const nh = notePile([st.id, ...(st.items || []).map(i => i.id)], notesX, y0, 4, "s" + si);
     const h = Math.max(stEl.offsetHeight, ih, nh);
     rows.push({key:"s" + si, y:y0, h, x:0, w:W});
     if (prevStage) {
-      const p = link(C.stageW / 2, prevStage.y + prevStage.h, C.stageW / 2, y0 - 2, "inj", prevStage.verb);
-      p.dataset.row = "s" + si; arrowHead(C.stageW / 2, y0 - 2);
+      const p = link(C.stageW / 2, prevStage.y + prevStage.h + 4, C.stageW / 2, y0 - 6, "inj spine", prevStage.verb);
+      p.dataset.row = "s" + si; arrowHead(C.stageW / 2, y0 - 6);
     }
     prevStage = {y:y0, h:stEl.offsetHeight, verb:st.verb || ""};
     y = y0 + h + C.gap;
@@ -871,7 +1058,8 @@ function renderTree(m) {
 
 /* Named connections come from the model, never from the card positions. */
 function visibleLinks() {
-  return (MODEL.links || []).filter(l => S.mode === "compare" || (l.when || "both") === "both" || l.when === S.mode);
+  const mode = modeOf(MODEL.maps[S.map]);
+  return (MODEL.links || []).filter(l => mode === "changes" || mode === "all" || (l.when || "both") === "both" || l.when === mode);
 }
 function drawConnections() {
   const connections = visibleLinks().filter(l => nodes[l.from] && nodes[l.to]);
@@ -912,31 +1100,95 @@ function applyConnections() {
 
 /* ---------- render ---------- */
 let bounds = {x:0, y:0, w:1000, h:800};
+/* Dashed lines join each note on the map to the box it is about. */
+function drawNoteLinks() {
+  world.querySelectorAll(".notecard").forEach(note => {
+    const box = nodes[note.dataset.anchor];
+    if (!box) return;
+    const nx = parseFloat(note.style.left), ny = parseFloat(note.style.top) + 22;
+    const bx = parseFloat(box.style.left) + box.offsetWidth, by = parseFloat(box.style.top) + Math.min(box.offsetHeight / 2, 40);
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    const mx = bx + (nx - bx) * 0.55;
+    path.setAttribute("d", `M${bx + 4},${by} C${mx},${by} ${mx},${ny} ${nx - 4},${ny}`);
+    path.setAttribute("class", "notelink inj"); path.dataset.row = note.dataset.row;
+    path.style.stroke = note.style.getPropertyValue("--role");
+    svg.appendChild(path);
+  });
+}
 function layout() {
   world.innerHTML = "";
-  nodes = {}; rows = [];
+  nodes = {}; rows = []; K = 0;
   svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.setAttribute("class", "links"); svg.setAttribute("aria-hidden", "true");
   world.appendChild(svg);
   const m = MODEL.maps[S.map];
   const kind = KIND[m.template];
+  document.body.dataset.mode = modeOf(m);
   bounds = m.template === "customer-journey" ? renderCustomerJourney(m) : kind === "journeys" ? renderJourneys(m) : kind === "chain" ? renderChain(m) : renderTree(m);
+  drawNoteLinks();
   drawConnections();
   applyFocus();
   if (current && current.kind === "box" && nodes[current.arg]) nodes[current.arg].classList.add("sel");
+  syncPanes();
 }
 function render() {
   layout();
   topBar();
   story();
 }
+/* Side by side: the same drawing twice, today on the left and the plan on the right, with
+   one pan and zoom. The right copy is for looking; clicks open the matching box. */
+const world2 = $("#world2"), viewport2 = $("#viewport2");
+function syncPanes() {
+  const on = sbsOn();
+  document.body.classList.toggle("sbs", on);
+  world.classList.toggle("pane-today", on);
+  world2.innerHTML = "";
+  if (!on) return;
+  const copy = world.cloneNode(true);
+  world2.append(...copy.childNodes);
+  world2.querySelectorAll("[tabindex]").forEach(e => e.setAttribute("tabindex", "-1"));
+  world2.querySelectorAll("[id]").forEach(e => e.removeAttribute("id"));
+}
+function twin(el) {
+  if (!el || !el.dataset.k) return null;
+  const other = el.closest("#world2") ? world : world2;
+  return other.querySelector(`[data-k="${el.dataset.k}"]`);
+}
+const pairline = $("#pairline");
+function showPair(el) {
+  const t = twin(el);
+  document.querySelectorAll(".pair").forEach(x => x.classList.remove("pair"));
+  if (!sbsOn() || !t) { pairline.style.display = "none"; return; }
+  const [a, b] = el.closest("#world2") ? [t, el] : [el, t];
+  a.classList.add("pair"); b.classList.add("pair");
+  const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+  const x1 = ra.right, y1 = ra.top + Math.min(ra.height / 2, 30), x2 = rb.left, y2 = rb.top + Math.min(rb.height / 2, 30);
+  const len = Math.hypot(x2 - x1, y2 - y1);
+  Object.assign(pairline.style, {display:"block", left:x1 + "px", top:y1 + "px", width:len + "px", transform:`rotate(${Math.atan2(y2 - y1, x2 - x1)}rad)`});
+}
+[world, world2].forEach(w => {
+  w.addEventListener("mouseover", e => { const el = e.target.closest("[data-k]"); if (el) showPair(el); });
+  w.addEventListener("mouseleave", () => showPair(null));
+});
 
 /* ---------- pan and zoom ---------- */
 let Z = 1, X = 40, Y = 80;
 const leftEdge = () => S.story && getComputedStyle($("#story")).display !== "none" ? $("#story").getBoundingClientRect().right : 0;
 const rightEdge = () => document.body.classList.contains("panel-open") && innerWidth > 720 ? innerWidth - $("#panel").getBoundingClientRect().left : 0;
+/* The drawing area: the whole screen with the side lists as insets, or in Side by side the
+   left half of the space between them. X and Y are measured from the pane's corner. */
+function pane() {
+  if (!sbsOn()) return {x:0, w:innerWidth, l:leftEdge(), r:rightEdge()};
+  const l = leftEdge(), w = Math.floor((innerWidth - l - rightEdge()) / 2);
+  return {x:l, w, l:0, r:0};
+}
 function apply() {
-  world.style.transform = `translate(${X}px,${Y}px) scale(${Z})`;
+  const P = pane(), on = sbsOn();
+  Object.assign(viewport.style, on ? {left:P.x + "px", width:P.w + "px", right:"auto"} : {left:"", width:"", right:""});
+  Object.assign(viewport2.style, on ? {left:(P.x + P.w) + "px", width:P.w + "px"} : {left:"", width:""});
+  const tf = `translate(${X}px,${Y}px) scale(${Z})`;
+  world.style.transform = tf; world2.style.transform = tf;
   document.documentElement.style.setProperty("--z", Z);
   const inv = Math.min(2.4, Math.max(1, 0.62 / Z));
   const changed = document.body.classList.contains("z-far") !== (Z < 0.55) ||
@@ -944,21 +1196,29 @@ function apply() {
   document.documentElement.style.setProperty("--inv", inv);
   document.body.classList.toggle("z-far", Z < 0.55);
   if (changed) layout();
+  pairline.style.display = "none";
 }
 function zoomAt(f, cx, cy) {
+  const P = pane();
+  const ox = sbsOn() && cx >= P.x + P.w ? P.x + P.w : P.x;
+  const lx = cx - ox;
   const nz = Math.min(MAX_Z, Math.max(MIN_Z, Z * f));
-  X = cx - (cx - X) * (nz / Z); Y = cy - (cy - Y) * (nz / Z); Z = nz; apply();
+  X = lx - (lx - X) * (nz / Z); Y = cy - (cy - Y) * (nz / Z); Z = nz; apply();
 }
 const bottomEdge = () => document.body.classList.contains("panel-open") && innerWidth <= 720 ? innerHeight - $("#panel").getBoundingClientRect().top : 0;
-const topEdge = () => S.notesOnMap && NOTES.length ? TOP_H + 50 : TOP_H;
-const viewCenter = () => [leftEdge() + (innerWidth - leftEdge() - rightEdge()) / 2, topEdge() + (innerHeight - topEdge() - bottomEdge()) / 2];
+const topEdge = () => (S.notesOnMap && NOTES.length ? TOP_H + 50 : TOP_H) + (sbsOn() ? 34 : 0);
+const viewCenter = () => { const P = pane(); return [P.x + P.l + (P.w - P.l - P.r) / 2, topEdge() + (innerHeight - topEdge() - bottomEdge()) / 2]; };
 function fitTo(b) {
-  const vw = innerWidth - leftEdge() - rightEdge() - 40, vh = innerHeight - topEdge() - bottomEdge() - 40;
-  let z = Math.min(vw / b.w, vh / b.h) * 0.95;
-  const tall = z < MIN_Z + 0.08;
-  if (tall) z = Math.min(1, Math.max(MIN_Z + 0.1, vw / b.w * 0.96));   // too tall: fit the width, start at the top
+  const P = pane();
+  const vw = P.w - P.l - P.r - 40, vh = innerHeight - topEdge() - bottomEdge() - 40;
+  const zw = vw / b.w * 0.96, zh = vh / b.h * 0.95;
+  let z = Math.min(zw, zh);
+  // A tall map would shrink until its words are unreadable: fit the width instead and start
+  // at the top, so people scroll down through readable boxes.
+  const tall = zh < 0.62 && zw > zh * 1.2;
+  if (tall) z = Math.min(1, Math.max(sbsOn() ? MIN_Z : MIN_Z + 0.1, zw));
   Z = Math.min(1.3, Math.max(MIN_Z, z));
-  X = leftEdge() + 20 + Math.max(0, (vw - b.w * Z) / 2) - b.x * Z;
+  X = P.l + 20 + Math.max(0, (vw - b.w * Z) / 2) - b.x * Z;
   Y = topEdge() + 20 + (tall ? 0 : Math.max(0, (vh - b.h * Z) / 2)) - b.y * Z;
   apply();
 }
@@ -971,20 +1231,22 @@ function centerOn(el) {
   const x = parseFloat(el.style.left) + el.offsetWidth / 2, y = parseFloat(el.style.top) + el.offsetHeight / 2;
   if (Z < 0.75) Z = 0.9;
   const [cx, cy] = viewCenter();
-  X = cx - x * Z; Y = cy - y * Z; apply();
+  X = cx - pane().x - x * Z; Y = cy - y * Z; apply();
 }
 let drag = null;
-viewport.addEventListener("pointerdown", e => {
-  if (e.target.closest(".box,.notecard,.morenotes,button")) return;
-  drag = {x:e.clientX, y:e.clientY, X, Y}; viewport.classList.add("dragging"); viewport.setPointerCapture(e.pointerId);
+[viewport, viewport2].forEach(vp => {
+  vp.addEventListener("pointerdown", e => {
+    if (e.target.closest(".box,.notecard,.morenotes,button")) return;
+    drag = {x:e.clientX, y:e.clientY, X, Y, vp}; vp.classList.add("dragging"); vp.setPointerCapture(e.pointerId);
+  });
+  vp.addEventListener("pointermove", e => { if (!drag) return; X = drag.X + e.clientX - drag.x; Y = drag.Y + e.clientY - drag.y; apply(); });
+  vp.addEventListener("pointerup", () => { if (drag) drag.vp.classList.remove("dragging"); drag = null; });
+  vp.addEventListener("wheel", e => {
+    e.preventDefault();
+    if (e.ctrlKey || e.metaKey) zoomAt(Math.exp(-e.deltaY * 0.01), e.clientX, e.clientY);
+    else { X -= e.deltaX; Y -= e.deltaY; apply(); }
+  }, {passive:false});
 });
-viewport.addEventListener("pointermove", e => { if (!drag) return; X = drag.X + e.clientX - drag.x; Y = drag.Y + e.clientY - drag.y; apply(); });
-viewport.addEventListener("pointerup", () => { drag = null; viewport.classList.remove("dragging"); });
-viewport.addEventListener("wheel", e => {
-  e.preventDefault();
-  if (e.ctrlKey || e.metaKey) zoomAt(Math.exp(-e.deltaY * 0.01), e.clientX, e.clientY);
-  else { X -= e.deltaX; Y -= e.deltaY; apply(); }
-}, {passive:false});
 $("#zin").addEventListener("click", () => zoomAt(1.25, ...viewCenter()));
 $("#zout").addEventListener("click", () => zoomAt(1 / 1.25, ...viewCenter()));
 $("#zfit").addEventListener("click", () => fit());
@@ -995,48 +1257,67 @@ function applyFocus() {
   document.body.classList.toggle("dim", on);
   world.querySelectorAll(".inj").forEach(el => el.classList.toggle("hot", on && el.dataset.row === "j" + S.journey));
   svg.querySelectorAll("path").forEach(p => p.classList.toggle("hot", on && p.dataset.row === "j" + S.journey));
+  if (sbsOn()) syncPanes();
 }
 function showMap(i) { if (i !== S.map) { S.map = i; S.journey = -1; persist(); render(); } }
 function focusJourney(mi, ji) { showMap(mi); S.journey = ji; persist(); applyFocus(); story(); fit(); }
 function focusRow(mi, key) { showMap(mi); S.journey = -1; persist(); applyFocus(); story(); fitRow(key); }
-function setMode(m) { S.mode = m; persist(); render(); }
+function setMode(m) { S.mode = m; if (m !== "changes") S.sbs = false; persist(); render(); }
+function setSideBySide(on) {
+  if (on && innerWidth < 1000) return toast("Side by side needs a wider window. What changes shows the same on one map.");
+  S.sbs = on; if (on) S.mode = "changes"; persist(); render(); fit();
+}
 
 /* ---------- top bar ---------- */
-const ICONS = {
-  lines:'<path d="M4 6h6l4 12h6M16 14l4 4-4 4"/><circle cx="4" cy="6" r="2"/><circle cx="20" cy="18" r="2"/>',
-  notes:'<path d="M4 4h16v12H9l-5 4V4Z"/><path d="M8 8h8M8 12h5"/>',
-  tech:'<path d="M4 5h16M4 10h12M4 15h7M16 14v7M12.5 17.5h7"/>',
-  dots:'<path stroke-linecap="round" stroke-width="3" d="M5 5h.01M12 5h.01M19 5h.01M5 12h.01M12 12h.01M19 12h.01M5 19h.01M12 19h.01M19 19h.01"/>',
-  story:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M5.5 8h1M5.5 12h1"/>',
-  glossary:'<path d="M12 5v15M12 5C9 3 5 3 2 4v15c3-1 7-1 10 1 3-2 7-2 10-1V4c-3-1-7-1-10 1Z"/>'
-};
-function iconControl(action, label, on) {
-  const state = on === undefined ? "" : ` · ${on ? "On" : "Off"}`;
-  return `<button class="icon-control" data-tool="${action}" aria-label="${label}" title="${label}${state}"${on === undefined ? "" : ` aria-pressed="${on}"`}>
-    <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7">${ICONS[action]}</svg>
-    <span class="control-tip">${label}${state}</span>${on === undefined ? "" : '<span class="toggle-state" aria-hidden="true"></span>'}</button>`;
+/* Words, not icons: the view switch, one View menu for display options, the questions, the
+   save button and Tools. */
+function modeSwitch(where) {
+  const m = MODEL.maps[S.map];
+  if (!hasChanges(m)) return "";
+  const mode = modeOf(m);
+  return `<div class="seg mode-seg ${where}" role="group" aria-label="Today, planned, or what changes">
+    ${Object.entries(MODES).map(([k, l]) => `<button data-mode="${k}" aria-pressed="${mode === k && !(k === "changes" && sbsOn())}">${l}</button>`).join("")}
+    <button data-sbs class="sbs" aria-pressed="${sbsOn()}">Side by side</button></div>`;
+}
+function wireModeSwitch(root) {
+  root.querySelectorAll("[data-mode]").forEach(b => b.addEventListener("click", () => { setMode(b.dataset.mode); b.dataset.mode === "changes" ? fitFirstChange() : fit(); }));
+  root.querySelectorAll("[data-sbs]").forEach(b => b.addEventListener("click", () => { setSideBySide(!sbsOn()); if (sbsOn()) fitFirstChange(); }));
+}
+/* On a journey map the changes can sit far down: start at the first journey that changes. */
+function fitFirstChange() {
+  const m = MODEL.maps[S.map];
+  const ji = (m.journeys || []).findIndex(j => (j.steps || []).some(s => s.when === "today" || s.when === "planned"));
+  if (KIND[m.template] === "journeys" && ji > 0) fitRow("j" + ji); else fit();
+}
+function viewItems() {
+  const details = Object.values(BOX).some(info => info.mi === S.map && info.box.detail);
+  return [
+    NOTES.length ? ["notes", "Notes on the map", S.notesOnMap] : null,
+    (MODEL.links || []).length ? ["lines", "All connections", S.lines] : null,
+    details ? ["tech", "Technical names on the map", S.tech] : null,
+    ["dots", "Background dots", S.dots],
+    ["story", "List on the left", leftEdge() > 0],
+    TERMS.length ? ["glossary", "Word meanings", ""] : null,
+    ["key", "What the colours mean", ""],
+  ].filter(Boolean);
 }
 function topBar() {
-  const details = Object.values(BOX).filter(info => info.mi === S.map && info.box.detail);
+  const qn = questionList().length;
   $("#top").innerHTML = `
     <span class="title" title="${esc(MODEL.title)}">${esc(MODEL.title)}</span>
-    <div class="display-controls" role="group" aria-label="Map display">
-      ${KIND[MODEL.maps[S.map].template] === "chain" ? `<select id="view-version" aria-label="Current and proposed work">${[["compare","Compare"],["today","Current"],["planned","Proposed"]].map(([value,label]) => `<option value="${value}"${S.mode === value ? " selected" : ""}>${label}</option>`).join("")}</select>` : ""}
-      ${iconControl("story", "Left navigation", leftEdge() > 0)}
-      ${NOTES.length ? iconControl("notes", "Notes beside boxes", S.notesOnMap) : ""}
-      ${(MODEL.links || []).length ? iconControl("lines", "All connections", S.lines) : ""}
-      ${details.length ? iconControl("tech", "Extra details on the map", S.tech) : ""}
-      ${iconControl("dots", "Background dots", S.dots)}
-      ${TERMS.length ? iconControl("glossary", "Word meanings") : ""}
-    </div>
+    ${modeSwitch("in-top")}
+    <button id="tview" aria-haspopup="true" aria-expanded="false">View ▾</button>
+    <button id="tquestions" class="primary"><span class="wide-label">Questions to decide</span><span class="short-label">Questions</span><span class="count">${qn}</span></button>
     <button id="tsave" class="save-primary">${SESSION ? S.sessionFinished ? "Read my answers" : "Finish review" : "Save my answers"}</button>
     <button id="tshare" aria-haspopup="true" aria-expanded="false">Tools ▾</button>`;
   roleStrip();
-  const version = $("#view-version"); if (version) version.addEventListener("change", () => { setMode(version.value); fit(); });
-  $("#top").querySelectorAll("[data-tool]").forEach(button => button.addEventListener("click", () => { const action = button.dataset.tool; act(action); const next = $("#top [data-tool=" + action + "]"); if (next) next.focus({preventScroll:true}); }));
+  wireModeSwitch($("#top"));
+  $("#tview").addEventListener("click", e => menu(e.currentTarget, viewItems()));
+  $("#tquestions").addEventListener("click", () => open("questions"));
   $("#tsave").addEventListener("click", () => SESSION && S.sessionFinished ? open("reviewsummary") : saveReview());
   $("#tshare").addEventListener("click", e => menu(e.currentTarget, [
     ["walk", "Walk me through it", ""],
+    ...(hasChanges(MODEL.maps[S.map]) ? [["walkchanges", "Walk through the changes", ""]] : []),
     [SESSION ? "backup" : "save", SESSION ? "Download a backup copy" : "Save my answers as a file", ""],
     ["copy", "Copy the questions as a list", ""], ["paper", "Print the questions", ""],
     ["print", "Print this view", ""], ["roles", "Whose notes to show", ""],
@@ -1063,7 +1344,9 @@ function menu(btn, items) {
   document.querySelectorAll("#top [aria-expanded]").forEach(b => b.setAttribute("aria-expanded", "false"));
   if (reopen) return;
   mm._from = btn;
-  mm.innerHTML = items.map(([a, label, state]) => `<button role="menuitem" data-a="${a}"><span>${label}</span><span class="state">${state}</span></button>`).join("");
+  mm.innerHTML = items.map(([a, label, state]) => typeof state === "boolean"
+    ? `<button role="menuitemcheckbox" aria-checked="${state}" aria-label="${label}" data-a="${a}"><span>${label}</span><span class="state" aria-hidden="true">${state ? "On" : "Off"}</span></button>`
+    : `<button role="menuitem" data-a="${a}"><span>${label}</span><span class="state">${state}</span></button>`).join("");
   const r = btn.getBoundingClientRect();
   mm.style.left = Math.max(8, Math.min(r.left, innerWidth - 290)) + "px"; mm.style.top = (r.bottom + 6) + "px";
   mm.classList.add("open"); btn.setAttribute("aria-expanded", "true");
@@ -1073,6 +1356,7 @@ function menu(btn, items) {
 document.addEventListener("click", e => { if (!e.target.closest("#menu,#tshare,#tview")) $("#menu").classList.remove("open"); });
 function act(a) {
   if (a === "walk") walk(0);
+  if (a === "walkchanges") walkChanges(0);
   if (a === "tech" && !Object.values(BOX).some(info => info.mi === S.map && info.box.detail)) return toast("This map has no extra box details.");
   if (a === "lines") { S.lines = !S.lines; persist(); topBar(); applyConnections(); }
   if (a === "glossary") open("glossary");
@@ -1096,7 +1380,6 @@ function act(a) {
 /* ---------- left story list ---------- */
 function setStory(on) { document.body.classList.toggle("show-navigation", on); S.story = on; persist(); document.body.classList.toggle("nostory", !on); story(); topBar(); fit(); }
 $("#storytab").addEventListener("click", () => setStory(true));
-let exploringMaps = false;
 function story() {
   const el = $("#story");
   if (!S.story) { el.innerHTML = ""; return; }
@@ -1107,13 +1390,20 @@ function story() {
     if (kind === "journeys") sub = (m.journeys || []).map((j, ji) => `<li><button class="view" data-j="${mi}:${ji}" aria-current="${cur && S.journey === ji}"><b><span class="num">${mi + 1}.${ji + 1}</span>${esc(j.title)}</b><span>${esc(j.summary || plural((j.steps || []).length, "step"))}</span></button></li>`).join("");
     if (kind === "chain") sub = (m.stages || []).map((st, si) => `<li><button class="view" data-row="${mi}:s${si}"><b><span class="num">${mi + 1}.${si + 1}</span>${esc(st.label)}</b><span>${esc(st.sub || "")}</span></button></li>`).join("");
     if (kind === "tree") sub = (m.root.children || []).map((b, bi) => `<li><button class="view" data-row="${mi}:b${bi}"><b><span class="num">${mi + 1}.${bi + 1}</span>${esc(b.title)}</b><span>${plural((b.children || []).length, "idea")}</span></button></li>`).join("");
-    const seg = kind === "chain" && cur ? `<div class="seg" role="group" aria-label="Current and proposed work"><button data-mode="compare" aria-pressed="${S.mode === "compare"}">Compare</button><button data-mode="today" aria-pressed="${S.mode === "today"}">Current</button><button data-mode="planned" aria-pressed="${S.mode === "planned"}">Proposed</button></div>` : "";
-    return `<li><button class="view" data-map="${mi}" aria-current="${cur && S.journey < 0}"><b><span class="num">${mi + 1}.</span>${esc(m.title)}</b><span>${esc(m.intro || "")}</span></button>${seg}<ol class="sub">${sub}</ol></li>`;
+    const tag = hasChanges(m) ? `<span class="viewtag">${countsText(changeList(m))}</span>` : "";
+    return `<li class="${cur ? "cur" : ""}"><button class="view top-view" data-map="${mi}" aria-current="${cur && S.journey < 0}"><b><span class="num">${mi + 1}.</span>${esc(m.title)}</b><span>${esc(m.intro || "")}</span>${tag}</button>${cur ? modeSwitch("in-story") : ""}${cur ? `<ol class="sub">${sub}</ol>` : ""}</li>`;
   }).join("");
+  const m = MODEL.maps[S.map];
+  const changes = hasChanges(m) ? changeList(m) : [];
   const qs = questionList(), done = qs.filter(q => answerDone(q.n)).length;
   const active = current && current.kind;
   el.innerHTML = `<button class="hide" data-hide>Hide list</button>
     <div class="small">The decision</div><p class="q">${gl(MODEL.question, true)}</p>
+    <button class="walkbtn" data-walk>▶ Walk me through it</button>
+    <h2>The maps</h2><ol class="maps">${views}</ol>
+    ${changes.length ? `<h2>What changes on this map</h2><p class="chg-legend">${countsHtml(changes)}</p>
+      <button class="walkbtn alt" data-walk-changes>▶ Walk through the changes</button>
+      <ol class="changes">${changes.map((c, i) => `<li><button class="view chg" data-change="${i}"><span class="ribbon ${c.change}">${CHANGE_WORD[c.change]}</span><b>${esc(titleOf(c.box))}</b>${c.before ? `<span>Today: ${esc(titleOf(c.before))}</span>` : ""}</button></li>`).join("")}</ol>` : ""}
     <h2>Your review</h2><p class="small">${done} of ${qs.length} questions answered</p>
     <div class="more workflow">
       <button data-open="reviewstart" aria-current="${active === 'reviewstart'}">1. Understand the decision</button>
@@ -1121,24 +1411,25 @@ function story() {
       <button data-open="reviewsummary" aria-current="${active === 'reviewsummary'}">3. Check your answers</button>
     </div>
     <h2>Supporting material</h2><div class="more">
-      <button data-explore aria-current="${exploringMaps}">Explore the map</button>
       ${MODEL.comparison ? `<button data-open="comparison">Compare the options</button>` : ""}
       <button data-open="evidence">Supporting sources</button>
       ${DECISIONS.length ? `<button data-open="decisions">Decision record</button>` : ""}
       ${GAPS.length ? `<button data-open="gaps">Changes to consider</button>` : ""}
       ${MODEL.reading ? `<button data-open="reading">How to read the map</button>` : ""}
-    </div>
-    ${exploringMaps ? `<h2>Map views</h2><ol>${views}</ol>` : ""}`;
+    </div>`;
   el.querySelector("[data-hide]").addEventListener("click", () => setStory(false));
-  el.querySelector("[data-give]").addEventListener("click", () => {
-    exploringMaps = false;
-    goReview(Math.max(0, qs.findIndex(q => !answerDone(q.n))));
-  });
-  el.querySelector("[data-explore]").addEventListener("click", () => { exploringMaps = !exploringMaps; close(); story(); fit(); });
+  el.querySelector("[data-walk]").addEventListener("click", () => walk(0));
+  const wc = el.querySelector("[data-walk-changes]"); if (wc) wc.addEventListener("click", () => walkChanges(0));
+  el.querySelector("[data-give]").addEventListener("click", () => goReview(Math.max(0, qs.findIndex(q => !answerDone(q.n)))));
   el.querySelectorAll("[data-map]").forEach(b => b.addEventListener("click", () => { showMap(+b.dataset.map); S.journey = -1; persist(); applyFocus(); story(); fit(); }));
   el.querySelectorAll("[data-j]").forEach(b => b.addEventListener("click", () => { const [mi, ji] = b.dataset.j.split(":").map(Number); focusJourney(mi, ji); }));
   el.querySelectorAll("[data-row]").forEach(b => b.addEventListener("click", () => { const [mi, key] = b.dataset.row.split(":"); focusRow(+mi, key); }));
-  el.querySelectorAll("[data-mode]").forEach(b => b.addEventListener("click", () => setMode(b.dataset.mode)));
+  el.querySelectorAll("[data-change]").forEach(b => b.addEventListener("click", () => {
+    const c = changes[+b.dataset.change];
+    if (modeOf(m) === "today" || modeOf(m) === "planned") setMode("changes");
+    open("box", c.box.id); jumpTo(c.box.id);
+  }));
+  wireModeSwitch(el);
   el.querySelectorAll("[data-open]").forEach(b => b.addEventListener("click", () => open(b.dataset.open)));
   wireTerms(el);
 }
@@ -1155,7 +1446,7 @@ function steps() {
       out.push({title:`${ji + 1}. ${j.title}`, text:(j.summary || "") + ` ${plural((j.steps || []).length, "step")}.` + (moments.length ? ` Moments that matter: ${moments.join("; ")}.` : ""), go:() => focusJourney(mi, ji)});
     });
     if (kind === "chain") (m.stages || []).forEach((st, si) => {
-      const items = (st.items || []).filter(it => (it.when || "both") === "both" || it.when === S.mode).map(it => it.title);
+      const items = arrange(st.items || [], modeOf(m)).map(slot => slotLabel(slot, slot.box.title));
       out.push({title:`${si + 1}. ${st.label}`, text:`${st.sub || ""}. ${items.length ? items.join("; ") + "." : "Nothing here yet."}`, go:() => focusRow(mi, "s" + si)});
     });
     if (kind === "tree") (m.root.children || []).forEach((b, bi) => {
@@ -1171,11 +1462,11 @@ function steps() {
   out.push({title:"What we need to decide", text:`${plural(qs.length, "question")}, ${must} that must be decided. Answer them on the right, then press Save my answers. Send the downloaded file to the review owner.`, panel:true, go:() => open("questions")});
   return out;
 }
-let walkAt = -1;
+let walkAt = -1, walkKind = "tour";
 function walk(i) {
   const list = steps();
   if (i < 0 || i >= list.length) return endWalk();
-  walkAt = i;
+  walkAt = i; walkKind = "tour";
   hideHint();
   const s = list[i];
   if (!s.panel) close();
@@ -1192,12 +1483,37 @@ function walk(i) {
   wireTerms(w);
 }
 function endWalk() { walkAt = -1; $("#walk").classList.remove("open"); }
+const stepWalk = d => walkKind === "changes" ? walkChanges(walkAt + d) : walk(walkAt + d);
+/* One change at a time: the box is outlined on the map and its before and after open on the right. */
+function walkChanges(i) {
+  const m = MODEL.maps[S.map];
+  const list = changeList(m);
+  if (!list.length || i < 0 || i >= list.length) return endWalk();
+  walkAt = i; walkKind = "changes";
+  hideHint();
+  if (modeOf(m) !== "changes") { S.mode = "changes"; persist(); render(); }
+  const c = list[i];
+  open("box", c.box.id);
+  jumpTo(c.box.id);
+  const what = c.change === "changed" ? `Today: ${esc(titleOf(c.before))}. In the plan: ${esc(titleOf(c.box))}.`
+    : c.change === "new" ? "Not there today. The plan adds it." : "There today. The plan drops it.";
+  const w = $("#walk");
+  w.innerHTML = `<div class="step">Change ${i + 1} of ${list.length} · ${countsText(list)}</div>
+    <h3><span class="ribbon ${c.change}">${CHANGE_WORD[c.change]}</span> ${esc(titleOf(c.box))}</h3><p>${what}</p>
+    <div class="row"><button data-w="back"${i === 0 ? " disabled" : ""}>Back</button><span class="grow"></span>
+    <button data-w="end">End the walk-through</button><button class="next" data-w="next">${i === list.length - 1 ? "Finish" : "Next"}</button></div>`;
+  w.classList.add("open");
+  w.querySelector('[data-w="back"]').addEventListener("click", () => walkChanges(walkAt - 1));
+  w.querySelector('[data-w="next"]').addEventListener("click", () => walkChanges(walkAt + 1));
+  w.querySelector('[data-w="end"]').addEventListener("click", endWalk);
+  w.querySelector('[data-w="next"]').focus();
+}
 
 /* ---------- first-visit hint ---------- */
 function hint() {
   if (S.hintSeen) return;
   const h = $("#hint");
-  h.innerHTML = `<b>New here?</b> Press <b>Walk me through it</b> in Tools for a short tour, or click any box to read about it. ${SESSION ? "Answer questions on the right. Your answers save for your agent automatically; press Finish review when ready." : "Answer questions on the right, then press Save my answers. Send the downloaded file to the review owner."}<br><button id="hintok">Got it</button>`;
+  h.innerHTML = `<b>New here?</b> Pick a view on the left, or press <b>Walk me through it</b>. Click any box to read about it. ${hasChanges(MODEL.maps[S.map]) ? "Use <b>Today</b>, <b>Planned</b> and <b>What changes</b> to see the plan. " : ""}${SESSION ? "Answer questions on the right. Your answers save for your agent automatically; press Finish review when ready." : "Answer questions on the right, then press Save my answers. Send the downloaded file to the review owner."}<br><button id="hintok">Got it</button>`;
   h.classList.add("open");
   $("#hintok").addEventListener("click", hideHint);
 }
@@ -1225,6 +1541,27 @@ function close() {
   current = null; topBar(); applyConnections(); world.querySelectorAll(".sel").forEach(x => x.classList.remove("sel")); story(); fit();
 }
 
+/* What the plan does to this box: new, gone, or before and after with the words that change. */
+function changeSection(id) {
+  const c = CHANGE_INFO[id];
+  if (!c) return "";
+  if (c.change === "new") return `<section class="change new"><span class="ribbon new">New</span><p>Not there today. The plan adds this.</p></section>`;
+  if (c.change === "gone") return `<section class="change gone"><span class="ribbon gone">Goes away</span><p>There today. The plan drops it.</p></section>`;
+  const before = c.change === "replaced" ? c.box : c.before, after = c.change === "replaced" ? c.by : c.box;
+  const field = (label, a, b) => {
+    if (!a && !b) return "";
+    const [da, db] = a === b ? [esc(a), esc(b)] : wordDiff(a, b);
+    return `<div class="ba-row"><div class="ba-label">${label}</div><div class="ba-cell before">${da || "<i>None</i>"}</div><div class="ba-cell after">${db || "<i>None</i>"}</div></div>`;
+  };
+  const st = x => x.status ? STATUS[x.status] : "";
+  return `<section class="change changed"><span class="ribbon changed">Changed</span>
+    ${c.change === "replaced" ? `<p>This is how it works today. In the plan it becomes <button class="mini" data-jump-to="${esc(after.id)}">${esc(titleOf(after))}</button>.</p>` : "<p>The plan changes this. Words that go are struck through; words that arrive are marked.</p>"}
+    <div class="ba"><div class="ba-row head"><div class="ba-label"></div><div class="ba-cell before">Today</div><div class="ba-cell after">In the plan</div></div>
+    ${field(before.title ? "Name" : "What happens", titleOf(before), titleOf(after))}
+    ${before.title || after.title ? field("In short", before.text || "", after.text || "") : ""}
+    ${field("Status", st(before), st(after))}
+    ${S.tech ? field("Technical", before.detail || "", after.detail || "") : ""}</div></section>`;
+}
 function evidenceHtml(refs) {
   return (refs || []).map(r => {
     const e = EVID[r]; if (!e) return "";
@@ -1307,17 +1644,18 @@ const PANELS = {
     const notes = notesOn(id);
     const where = info.kind === "step" ? `Step ${info.k + 1} · ${esc(lane ? lane.label : b.lane)}` : info.kind === "journey" ? `Journey ${info.ji + 1}` : info.kind === "stage" ? `Stage ${info.si + 1}` : "";
     return [esc(titleOf(b)), `
+      ${changeSection(id)}
       <p class="small">${where} ${pill(b.status)}</p>
       ${b.title && b.text ? `<p>${gl(b.text, true)}</p>` : ""}${b.summary ? `<p>${gl(b.summary, true)}</p>` : ""}${b.sub ? `<p>${gl(b.sub, true)}</p>` : ""}
       ${b.pain ? `<p><b>Pain point:</b> ${gl(b.pain, true)}</p>` : ""}
       ${b.moment ? `<p><b>A moment that matters.</b> Get this right and people trust the rest.</p>` : ""}
       ${b.feeling ? `<p><i class="feel ${b.feeling}"></i>${FEEL[b.feeling]}</p>` : ""}
-      ${sinceAdded.has(id) ? `<p><span class="chip new">New</span> since the last review.</p>` : ""}
-      ${ch ? `<p><span class="chip changed">Changed</span> since the last review: ${ch.map(esc).join(", ")}.</p>` : ""}
+      ${sinceAdded.has(id) ? `<p><span class="chip since">New since last review</span></p>` : ""}
+      ${ch ? `<p><span class="chip since">Changed since last review</span> ${ch.map(esc).join(", ")}.</p>` : ""}
       ${b.checked ? `<p class="small">Checked ${esc(b.checked)}.</p>` : ""}
       ${visibleLinks().filter(l => l.from === id || l.to === id).length ? `<h3>Connected to this</h3>${visibleLinks().filter(l => l.from === id || l.to === id).map(l => {
         const other = l.from === id ? l.to : l.from;
-        return `<p class="connection-description ${l.kind || "flow"}">${esc(l.label)} ${l.from === id ? "→" : "←"} <button class="mini" data-connection-to="${esc(other)}">${esc(titleOf(BOX[other].box))}</button>${S.mode === "compare" && l.when && l.when !== "both" ? ` <span class="small">(${l.when === "today" ? "current" : "proposed"})</span>` : ""}</p>`;
+        return `<p class="connection-description ${l.kind || "flow"}">${esc(l.label)} ${l.from === id ? "→" : "←"} <button class="mini" data-connection-to="${esc(other)}">${esc(titleOf(BOX[other].box))}</button>${modeOf(MODEL.maps[S.map]) === "changes" && l.when && l.when !== "both" ? ` <span class="small">(${l.when === "today" ? "today only" : "in the plan"})</span>` : ""}</p>`;
       }).join("")}` : ""}
       ${b.detail ? `<h3>More about this</h3><p>${gl(b.detail, true)}</p>` : ""}
       ${(b.evidence || []).length ? `<h3>Evidence</h3>${evidenceHtml(b.evidence)}` : ""}
@@ -1478,12 +1816,14 @@ const PANELS = {
       <h3>Notes</h3><p>Each note is one role's comment and ends in a question. A box shows how many notes it has; red means at least one must be decided. The coloured edge on a note shows how urgent it is:</p>
       <p class="legend"><span><span class="swatch" style="background:var(--must)"></span>Must decide</span><span><span class="swatch" style="background:var(--should)"></span>Should decide</span><span><span class="swatch" style="background:var(--info)"></span>For information</span></p>
       <h3>Roles</h3><p class="legend">${ROLES.map(r => `<span><span class="swatch" style="background:${r.color}"></span>${esc(r.label)}</span>`).join(" ")}</p>
-      <h3>Marks on boxes</h3><p class="legend"><span class="chip moment">Moment that matters</span> <span class="chip pain">Pain point</span> <span class="chip new">New</span> <span class="chip changed">Changed</span> <span class="chip stale">May be out of date</span></p>`];
+      <h3>What changes</h3><p class="legend"><span class="ribbon new">New</span> <span class="ribbon changed">Changed</span> <span class="ribbon gone">Goes away</span></p>
+      <p>New boxes have a teal dashed edge, changed ones an amber edge, and boxes that go away are faded and struck through. Open a changed box to see today and the plan side by side. Side by side shows today on the left and the plan on the right.</p>
+      <h3>Marks on boxes</h3><p class="legend"><span class="chip moment">Moment that matters</span> <span class="chip pain">Pain point</span> <span class="chip since">New since last review</span> <span class="chip stale">May be out of date</span></p>`];
   },
   keys() {
     return ["Keyboard shortcuts", `<p class="small">Everything also works with the buttons on screen. These are only shortcuts.</p>
       <ul><li><b>Tab</b> and <b>Enter</b>: move between boxes and open one</li><li><b>W</b>: walk me through it; <b>→</b> and <b>←</b>: next and back during the walk-through</li>
-      <li><b>F</b>: fit to screen; <b>+</b> and <b>−</b>: zoom</li><li><b>Q</b>: questions to decide</li><li><b>T</b>: today or planned (on a chain view)</li>
+      <li><b>F</b>: fit to screen; <b>+</b> and <b>−</b>: zoom</li><li><b>Q</b>: questions to decide</li><li><b>T</b>: Today, Planned, What changes (where a map has a plan)</li><li><b>S</b>: side by side</li>
       <li><b>N</b>: show all notes on the map</li><li><b>X</b>: show extra box details on the map, when available</li><li><b>1</b> to <b>9</b>: switch view</li><li><b>Esc</b>: close the panel or menu</li></ul>
       <p class="small">Boxes are placed automatically. Drag empty space to move the view. Zoom with Ctrl and scroll, or pinch.</p>`];
   },
@@ -1569,7 +1909,12 @@ function jumpTo(id) {
   if (info && info.kind === "gap") return open("gaps");
   const mi = mapOfAnchor(id);
   if (mi >= 0) showMap(mi);
-  if (info && info.kind === "item" && !nodes[id]) setMode(info.box.when === "today" ? "today" : "planned");
+  if (info && !nodes[id] && hasChanges(MODEL.maps[S.map])) {
+    const c = CHANGE_INFO[id];
+    if (c && c.change === "replaced" && modeOf(MODEL.maps[S.map]) === "changes") id = c.by.id;
+    else if (info.box.when === "today") setMode("today");
+    else if (info.box.when === "planned") setMode("planned");
+  }
   if (S.journey >= 0 && info && info.ji !== S.journey) { S.journey = -1; applyFocus(); story(); }
   const el = nodes[id];
   if (el) { world.querySelectorAll(".sel").forEach(x => x.classList.remove("sel")); el.classList.add("sel"); centerOn(el); }
@@ -1585,6 +1930,7 @@ function activate(el) {
   else if (d.type === "outcome") open("outcome", d.o);
 }
 world.addEventListener("click", e => { const term = e.target.closest(".term"); if (term) { showTerm(term); return; } const el = e.target.closest("[role=button]"); if (el && el._data) activate(el); });
+world2.addEventListener("click", e => { const el = e.target.closest("[data-k]"); const t = twin(el); if (t && t._data) activate(t); });
 world.addEventListener("keydown", e => {
   const term = e.target.closest(".term"); if (term && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); showTerm(term); return; }
   const el = e.target.closest("[role=button]");
@@ -1674,7 +2020,7 @@ document.addEventListener("keydown", e => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   const k = e.key.toLowerCase();
   if (k === "escape") { $("#menu").classList.remove("open"); hideTerm(); if (walkAt >= 0) endWalk(); else close(); return; }
-  if (walkAt >= 0 && (k === "arrowright" || k === "arrowleft")) { walk(walkAt + (k === "arrowright" ? 1 : -1)); e.preventDefault(); return; }
+  if (walkAt >= 0 && (k === "arrowright" || k === "arrowleft")) { stepWalk(k === "arrowright" ? 1 : -1); e.preventDefault(); return; }
   const m = MODEL.maps[S.map];
   if (/^[1-9]$/.test(k) && +k <= MODEL.maps.length) { showMap(+k - 1); fit(); }
   else if (k === "w") walk(0);
@@ -1685,7 +2031,8 @@ document.addEventListener("keydown", e => {
   else if (k === "n") act("notes");
   else if (k === "x") act("tech");
   else if (k === "?") open("keys");
-  else if (k === "t" && KIND[m.template] === "chain") setMode(S.mode === "today" ? "planned" : "today");
+  else if (k === "t" && hasChanges(m)) { const order = ["today", "planned", "changes"]; setMode(order[(order.indexOf(modeOf(m)) + 1) % 3]); fit(); }
+  else if (k === "s" && hasChanges(m)) setSideBySide(!sbsOn());
   else return;
   e.preventDefault();
 });

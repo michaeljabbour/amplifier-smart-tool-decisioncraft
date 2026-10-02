@@ -148,6 +148,21 @@ What the person collecting them goes through.
 
 What the patient sees, what staff do in front of them and out of sight, and what supports it.
 
+### What changes
+
+5 new · 4 changed · 1 goes away.
+
+- **New:** Evening before: team agrees tomorrow's list
+- **Changed:** Medicines ordered on the morning of discharge, in the midday batch → Pharmacy prepares medicines overnight and early morning
+- **Changed:** Paper checklist, often half-filled when the patient leaves → Checklist moves from paper to the ward system
+- **Changed:** Patient waits in the bed until medicines and transport arrive → Patient moves to the discharge lounge before noon
+- **New:** Nurse goes through the 'what changed' sheet at the bedside
+- **New:** Patient says back which medicines are new
+- **New:** Patient leaves with the sheet and one phone number
+- **Changed:** Letter typed after the patient has gone, often the next day → Letter sent to the family doctor the same day
+- **Goes away:** Most patients leave after four, as the pharmacy closes
+- **New:** Coordinator calls within two days
+
 ### The evening before
 Agreeing tomorrow's list at the evening handover.
 
@@ -225,29 +240,41 @@ From tomorrow's list to a checked bag and a 'what changed' sheet.
   > “Large print and a picture of each tablet would help my mum.” — Language and access, records sample, Patient group member [E23]
   > “Discharge papers are printed in English only, in small type.” — Language and access, records sample, Papers [E21]
 
-### Discharge day, as proposed
-The changes the team wants to try for eight weeks.
+### Discharge day: today and as proposed
+The same day, read three ways. Today shows how it runs now; Planned shows the proposal; What changes marks each difference.
 
-1. [Behind the scenes] **Evening before: team agrees tomorrow's list** (Missing)
+1. [Behind the scenes] **Evening before: team agrees tomorrow's list** (Missing) (planned)
   > “If we knew the night before, we could have medicines ready by noon.” — Ward staff huddle, Ward pharmacist [E9]
-2. [Behind the scenes] **Pharmacy prepares medicines overnight and early morning** (Missing)
+2. [Behind the scenes] **Medicines ordered on the morning of discharge, in the midday batch** (Works today) (today only)
+  > “Discharge medicines reach the pharmacy queue in a batch, mostly between 12 pm and 2 pm.” — Timing on discharge day, two weeks, Pharmacy queue [E13]
+  > “Average time from 'can go home' to medicines on the ward: 5 hours 40 minutes.” — Timing on discharge day, two weeks, Timing [E12]
+3. [Behind the scenes] **Pharmacy prepares medicines overnight and early morning** (Missing) (planned)
   > “63% of discharges happen after 4 pm. The pharmacy closes at 5:30 pm.” — Ward audit: readmissions within 30 days, Timing [E3]
   > “If we knew the night before, we could have medicines ready by noon.” — Ward staff huddle, Ward pharmacist [E9]
-3. [Support] **Checklist moves from paper to the ward system** (Missing)
+4. [Support] **Paper checklist, often half-filled when the patient leaves** (Partly there) (today only)
   > “The discharge checklist is on paper and often half-filled when the patient leaves.” — Ward staff huddle, Nurse [E10]
-4. [On the ward] **Patient moves to the discharge lounge before noon** (Planned)
+5. [Support] **Checklist moves from paper to the ward system** (Missing) (planned)
+  > “The discharge checklist is on paper and often half-filled when the patient leaves.” — Ward staff huddle, Nurse [E10]
+6. [On the ward] **Patient waits in the bed until medicines and transport arrive** (Works today) (today only)
+  > “63% of discharges happen after 4 pm. The pharmacy closes at 5:30 pm.” — Ward audit: readmissions within 30 days, Timing [E3]
   > “The discharge lounge had free chairs before noon and was full after 3 pm on 9 of 10 days.” — Timing on discharge day, two weeks, Lounge [E15]
-5. [On the ward] **Nurse goes through the 'what changed' sheet at the bedside** (Planned)
+7. [On the ward] **Patient moves to the discharge lounge before noon** (Planned) (planned)
+  > “The discharge lounge had free chairs before noon and was full after 3 pm on 9 of 10 days.” — Timing on discharge day, two weeks, Lounge [E15]
+8. [On the ward] **Nurse goes through the 'what changed' sheet at the bedside** (Planned) (planned)
   A moment that matters.
   > “A simple sheet saying what changed would have helped more than anything.” — Patient and carer feedback, Carer [E8]
-6. [On the ward] **Patient says back which medicines are new** (Planned)
+9. [On the ward] **Patient says back which medicines are new** (Planned) (planned)
   > “Everyone was kind, but I left with a bag of tablets and no idea which were new.” — Patient and carer feedback, Patient [E5]
-7. [What they take home] **Patient leaves with the sheet and one phone number** (Planned)
+10. [What they take home] **Patient leaves with the sheet and one phone number** (Planned) (planned)
   > “Nobody rang me afterwards. I didn't know who to call when I felt worse.” — Patient and carer feedback, Patient [E7]
-8. [Behind the scenes] **Letter sent to the family doctor the same day** (Partly there)
+11. [Behind the scenes] **Letter typed after the patient has gone, often the next day** (Partly there) (today only)
+  > “Discharge letters reached the family doctor within 24 hours for 71% of patients.” — Ward audit: readmissions within 30 days, Letters [E4]
+12. [Behind the scenes] **Letter sent to the family doctor the same day** (Partly there) (planned)
   > “Discharge letters reached the family doctor within 24 hours for 71% of patients.” — Ward audit: readmissions within 30 days, Letters [E4]
   > “Four of five practices said the most useful part of the letter is what changed with medicines and why.” — Family doctor practices on discharge letters, Practices [E17]
-9. [Behind the scenes] **Coordinator calls within two days** (Missing)
+13. [On the ward] **Most patients leave after four, as the pharmacy closes** (Works today) (today only)
+  > “63% of discharges happen after 4 pm. The pharmacy closes at 5:30 pm.” — Ward audit: readmissions within 30 days, Timing [E3]
+14. [Behind the scenes] **Coordinator calls within two days** (Missing) (planned)
   > “Follow-up phone calls happen when there is time, which is rarely.” — Ward staff huddle, Discharge coordinator [E11]
 - **Ward manager note (Must decide): Try it for eight weeks, then decide.** Small changes, tested quickly, are easier to keep or drop.
   We suggest: Run all three changes for eight weeks and review at a team meeting.
@@ -420,7 +447,7 @@ Weekend discharges are about half of a weekday's, partly because no pharmacist i
 - Can the ward take back old medicines from home? (Patient and carer voice, on At home, sorts tablets from the bag and old boxes)
 - How do we make clear that the list is a plan, not a promise? (Privacy and safety, on Evening before: team agrees tomorrow's list)
 - Who says it, and in what words? (Privacy and safety, on Patient and carer told the plan)
-- Do we start all three changes together, or one at a time? (Ward manager, on Discharge day, as proposed)
+- Do we start all three changes together, or one at a time? (Ward manager, on Discharge day: today and as proposed)
 
 ### Should decide
 - Can we fund extra coordinator hours for eight weeks? (Finance, on A call within two days)

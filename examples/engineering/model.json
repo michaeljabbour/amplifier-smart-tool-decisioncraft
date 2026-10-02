@@ -592,6 +592,38 @@
               "evidence": [
                 "E21"
               ]
+            },
+            {
+              "id": "ci11p",
+              "title": "Works built and signed off",
+              "text": "Bearings freed, joints repaired or the new span in place, inspected before opening.",
+              "status": "planned",
+              "when": "planned",
+              "replaces": "ci11",
+              "evidence": [
+                "E4"
+              ]
+            },
+            {
+              "id": "ci11bp",
+              "title": "Approach lamps working",
+              "text": "Broken lamps replaced before any closure, so the detour is lit.",
+              "status": "planned",
+              "when": "planned",
+              "replaces": "ci11b",
+              "evidence": [
+                "E21"
+              ]
+            },
+            {
+              "id": "ci11c",
+              "title": "Barrier at the north ramp",
+              "text": "The steepest part has been fenced off since the spring inspection.",
+              "status": "partial",
+              "when": "today",
+              "evidence": [
+                "E20"
+              ]
             }
           ]
         },

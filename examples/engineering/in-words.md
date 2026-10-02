@@ -12,6 +12,23 @@ _Checked against the sources on 2026-06-30. Checked against the principal inspec
 
 Each stage is one step from what the inspection found to a bridge people can use, and whether it worked.
 
+### What changes
+
+9 new · 2 changed · 1 goes away.
+
+- **New:** Repair now, plan a wider bridge later
+- **New:** Replace with a wider bridge now
+- **New:** A safe, step-free crossing for decades
+- **New:** Ramps anyone can use alone
+- **New:** Room to pass
+- **New:** Lit and safe at night
+- **New:** Give the river authority notice
+- **New:** Order steel early
+- **New:** Bid to the cycling fund
+- **Changed:** Inspection and early costs → Works built and signed off
+- **Changed:** Broken approach lamps → Approach lamps working
+- **Goes away:** Barrier at the north ramp
+
 ### Source
 Where it was found or said
 
@@ -79,10 +96,10 @@ Today:
   > “Bearings at the north end have seized; the bridge cannot expand freely in summer.” — Principal inspection, Findings [E3]
 
 Planned:
-- **Repair now, plan a wider bridge later** (Planned): One option on the table.
+- **Repair now, plan a wider bridge later** (Planned) (planned): One option on the table.
   > “With repairs, another 25 years is realistic. Without them, we would recommend a weight limit within three years.” — Principal inspection, Inspector's summary [E2]
   > “Repair £1.1m, 10 weeks closed, 25 years. Replace £3.4m, 9 months closed, 100 years. Wider replacement £4.2m, 11 months, 100 years.” — Options and early costs, Options table [E4]
-- **Replace with a wider bridge now** (Planned): The other option on the table.
+- **Replace with a wider bridge now** (Planned) (planned): The other option on the table.
   > “A regional cycling fund could pay up to 40% of a widened bridge, if bid by November.” — Options and early costs, Notes [E5]
   > “It's too narrow to pass anyone. If you're rebuilding, make it wider.” — Public drop-in session, Regular cyclist [E8]
 - **Bearings freed now, whatever we choose** (Works today): Decided as urgent works in August.
@@ -114,7 +131,7 @@ Planned:
 The result we want
 
 Planned:
-- **A safe, step-free crossing for decades** (Planned): With the shortest possible closure, and a way across while it is shut.
+- **A safe, step-free crossing for decades** (Planned) (planned): With the shortest possible closure, and a way across while it is shut.
   > “It's the only step-free way to the school. A long closure means a 20-minute walk round by the main road.” — Public drop-in session, Parent with a pram [E7]
   > “Several people asked whether the old bridge could stay open while a new one is built.” — Public drop-in session, Comment cards [E28]
 - **Council lead note (Must decide): Say what we are aiming for.** Residents care about the closure as much as the bridge.
@@ -131,14 +148,14 @@ Planned:
 What the bridge must do
 
 Planned:
-- **Ramps anyone can use alone** (Missing): 1 in 15 at the north end, with rest landings and handrails both sides.
+- **Ramps anyone can use alone** (Missing) (planned): 1 in 15 at the north end, with rest landings and handrails both sides.
   > “The ramps at the north end are too steep for me on my own.” — Public drop-in session, Wheelchair user [E10]
   > “North ramp: 1 in 10 over 14 m with no rest landing; the standard is 1 in 15 with a landing every 10 m.” — Access audit of the ramps, North ramp [E20]
   > “Rebuilding the north ramp to 1 in 15 needs 7 m more length, so the ramp must turn back on itself.” — Access audit of the ramps, Options [E22]
-- **Room to pass** (Planned): 4 m wide if replaced.
+- **Room to pass** (Planned) (planned): 4 m wide if replaced.
   > “It's too narrow to pass anyone. If you're rebuilding, make it wider.” — Public drop-in session, Regular cyclist [E8]
   > “About 260 crossings in each school-time peak; cycles and prams often wait for each other.” — Crossing counts, June, Peaks [E13]
-- **Lit and safe at night** (Partly there): All approach lamps working; new lighting on any new bridge.
+- **Lit and safe at night** (Partly there) (planned): All approach lamps working; new lighting on any new bridge.
   > “Two of six lamps on the north approach do not work; handrail on one side only.” — Access audit of the ramps, North approach [E21]
 - **Access and design note (Should decide): Fix the ramps in either option.** A repair could rebuild the north ramps too.
   We suggest: Include gentler ramps in the repair option so the comparison is fair.
@@ -157,11 +174,11 @@ Planned:
 The work, in order
 
 Planned:
-- **Give the river authority notice** (Missing): Six months before any work in the water.
+- **Give the river authority notice** (Missing) (planned): Six months before any work in the water.
   > “The river authority needs 6 months' notice for any work in the water.” — Options and early costs, Notes [E6]
-- **Order steel early** (Missing): 20 to 24 weeks for a new bridge.
+- **Order steel early** (Missing) (planned): 20 to 24 weeks for a new bridge.
   > “Fabricated steel for a new bridge takes 20 to 24 weeks from order; repair steel and bearings 8 weeks.” — Programme and suppliers, Lead times [E23]
-- **Bid to the cycling fund** (Missing): By 28 November, if the wider option is chosen.
+- **Bid to the cycling fund** (Missing) (planned): By 28 November, if the wider option is chosen.
   > “A regional cycling fund could pay up to 40% of a widened bridge, if bid by November.” — Options and early costs, Notes [E5]
   > “Committee meets 15 September, then 10 November. Cycling fund bids close 28 November; decisions in March.” — Programme and suppliers, Dates [E24]
 
@@ -169,9 +186,17 @@ Planned:
 What was done
 
 Today:
-- **Inspection and early costs** (Works today): Done. Nothing built yet.
+- **Inspection and early costs** (Works today) (today only): Done. Nothing built yet.
   > “Repair £1.1m, 10 weeks closed, 25 years. Replace £3.4m, 9 months closed, 100 years. Wider replacement £4.2m, 11 months, 100 years.” — Options and early costs, Options table [E4]
-- **Broken approach lamps** (Partly there): Reported; not yet fixed.
+- **Broken approach lamps** (Partly there) (today only): Reported; not yet fixed.
+  > “Two of six lamps on the north approach do not work; handrail on one side only.” — Access audit of the ramps, North approach [E21]
+- **Barrier at the north ramp** (Partly there) (today only): The steepest part has been fenced off since the spring inspection.
+  > “North ramp: 1 in 10 over 14 m with no rest landing; the standard is 1 in 15 with a landing every 10 m.” — Access audit of the ramps, North ramp [E20]
+
+Planned:
+- **Works built and signed off** (Planned) (planned): Bearings freed, joints repaired or the new span in place, inspected before opening.
+  > “Repair £1.1m, 10 weeks closed, 25 years. Replace £3.4m, 9 months closed, 100 years. Wider replacement £4.2m, 11 months, 100 years.” — Options and early costs, Options table [E4]
+- **Approach lamps working** (Planned) (planned): Broken lamps replaced before any closure, so the detour is lit.
   > “Two of six lamps on the north approach do not work; handrail on one side only.” — Access audit of the ramps, North approach [E21]
 
 ### Outcome

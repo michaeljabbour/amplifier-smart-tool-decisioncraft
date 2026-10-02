@@ -277,7 +277,7 @@
       "id": "m-how",
       "template": "system-journeys",
       "title": "How an upload works",
-      "intro": "Six journeys from the customer's browser to the storage provider. Each column is the part of the system that does that step.",
+      "intro": "Five journeys from the customer's browser to the storage provider. Each column is the part of the system that does that step. The upload journey shows today and the plan in one.",
       "lanes": [
         {
           "id": "people",
@@ -313,8 +313,8 @@
       "journeys": [
         {
           "id": "j-today",
-          "title": "Upload today",
-          "summary": "Every byte passes through our servers on its way to storage.",
+          "title": "Uploading a file",
+          "summary": "How an upload works today, and with direct links to storage. Use Today, Planned and What changes to read it.",
           "creates": [
             "A file record",
             "The file in storage",
@@ -339,7 +339,29 @@
               "evidence": [
                 "E8",
                 "E13"
-              ]
+              ],
+              "when": "today"
+            },
+            {
+              "id": "d2",
+              "lane": "core",
+              "text": "Our servers check the customer may upload, and issue a signed link for one file",
+              "status": "planned",
+              "detail": "Signed link valid 10 minutes, one path, one content type.",
+              "moment": true,
+              "evidence": [
+                "E9"
+              ],
+              "when": "planned",
+              "replaces": "t2"
+            },
+            {
+              "id": "d2b",
+              "lane": "records",
+              "text": "A file record is created in 'uploading' state",
+              "status": "planned",
+              "detail": "Status column: uploading, scanning, ready, rejected.",
+              "when": "planned"
             },
             {
               "id": "t3",
@@ -352,7 +374,23 @@
                 "E1",
                 "E2",
                 "E17"
-              ]
+              ],
+              "when": "today"
+            },
+            {
+              "id": "d3",
+              "lane": "outside",
+              "text": "Browser uploads straight to storage in pieces, with a progress bar",
+              "status": "planned",
+              "detail": "Multipart upload, 16 MB pieces, three in parallel.",
+              "feeling": "good",
+              "evidence": [
+                "E7",
+                "E8",
+                "E13"
+              ],
+              "when": "planned",
+              "replaces": "t3"
             },
             {
               "id": "t3b",
@@ -364,7 +402,8 @@
               "evidence": [
                 "E2",
                 "E17"
-              ]
+              ],
+              "when": "today"
             },
             {
               "id": "t3c",
@@ -377,7 +416,46 @@
               "evidence": [
                 "E12",
                 "E16"
-              ]
+              ],
+              "when": "today"
+            },
+            {
+              "id": "d3b",
+              "lane": "people",
+              "text": "If the connection drops, the upload resumes from the last piece",
+              "status": "planned",
+              "detail": "Browser keeps the upload id and finished pieces in local storage.",
+              "moment": true,
+              "evidence": [
+                "E12",
+                "E11"
+              ],
+              "when": "planned",
+              "replaces": "t3c"
+            },
+            {
+              "id": "d3c",
+              "lane": "people",
+              "text": "Some office firewalls may block the storage address",
+              "status": "missing",
+              "detail": "Fallback: the old proxy path for customers who cannot reach storage directly.",
+              "pain": "Schools and offices with strict firewalls.",
+              "evidence": [
+                "E14"
+              ],
+              "when": "planned"
+            },
+            {
+              "id": "d3d",
+              "lane": "outside",
+              "text": "File lands in a holding area nobody else can read",
+              "status": "planned",
+              "detail": "Separate bucket prefix with no public or shared access.",
+              "evidence": [
+                "E9",
+                "E23"
+              ],
+              "when": "planned"
             },
             {
               "id": "t4",
@@ -388,6 +466,19 @@
               "evidence": [
                 "E23"
               ]
+            },
+            {
+              "id": "d4",
+              "lane": "background",
+              "text": "Storage tells us the upload finished; a job scans it",
+              "status": "missing",
+              "detail": "Completion message to our web address, retried for 24 hours.",
+              "evidence": [
+                "E10",
+                "E21",
+                "E24"
+              ],
+              "when": "planned"
             },
             {
               "id": "t5",
@@ -408,105 +499,8 @@
               "pain": "A bad file can be downloaded for up to 4 minutes.",
               "evidence": [
                 "E23"
-              ]
-            }
-          ]
-        },
-        {
-          "id": "j-direct",
-          "title": "Upload with direct links (proposed)",
-          "summary": "The browser sends the file straight to storage in pieces, using a short-lived signed link.",
-          "creates": [
-            "A file record in 'uploading' state",
-            "The file in a holding area",
-            "A scan result",
-            "A ready file"
-          ],
-          "steps": [
-            {
-              "id": "d1",
-              "lane": "people",
-              "text": "Customer picks a file and presses Upload",
-              "status": "works",
-              "detail": "Same button; size limit shown up front.",
-              "feeling": "good"
-            },
-            {
-              "id": "d2",
-              "lane": "core",
-              "text": "Our servers check the customer may upload, and issue a signed link for one file",
-              "status": "planned",
-              "detail": "Signed link valid 10 minutes, one path, one content type.",
-              "moment": true,
-              "evidence": [
-                "E9"
-              ]
-            },
-            {
-              "id": "d2b",
-              "lane": "records",
-              "text": "A file record is created in 'uploading' state",
-              "status": "planned",
-              "detail": "Status column: uploading, scanning, ready, rejected."
-            },
-            {
-              "id": "d3",
-              "lane": "outside",
-              "text": "Browser uploads straight to storage in pieces, with a progress bar",
-              "status": "planned",
-              "detail": "Multipart upload, 16 MB pieces, three in parallel.",
-              "feeling": "good",
-              "evidence": [
-                "E7",
-                "E8",
-                "E13"
-              ]
-            },
-            {
-              "id": "d3b",
-              "lane": "people",
-              "text": "If the connection drops, the upload resumes from the last piece",
-              "status": "planned",
-              "detail": "Browser keeps the upload id and finished pieces in local storage.",
-              "moment": true,
-              "evidence": [
-                "E12",
-                "E11"
-              ]
-            },
-            {
-              "id": "d3c",
-              "lane": "people",
-              "text": "Some office firewalls may block the storage address",
-              "status": "missing",
-              "detail": "Fallback: the old proxy path for customers who cannot reach storage directly.",
-              "pain": "Schools and offices with strict firewalls.",
-              "evidence": [
-                "E14"
-              ]
-            },
-            {
-              "id": "d3d",
-              "lane": "outside",
-              "text": "File lands in a holding area nobody else can read",
-              "status": "planned",
-              "detail": "Separate bucket prefix with no public or shared access.",
-              "evidence": [
-                "E9",
-                "E23"
-              ]
-            },
-            {
-              "id": "d4",
-              "lane": "background",
-              "text": "Storage tells us the upload finished; a job scans it",
-              "status": "missing",
-              "detail": "Completion message to our web address, retried for 24 hours.",
-              "evidence": [
-                "E10",
-                "E21",
-                "E24"
-              ]
+              ],
+              "when": "today"
             },
             {
               "id": "d5",
@@ -516,14 +510,17 @@
               "detail": "Moved out of the holding area, status set to ready.",
               "evidence": [
                 "E23"
-              ]
+              ],
+              "when": "planned",
+              "replaces": "t6"
             },
             {
               "id": "d6",
               "lane": "front",
               "text": "Customer sees 'Ready' or a plain message if it was rejected",
               "status": "planned",
-              "detail": "Rejected files are deleted after 7 days; owner gets an email."
+              "detail": "Rejected files are deleted after 7 days; owner gets an email.",
+              "when": "planned"
             }
           ]
         },

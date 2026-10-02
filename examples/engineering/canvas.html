@@ -7,11 +7,20 @@
 <meta name="generator" content="decisioncraft">
 <title>Riverside footbridge: repair or replace?</title>
 <style>
+/* Decisioncraft canvas. One visual language:
+   - a dotted canvas;
+   - the chain as bold blocks, purple first and warm yellow after, joined by dashed arrows
+     that name what each step does to the next;
+   - white cards with a solid status tag, lane colours on journey steps;
+   - sticky notes in each role's colour, slightly tilted, with an urgency edge;
+   - plan changes as ribbons: teal New, amber Changed, grey Goes away. */
 :root{
-  --bg:#f5f4f0; --dot:#d6d3cb; --ink:#1d1d1b; --ink2:#46453f; --muted:#6a6862; --line:#d9d6ce;
-  --panel:#ffffff; --soft:#efede7; --accent:#2f5bd3; --accent-ink:#ffffff;
-  --works:#1f7a4a; --partial:#9a5b00; --missing:#b3261e; --planned:#0d6e74;
-  --must:#b3261e; --should:#9a5b00; --info:#4a5a72;
+  --bg:#f4f3ef; --dot:#cdc9bf; --ink:#1d1d1f; --ink2:#43423d; --muted:#6a6862; --line:#dcd9d0;
+  --panel:#ffffff; --soft:#efede6; --accent:#2f5bd3; --accent-soft:#e8eefc;
+  --purple:#7350e0; --purple-ink:#ffffff; --yellow:#f7cd60; --yellow-edge:#e5b641; --yellow-ink:#3a2a00;
+  --works:#1f7a4a; --partial:#985800; --missing:#b3261e; --planned:#0b6b72;
+  --new:#0e8a84; --new-soft:#e6f6f4; --changed:#c27c00; --changed-soft:#fff4dc; --gone:#86837b; --gone-soft:#f1efea;
+  --must:#b3261e; --should:#a86400; --info:#4a5a72;
   --z:1; --inv:1;
   font-synthesis:none;
 }
@@ -20,115 +29,319 @@ html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--
   font:14px/1.42 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
 button,select,input,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
+button:disabled{cursor:default;opacity:.55}
 :focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.small{font-size:12.5px;color:var(--muted)}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:12px;top:60px;z-index:80;background:#fff;padding:6px 10px;border-radius:6px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 
-/* canvas */
-#viewport{position:fixed;inset:0;cursor:grab;touch-action:none}
-body.dots #viewport{background-image:radial-gradient(var(--dot) 1.1px,transparent 1.1px);background-size:22px 22px}
-#viewport.dragging{cursor:grabbing}
-#world{position:absolute;left:0;top:0;transform-origin:0 0}
+/* ---------- canvas ---------- */
+#viewport,#viewport2{position:fixed;inset:0;cursor:grab;touch-action:none;overflow:hidden}
+body.dots #viewport,body.dots #viewport2{background-image:radial-gradient(var(--dot) 1.1px,transparent 1.1px);background-size:22px 22px}
+#viewport.dragging,#viewport2.dragging{cursor:grabbing}
+#viewport2{display:none}
+#world,#world2{position:absolute;left:0;top:0;transform-origin:0 0}
+.panelabel{display:none}
 svg.links{position:absolute;left:0;top:0;overflow:visible;pointer-events:none;z-index:1}
-svg.links path{fill:none;stroke:#9a978f;stroke-width:2}
+svg.links path{fill:none;stroke:#a19d93;stroke-width:2}
+svg.links path.flow{stroke:#a19d93}
 svg.links path.hot{stroke:var(--accent);stroke-width:3}
-svg.links text{font-size:15px;font-weight:600;fill:#5d5b55;paint-order:stroke;stroke:var(--bg);stroke-width:4px}
+svg.links path.spine{stroke:#8f8a7e;stroke-width:2.5;stroke-dasharray:7 6}
+svg.links text{font-size:14px;font-weight:600;fill:#5d5a52;paint-order:stroke;stroke:var(--bg);stroke-width:5px}
+svg.links text.verb{font-size:14px;font-weight:600;fill:#6b6658}
+svg.links path.notelink{stroke-width:1.6;stroke-dasharray:3 5;opacity:.55}
 
-.box{position:absolute;border-radius:10px;background:var(--panel);border:1px solid var(--line);padding:10px 12px;
-  box-shadow:0 1px 2px rgba(0,0,0,.05);cursor:pointer;transition:opacity .15s,box-shadow .15s;overflow:hidden;z-index:2}
-.box:hover{box-shadow:0 4px 16px rgba(0,0,0,.12)}
-.box.sel{outline:3px solid var(--accent);outline-offset:2px}
-.box h3,.box h4{margin:0 0 4px;font-size:15px;line-height:1.25}
+/* ---------- boxes ---------- */
+.box{position:absolute;border-radius:12px;background:var(--panel);border:1px solid var(--line);padding:11px 13px 12px;
+  box-shadow:0 1px 2px rgba(0,0,0,.05),0 4px 14px rgba(40,35,20,.05);cursor:pointer;transition:opacity .15s,box-shadow .15s,transform .15s;overflow:hidden;z-index:2}
+.box:hover{box-shadow:0 2px 4px rgba(0,0,0,.07),0 10px 26px rgba(40,35,20,.13)}
+.box.sel{outline:3px solid var(--accent);outline-offset:3px}
+.box.pair{outline:2px solid rgba(47,91,211,.45);outline-offset:3px}
+.box h3,.box h4{margin:0 0 4px;font-size:15px;line-height:1.28;font-weight:650}
 .box p{margin:0;color:var(--ink2)}
-.box .t{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
-.box .meta{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
-body.dim .box.inj:not(.hot){opacity:.28}
-body.dim .notecard.inj:not(.hot){opacity:.28}
+.box .t{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;font-size:13.5px}
+.box .meta{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;align-items:center}
+body.dim .box.inj:not(.hot),body.dim .notecard.inj:not(.hot),body.dim .steplabel:not(.hot){opacity:.25}
+body.dim svg.links path.inj:not(.hot){opacity:.25}
 
-.lanehead{position:absolute;font-weight:700;font-size:15px;color:var(--ink)}
-.lanehead small{display:block;font-weight:400;color:var(--muted);font-size:12.5px}
-.lanebg{position:absolute;z-index:0;background:rgba(255,255,255,.45);border-radius:14px;border:1px dashed #e0ddd5}
-.label{position:absolute;white-space:nowrap;color:var(--muted);font-size:12px;letter-spacing:.06em;text-transform:uppercase;font-weight:600}
-.maptitle{position:absolute;font-size:34px;font-weight:800;letter-spacing:-.01em;line-height:1.1}
-.mapintro{position:absolute;color:var(--ink2);font-size:15px;max-width:760px}
-.stamp{position:absolute;white-space:nowrap;font-size:12px;font-weight:700;color:#fff;background:#3b4a63;border-radius:6px;padding:3px 8px}
+.stamp{position:absolute;white-space:nowrap;font-size:11.5px;font-weight:700;color:#fff;background:#3b4a63;border-radius:6px;padding:3px 9px;letter-spacing:.02em}
+.maptitle{position:absolute;font-size:34px;font-weight:800;letter-spacing:-.015em;line-height:1.1}
+.mapintro{position:absolute;color:var(--ink2);font-size:15.5px;line-height:1.45;max-width:780px}
+.label{position:absolute;white-space:nowrap;color:var(--muted);font-size:12px;letter-spacing:.07em;text-transform:uppercase;font-weight:700}
+.modebar{position:absolute;white-space:nowrap;display:flex;align-items:center;gap:8px;flex-wrap:nowrap;
+  background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 14px 6px 12px;font-size:13.5px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.modebar .hint-sbs{color:var(--muted);margin-left:4px}
+.emptyslot{position:absolute;border:2px dashed #d3cfc4;border-radius:12px;padding:16px 14px;color:var(--muted);font-size:13.5px;background:rgba(255,255,255,.35)}
 
-.jhead{background:#fbfaf6}
-.jhead .n,.step .n{display:inline-grid;place-items:center;min-width:24px;height:24px;border-radius:12px;
-  background:var(--ink);color:#fff;font-size:12px;font-weight:700;margin-right:6px;padding:0 6px}
-.step{display:flex;flex-direction:column}
-.step .row1{display:flex;align-items:flex-start;gap:6px}
-.stage{background:#f6d77b;border-color:#e2bf55;display:flex;flex-direction:column;justify-content:center}
-.stage h3{font-size:19px}
-.stage p{color:#3d3200}
-.item.planned-new{border:2px dashed var(--planned)}
+/* journeys: lanes as columns, a header card per journey, numbered steps with lane colours */
+.lanehead{position:absolute;font-weight:700;font-size:15px;color:var(--ink);padding-left:2px}
+.lanehead i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:7px;vertical-align:1px}
+.lanehead small{display:block;font-weight:400;color:var(--muted);font-size:12.5px;line-height:1.3;margin-top:2px}
+.lanebg{position:absolute;z-index:0;background:rgba(255,255,255,.5);border-radius:16px;border:1px dashed #dcd8ce;
+  box-shadow:inset 0 3px 0 color-mix(in srgb,var(--lane) 55%,transparent)}
+.jhead,.timeline-title{background:#fffdf7;border-color:#e6dfc9}
+.jhead h3,.timeline-title h3{font-size:17px;display:flex;align-items:flex-start;gap:8px}
+.jhead p,.timeline-title p{font-size:13.5px}
+.jhead .creates,.timeline-title .creates{margin-top:10px;padding:8px 10px;background:#f7f3e6;border-radius:9px;font-size:12.5px}
+.creates b{display:block;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:#6b5a26;margin-bottom:3px}
+.creates ul{margin:0;padding-left:17px;color:var(--ink2)}
+.creates.changes{background:#f3f7f6}
+.creates.changes p{display:flex;gap:5px;flex-wrap:wrap}
+.jhead .n,.timeline-title .n,.step .n{display:inline-grid;place-items:center;flex:0 0 auto;min-width:24px;height:24px;border-radius:12px;
+  background:var(--ink);color:#fff;font-size:12px;font-weight:700;padding:0 6px}
+.step{display:flex;flex-direction:column;border-left:5px solid var(--lane,#999)}
+.step .row1{display:flex;align-items:flex-start;gap:8px}
+.step .n{background:var(--lane,#1d1d1f)}
+.step .t{font-size:14px;color:var(--ink);-webkit-line-clamp:3}
+.customer-step{border-top:5px solid var(--lane,#5b78b9)}
+.customer-step h4{font-weight:600;font-size:14.5px}
+.steplabel{position:absolute;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.03em}
+.steplabel i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px}
+.links .customer-flow{stroke:#9aa6c2;stroke-width:2.2}
+
+/* chain: a purple first stage, yellow stages after, items in a calm grid */
+.box.stage{background:var(--yellow);border:0;color:var(--yellow-ink);display:flex;flex-direction:column;justify-content:center;
+  padding:16px 20px;box-shadow:0 2px 0 var(--yellow-edge),0 8px 22px rgba(120,90,10,.16);border-radius:14px}
+.box.stage h3{font-size:22px;font-weight:700;margin:0}
+.box.stage p{color:#4b3c06;font-size:13.5px;margin-top:3px}
+.box.stage.first-stage{background:var(--purple);color:var(--purple-ink);box-shadow:0 2px 0 #5737bd,0 8px 22px rgba(70,40,170,.25)}
+.box.stage.first-stage p{color:#ece6ff}
+.stagenum{position:absolute;right:14px;top:10px;font-size:12px;font-weight:800;opacity:.55}
+.item h4{font-size:15px}
 .tree-node{background:#fff}
-.tree-node.l0{background:#1d1d1b;color:#fff;border-color:#1d1d1b}
+.tree-node.l0{background:var(--ink);color:#fff;border-color:var(--ink)}
 .tree-node.l0 p{color:#ddd}
+.tree-node.l1{border-top:5px solid var(--purple)}
+.tree-node.l2{border-top:5px solid var(--yellow-edge)}
+.tree-node.l3{border-top:5px solid var(--new)}
+.jindex{cursor:default;background:#fbfaf6}
 
-.pill{display:inline-block;font-size:11.5px;font-weight:700;border-radius:999px;padding:1px 8px;color:#fff;white-space:nowrap}
+/* tags */
+.pill{display:inline-block;font-size:11.5px;font-weight:700;border-radius:999px;padding:2px 9px;color:#fff;white-space:nowrap;letter-spacing:.01em}
 .pill.works{background:var(--works)} .pill.partial{background:var(--partial)}
 .pill.missing{background:var(--missing)} .pill.planned{background:var(--planned)}
-.chip{display:inline-block;font-size:11.5px;border-radius:6px;padding:1px 6px;background:var(--soft);color:var(--ink2);white-space:nowrap}
-.chip.new{background:#dff3e6;color:#145c36;font-weight:700}
-.chip.changed{background:#fff0c9;color:#6b4800;font-weight:700}
+.chip{display:inline-block;font-size:11.5px;border-radius:6px;padding:2px 7px;background:var(--soft);color:var(--ink2);white-space:nowrap}
+.chip.since{background:#e9eefb;color:#203f8f;font-weight:700}
 .chip.stale{background:#f4e1df;color:#7d1d16}
 .chip.moment{background:#ece4fb;color:#4b2a8a;font-weight:700}
 .chip.pain{background:#fde6e3;color:#8a1f16}
-.feel{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:3px;vertical-align:middle}
+.feel{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:middle}
 .feel.good{background:#2f9e6a}.feel.ok{background:#d9a21e}.feel.bad{background:#d1543f}
+.techname{display:block;margin-top:6px;font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#3b4a63;
+  background:#eef1f7;border-radius:6px;padding:3px 7px;white-space:normal}
+/* the compact note count: a little stack of the speakers' paper colours */
+.notebadge{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;border-radius:7px;padding:2px 8px 2px 5px;
+  background:#2b2a27;color:#fff;white-space:nowrap}
+.notebadge.must{background:var(--must)}
+.notebadge .stack{display:inline-flex}
+.notebadge .stack i{display:block;width:11px;height:11px;border:1.5px solid;border-radius:2px;margin-left:-4px;transform:rotate(-6deg);box-shadow:1px 1px 0 rgba(0,0,0,.25)}
+.notebadge .stack i:first-child{margin-left:0}
+.notebadge .stack i:nth-child(2){transform:rotate(5deg)}
 
-/* notes: a column beside each row, sized so they never cover any box */
-.notecard{position:absolute;z-index:2;border-radius:8px;padding:8px 10px 9px 12px;cursor:pointer;
-  border:1px solid rgba(0,0,0,.08);box-shadow:0 1px 2px rgba(0,0,0,.05);overflow:hidden;transition:opacity .15s}
-.notecard:hover{box-shadow:0 4px 14px rgba(0,0,0,.12)}
-.notecard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--info)}
-.notecard.must::before{background:var(--must)} .notecard.should::before{background:var(--should)}
-.notecard .who{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ink2)}
-.notecard .urg{font-size:11px;font-weight:700;margin-left:6px}
+/* ---------- plan changes ---------- */
+.ribbon,.ribbon-today{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
+  border-radius:6px;padding:2px 7px;white-space:nowrap;color:#fff}
+.ribbon.new{background:var(--new)} .ribbon.changed{background:var(--changed)} .ribbon.gone{background:var(--gone)}
+.box > .ribbon,.box > .ribbon-today{position:relative;margin:-1px 0 7px;vertical-align:top;align-self:flex-start;width:max-content}
+.box.stage > .ribbon{display:none}
+.ribbon-today{display:none}
+.ribbon-today.changed{background:var(--changed)} .ribbon-today.gone{background:var(--gone)}
+.box.chg-new{border:2px dashed var(--new);background:var(--new-soft)}
+.box.chg-changed{border:2px solid var(--changed);box-shadow:0 0 0 4px var(--changed-soft),0 4px 14px rgba(40,35,20,.06)}
+.box.chg-gone{background:var(--gone-soft);border:1.5px dashed #bdb9af;box-shadow:none}
+.box.chg-gone .vwrap,.box.chg-gone h4,.box.chg-gone .row1 .t{text-decoration:line-through;text-decoration-color:rgba(0,0,0,.45);color:var(--muted)}
+.box.chg-gone .meta,.box.chg-gone p{opacity:.6}
+.box.chg-same{opacity:.92}
+.vwrap{display:grid}
+.vwrap > div{grid-area:1/1;min-width:0}
+.v-before{visibility:hidden}
+.ghostlabel{display:none}
+.chg-legend{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 8px}
+
+/* side by side: today on the left, the plan on the right, rows aligned */
+body.sbs #viewport2{display:block;border-left:2px solid #c9c4b8}
+body.sbs .panelabel{display:block;position:absolute;left:12px;top:60px;z-index:5;background:#fff;border:1px solid var(--line);
+  border-radius:999px;padding:4px 12px;font-size:12.5px;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,.06)}
+body.sbs #viewport .panelabel{border-color:#c9c4b8}
+body.sbs #viewport2 .panelabel{border-color:var(--new);color:var(--new)}
+.pane-today .ribbon{display:none}
+.pane-today .ribbon-today{display:inline-block}
+.pane-today .chg-new > .ribbon{display:inline-block}
+.pane-today .chg-changed .v-now{visibility:hidden}
+.pane-today .chg-changed .v-before{visibility:visible}
+.pane-today .box.chg-changed{box-shadow:none;border:1.5px solid var(--changed)}
+.pane-today .box.chg-gone{background:var(--panel);border:1px solid var(--line)}
+.pane-today .box.chg-gone .vwrap,.pane-today .box.chg-gone h4,.pane-today .box.chg-gone .row1 .t{text-decoration:none;color:inherit}
+.pane-today .box.chg-gone .meta,.pane-today .box.chg-gone p{opacity:1}
+.pane-today .box.chg-new,.pane-planned .box.chg-gone{background:transparent;border:2px dashed #d0ccc1;box-shadow:none}
+.pane-today .box.chg-new > :not(.ghostlabel),.pane-planned .box.chg-gone > :not(.ghostlabel){visibility:hidden}
+.pane-today .box.chg-new .ghostlabel,.pane-planned .box.chg-gone .ghostlabel{display:flex;position:absolute;inset:0;align-items:center;justify-content:center;
+  color:var(--muted);font-size:13px;font-weight:600}
+#pairline{position:fixed;z-index:27;height:0;border-top:2px dashed rgba(47,91,211,.55);transform-origin:0 0;pointer-events:none;display:none}
+
+/* ---------- sticky notes ---------- */
+.notecard{position:absolute;z-index:2;cursor:pointer;overflow:hidden;transition:opacity .15s,transform .15s,box-shadow .15s;
+  border-radius:3px 3px 14px 3px;border:1px solid rgba(70,55,20,.12);border-left:6px solid var(--info);padding:13px 14px 12px 13px;
+  box-shadow:0 2px 2px rgba(0,0,0,.05),2px 8px 14px rgba(0,0,0,.12);transform:rotate(var(--note-tilt,0deg))}
+.notecard.must{border-left-color:var(--must)} .notecard.should{border-left-color:var(--should)}
+.notecard::before{content:"";position:absolute;top:-4px;left:calc(50% - 22px);width:44px;height:12px;
+  background:rgba(255,255,255,.6);transform:rotate(-3deg);border:1px solid rgba(255,255,255,.7)}
+.notecard::after{content:"";position:absolute;right:0;bottom:0;width:13px;height:13px;
+  background:linear-gradient(135deg,transparent 48%,rgba(0,0,0,.1) 50%,rgba(255,255,255,.75));border-radius:0 0 12px 0}
+.notecard:hover,.notecard:focus-visible{transform:none;box-shadow:2px 12px 20px rgba(0,0,0,.18)}
+.notehead{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.notecard .who{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--ink2);min-width:0;
+  background:rgba(255,255,255,.7);border-radius:999px;padding:1px 8px 1px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.notecard .who i{flex:0 0 auto}
+.notecard .urg{white-space:nowrap;flex:0 0 auto}
+.notecard .who i{width:9px;height:9px;border-radius:50%}
+.notecard .urg{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
 .notecard.must .urg{color:var(--must)} .notecard.should .urg{color:var(--should)} .notecard.info .urg{color:var(--info)}
-.notecard h5{margin:3px 0 3px;font-size:13.5px;line-height:1.25}
-.notecard .q{font-size:12.5px;color:var(--ink2);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
-.morenotes{position:absolute;z-index:2;border:1px dashed #b9b5aa;background:rgba(255,255,255,.7);border-radius:8px;
-  padding:6px 10px;font-size:12.5px;color:var(--ink2);cursor:pointer}
+.notecard h5{margin:8px 0 5px;font-size:15px;line-height:1.3}
+.notecard .q{font-size:13px;font-weight:600;color:#2b2a26;line-height:1.42;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
+.morenotes{position:absolute;z-index:2;border:1.5px dashed #b9b5aa;background:rgba(255,255,255,.75);border-radius:9px;
+  padding:7px 11px;font-size:12.5px;font-weight:600;color:var(--ink2);cursor:pointer}
+#role-strip{position:fixed;top:62px;z-index:29;display:flex;align-items:center;gap:7px;width:max-content;
+  max-width:calc(100vw - 24px);overflow-x:auto;background:rgba(255,255,255,.97);border:1px solid var(--line);border-radius:12px;padding:6px 9px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+#role-strip[hidden]{display:none}
+#role-strip button{display:flex;align-items:center;gap:6px;white-space:nowrap;border:1px solid var(--line);border-radius:8px;background:#faf9f5;padding:4px 9px}
+#role-strip button[aria-pressed="true"]{background:#eef0ff;border-color:#b8b4dc}
+#role-strip button[aria-pressed="false"]{color:var(--muted);opacity:.7}
+.paper-swatch{width:14px;height:14px;border:1px solid;box-shadow:1px 2px 2px rgba(0,0,0,.12);transform:rotate(-5deg)}
+.role-caption{font-size:12px;color:var(--muted);white-space:nowrap}
+body.sbs #role-strip{top:96px}
 
 /* far zoom: keep the main words readable, drop the small print */
-body.z-far .box .meta > :not(.notebadge),body.z-far .box p.sub,body.z-far .notecard .q,body.z-far .notecard .who{display:none}
+body.z-far .box .meta > :not(.notebadge):not(.pill),body.z-far .box p,body.z-far .creates,body.z-far .notecard .q,body.z-far .notecard .notehead{display:none}
 body.z-far .box .t,body.z-far .box h3,body.z-far .box h4,body.z-far .notecard h5{font-size:calc(14px * var(--inv));line-height:1.15}
 body.z-far .box .t{-webkit-line-clamp:2}
+body.z-far .box .meta .notebadge,body.z-far .box .meta .pill{font-size:calc(11.5px * var(--inv))}
+body.z-far .techname{font-size:calc(12px * var(--inv))}
+body.z-far .box > .ribbon{font-size:calc(11px * var(--inv))}
 
 .term{border-bottom:1px dotted currentColor;cursor:help}
 #gloss{position:fixed;z-index:60;max-width:300px;background:#1d1d1b;color:#fff;border-radius:8px;padding:8px 10px;
   font-size:13px;display:none;pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.2)}
 #gloss b{display:block;margin-bottom:2px}
 
-/* side panel */
-#panel{position:fixed;top:64px;right:10px;bottom:10px;width:min(460px,calc(100vw - 20px));z-index:35;background:#fff;
-  border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 34px rgba(0,0,0,.14);display:none;flex-direction:column}
-#panel.open{display:flex}
+/* ---------- one quiet top bar ---------- */
+#top{position:fixed;left:0;right:0;top:0;height:52px;z-index:30;display:flex;align-items:center;gap:8px;
+  padding:0 12px;background:rgba(255,255,255,.97);border-bottom:1px solid var(--line);white-space:nowrap}
+#top .title{font-weight:700;font-size:15px;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto;min-width:0}
+#top > button{flex:0 0 auto;border:1px solid var(--line);background:#fff;border-radius:9px;padding:6px 12px;min-height:34px}
+#top > button:hover{background:var(--soft)}
+#top .primary{background:#fff6dc;border-color:#e9cf86;font-weight:600}
+#top .count{display:inline-block;min-width:1.6em;padding:0 6px;margin-left:6px;border-radius:9px;background:rgba(0,0,0,.08);font-size:12px;text-align:center}
+.save-primary,#top .save-primary{background:var(--accent);color:#fff;border:1px solid var(--accent);border-radius:9px;padding:7px 12px;font-weight:600}
+#top .save-primary:hover{background:#2448a8}
+.short-label{display:none}
+/* the view switch: words on a segmented control */
+.seg{display:inline-flex;align-items:stretch;border:1px solid var(--line);border-radius:10px;background:#f6f5f1;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;border-radius:7px;padding:5px 11px;font-size:13.5px;color:var(--ink2);white-space:nowrap}
+.seg button:hover{background:#fff}
+.seg button[aria-pressed="true"]{background:#fff;color:var(--ink);font-weight:650;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.seg button[data-mode="changes"][aria-pressed="true"]{color:var(--new)}
+.seg .sbs{margin-left:6px;border-left:1px solid var(--line);border-radius:0 7px 7px 0;padding-left:12px}
+.seg .sbs[aria-pressed="true"]{color:var(--new)}
+#top .seg{flex:0 0 auto}
+#menu{position:fixed;z-index:45;background:#fff;border:1px solid var(--line);border-radius:12px;padding:6px;
+  box-shadow:0 10px 30px rgba(0,0,0,.15);display:none;min-width:270px;max-height:calc(100vh - 70px);overflow-y:auto}
+#menu.open{display:block}
+#menu button{display:flex;justify-content:space-between;gap:12px;width:100%;text-align:left;border:0;background:none;padding:9px 10px;border-radius:7px}
+#menu button:hover{background:var(--soft)}
+#menu .state{color:var(--muted);font-size:12.5px}
+#menu [role=menuitemcheckbox][aria-checked="true"] .state{color:var(--accent);font-weight:700}
+
+/* ---------- left story list ---------- */
+#story{position:fixed;left:0;top:52px;bottom:0;width:320px;z-index:25;background:#fbfaf7;border-right:1px solid var(--line);
+  overflow:auto;padding:14px 14px 30px}
+body.nostory #story{display:none}
+#storytab{position:fixed;left:10px;top:62px;z-index:26;display:none;border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 11px}
+body.nostory #storytab{display:block}
+#story .q{font-size:15px;font-weight:650;line-height:1.35;margin:2px 0 12px}
+#story .walkbtn{display:block;width:100%;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:10px;font-weight:650;font-size:14.5px;margin:4px 0}
+#story .walkbtn:hover{background:#2a50bb}
+#story .walkbtn.alt{background:#fff;color:var(--new);border:1.5px solid var(--new)}
+#story .walkbtn.alt:hover{background:var(--new-soft)}
+#story .hide{border:0;background:none;color:var(--muted);font-size:12.5px;padding:4px 0;float:right}
+#story h2{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:20px 0 6px}
+#story ol{list-style:none;margin:0;padding:0}
+#story li{margin:0}
+#story .view{display:block;width:100%;text-align:left;border:1px solid transparent;background:none;border-radius:9px;padding:8px 9px;margin:2px 0}
+#story .view:hover{background:#fff;border-color:var(--line)}
+#story .view[aria-current="true"]{background:#fff;border-color:#9fb4ee}
+#story .view b{display:block;font-size:14.5px}
+#story .view span{display:block;font-size:12.5px;color:var(--muted);line-height:1.35}
+#story .view .viewtag{display:inline-block;margin-top:4px;color:var(--new);font-weight:650}
+#story li.cur > .top-view{background:#fff;border-color:var(--line)}
+#story .sub{padding-left:12px;border-left:2px solid var(--line);margin:4px 0 8px 12px}
+#story .sub .view b{font-size:13.5px;font-weight:600}
+#story .view span.num{display:inline-block;min-width:1.8em;color:var(--muted);font-weight:700;font-size:inherit;line-height:inherit}
+#story .seg{display:flex;margin:6px 0 6px 10px;flex-wrap:wrap}
+#story .seg button{flex:1 1 auto;padding:6px 6px;font-size:13px}
+#story .seg .sbs{flex-basis:100%;margin:3px 0 0;border-left:0;border-top:1px solid var(--line);border-radius:0 0 7px 7px;padding-left:6px}
+#story .changes .view{display:flex;flex-direction:column;gap:3px}
+#story .changes .ribbon{align-self:flex-start}
+#story .view span.ribbon,#story .chg-legend .ribbon{display:inline-block;color:#fff;font-size:11px;line-height:1.5}
+#story .more button{display:block;width:100%;text-align:left;border:1px solid transparent;background:none;border-radius:9px;padding:7px 9px}
+#story .more button:hover{background:#fff;border-color:var(--line)}
+#story .more button[aria-current="true"]{background:#eaf0ff;border-color:#9fb4ee;color:#244ca6}
+#story .workflow button{padding:11px 9px;font-weight:600}
+
+/* ---------- zoom, walk-through, hint ---------- */
+#zoom{position:fixed;right:14px;bottom:14px;z-index:28;display:flex;flex-direction:column;gap:6px}
+#zoom button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:7px 12px;min-width:132px;text-align:left;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+#zoom button:hover{background:var(--soft)}
+#walk{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:32;width:min(580px,calc(100vw - 40px));
+  background:#1d1d1b;color:#fff;border-radius:14px;padding:14px 16px;box-shadow:0 12px 32px rgba(0,0,0,.28);display:none}
+body:not(.nostory) #walk{left:calc(50% + 160px)}
+body.panel-open #walk{left:270px;transform:none;width:min(560px,calc(100vw - 270px - clamp(320px,30vw,460px) - 190px))}
+body.panel-open.nostory #walk{left:20px;width:min(560px,calc(100vw - 20px - clamp(320px,30vw,460px) - 190px))}
+#walk.open{display:block}
+#walk .step{font-size:12px;color:#c9c6bd;letter-spacing:.04em;text-transform:uppercase}
+#walk h3{margin:5px 0 5px;font-size:17px;display:flex;align-items:center;gap:8px}
+#walk p{margin:0 0 10px;color:#e8e6df}
+#walk .row{display:flex;gap:8px;align-items:center}
+#walk button{white-space:nowrap;border:1px solid #55534d;background:#2c2b28;color:#fff;border-radius:8px;padding:7px 14px}
+#walk button.next{background:#fff;color:#1d1d1b;border-color:#fff;font-weight:650}
+#walk .grow{flex:1}
+#hint{position:fixed;left:340px;bottom:18px;z-index:31;max-width:440px;background:#fff8e1;border:1px solid #ecd48e;border-radius:12px;
+  padding:11px 13px;box-shadow:0 6px 18px rgba(0,0,0,.1);display:none}
+body.nostory #hint{left:110px}
+#hint.open{display:block}
+#hint button{margin-top:7px;border:1px solid #d9bf73;background:#fff;border-radius:7px;padding:4px 11px}
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#1d1d1b;color:#fff;border-radius:9px;
+  padding:8px 14px;z-index:70;display:none}
+
+/* ---------- detail panel ---------- */
+#panel{position:fixed;top:62px;right:10px;bottom:10px;width:min(460px,calc(100vw - 20px));z-index:35;background:#fff;
+  border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 36px rgba(0,0,0,.15);display:none;flex-direction:column}
+#panel.open,body.panel-open #panel{display:flex}
 #panel header{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
 #panel header h2{margin:0;font-size:17px;flex:1}
-#panel header button{border:1px solid var(--line);background:#fff;border-radius:8px;min-width:32px;min-height:32px}
+#panel header button{border:1px solid var(--line);background:#fff;border-radius:8px;min-width:32px;min-height:32px;padding:4px 10px}
 #panel .body{overflow:auto;padding:12px 14px 20px}
 #panel h3{font-size:14px;margin:16px 0 6px}
 #panel h3:first-child{margin-top:0}
 #panel p{margin:4px 0}
-.card{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0;background:#fff}
+.card{border:1px solid var(--line);border-radius:11px;padding:10px 12px;margin:8px 0;background:#fff}
 .card.must{border-left:5px solid var(--must)} .card.should{border-left:5px solid var(--should)} .card.info{border-left:5px solid var(--info)}
 .quote{border-left:3px solid #c9c4b6;padding:2px 0 2px 10px;margin:6px 0;color:var(--ink2);font-style:italic}
 .quote .src{display:block;font-style:normal;font-size:12px;color:var(--muted);margin-top:2px}
 .quote.voice{border-left-color:#d99a1e}
-.answer{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+.answer{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
 .answer button,.mini{border:1px solid var(--line);background:#fff;border-radius:7px;padding:3px 9px;min-height:28px}
-.answer button[aria-pressed="true"]{background:#e6ecfb;border-color:#9fb4ee;font-weight:600}
+.answer button[aria-pressed="true"]{background:var(--accent-soft);border-color:#9fb4ee;font-weight:600}
 .dots{display:inline-flex;align-items:center;gap:4px;margin-left:auto}
 .dots .n{min-width:1.5em;text-align:center;font-weight:700}
-textarea,input[type=text],input[type=date],select.field{width:100%;border:1px solid var(--line);border-radius:7px;padding:6px 8px;margin-top:4px;background:#fff}
-textarea{min-height:52px;resize:vertical}
+textarea,input[type=text],input[type=date],select.field{width:100%;border:1px solid var(--line);border-radius:8px;padding:6px 8px;margin-top:4px;background:#fff}
+textarea{min-height:56px;resize:vertical}
 .row{display:flex;gap:8px;align-items:center}
 .row > *{flex:1}
 .tally{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--soft);margin:6px 0 2px}
 .tally i{display:block;height:100%}
 .tally .a{background:#2f9e6a}.tally .c{background:#d1543f}.tally .u{background:#c9c4b6}
-.small{font-size:12.5px;color:var(--muted)}
 .badge{display:inline-block;font-size:11px;font-weight:700;border-radius:5px;padding:1px 6px;background:var(--soft)}
 .badge.split{background:#fde6e3;color:#8a1f16}
 .meter{display:inline-flex;gap:2px;vertical-align:middle}
@@ -137,132 +350,70 @@ textarea{min-height:52px;resize:vertical}
 .rolerow{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--soft)}
 .rolerow input{margin-top:4px;width:18px;height:18px}
 .swatch{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
-.legend span{margin-right:10px;white-space:nowrap}
-#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#1d1d1b;color:#fff;border-radius:8px;
-  padding:8px 14px;z-index:70;display:none}
-.skip{position:absolute;left:-9999px}
-.skip:focus{left:12px;top:60px;z-index:80;background:#fff;padding:6px 10px;border-radius:6px}
-.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
-
-@media print{
-  #bar,#panel,#more,#toast,#gloss{display:none !important}
-  html,body{overflow:visible;height:auto;background:#fff}
-  #viewport{position:static;background:none !important}
-  #world{position:relative}
-  .box,.notecard{box-shadow:none;break-inside:avoid}
-}
-
-.jindex{cursor:default;background:#fbfaf6}
-.jindex .meta{gap:6px}
-body.z-far .jindex .mini{font-size:calc(13px * var(--inv))}
-
-/* ---------- chrome: one quiet top bar ---------- */
-#top{position:fixed;left:0;right:0;top:0;height:52px;z-index:30;display:flex;align-items:center;gap:8px;
-  padding:0 12px;background:rgba(255,255,255,.97);border-bottom:1px solid var(--line);white-space:nowrap}
-#top .title{font-weight:700;font-size:15px;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto;min-width:0}
-#top button{flex:0 0 auto;border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 11px;min-height:34px}
-#top button:hover{background:var(--soft)}
-#top .primary{background:#fff6dc;border-color:#e9cf86;font-weight:600}
-#top .count{display:inline-block;min-width:1.6em;padding:0 6px;margin-left:5px;border-radius:9px;background:rgba(0,0,0,.07);font-size:12px}
-#menu{position:fixed;z-index:45;background:#fff;border:1px solid var(--line);border-radius:10px;padding:6px;
-  box-shadow:0 8px 28px rgba(0,0,0,.14);display:none;min-width:270px;max-height:calc(100vh - 70px);overflow-y:auto}
-#menu.open{display:block}
-#menu button{display:flex;justify-content:space-between;gap:12px;width:100%;text-align:left;border:0;background:none;padding:9px 10px;border-radius:6px}
-#menu button:hover{background:var(--soft)}
-#menu .state{color:var(--muted);font-size:12.5px}
-#menu hr{border:0;border-top:1px solid var(--soft);margin:4px 0}
-
-/* ---------- left story list ---------- */
-#story{position:fixed;left:0;top:52px;bottom:0;width:320px;z-index:25;background:#fbfaf7;border-right:1px solid var(--line);
-  overflow:auto;padding:14px 14px 30px}
-body.nostory #story{display:none}
-#storytab{position:fixed;left:10px;top:62px;z-index:26;display:none;border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 11px}
-body.nostory #storytab{display:block}
-#story .q{font-size:15px;font-weight:600;line-height:1.35;margin:2px 0 10px}
-#story .walkbtn{width:100%;background:#2f5bd3;color:#fff;border:0;border-radius:9px;padding:10px;font-weight:600;font-size:15px}
-#story .walkbtn:hover{background:#2a50bb}
-#story .hide{border:0;background:none;color:var(--muted);font-size:12.5px;padding:4px 0;float:right}
-#story h2{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
-#story ol{list-style:none;margin:0;padding:0}
-#story li{margin:0}
-#story .view{display:block;width:100%;text-align:left;border:1px solid transparent;background:none;border-radius:8px;padding:8px 9px;margin:2px 0}
-#story .view:hover{background:#fff;border-color:var(--line)}
-#story .view[aria-current="true"]{background:#fff;border-color:#9fb4ee}
-#story .view b{display:block;font-size:14.5px}
-#story .view span{display:block;font-size:12.5px;color:var(--muted);line-height:1.35}
-#story .sub{padding-left:14px;border-left:2px solid var(--line);margin:2px 0 8px 12px}
-#story .sub .view b{font-size:13.5px;font-weight:600}
-#story .num{display:inline-block;min-width:1.7em;color:var(--muted);font-weight:700}
-#story .seg{display:flex;margin:4px 0 6px 12px}
-#story .seg button{flex:1;border:1px solid var(--line);background:#fff;padding:6px;font-size:13px}
-#story .seg button:first-child{border-radius:8px 0 0 8px}
-#story .seg button:last-child{border-radius:0 8px 8px 0;border-left:0}
-#story .seg button[aria-pressed="true"]{background:#e6ecfb;border-color:#9fb4ee;font-weight:600}
-#story .more button{display:block;width:100%;text-align:left;border:1px solid transparent;background:none;border-radius:8px;padding:7px 9px}
-#story .more button:hover{background:#fff;border-color:var(--line)}
-
-/* ---------- zoom, walk-through, hint ---------- */
-#zoom{position:fixed;right:14px;bottom:14px;z-index:28;display:flex;flex-direction:column;gap:6px}
-body.panel-open #zoom{right:494px}
-#zoom button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 12px;min-width:128px;text-align:left;box-shadow:0 2px 8px rgba(0,0,0,.08)}
-#zoom button:hover{background:var(--soft)}
-#walk{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:32;width:min(560px,calc(100vw - 40px));
-  background:#1d1d1b;color:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 10px 30px rgba(0,0,0,.25);display:none}
-body:not(.nostory) #walk{left:calc(50% + 160px)}
-body.panel-open #walk{left:calc(50% - 80px)}
-#walk.open{display:block}
-#walk .step{font-size:12px;color:#c9c6bd;letter-spacing:.04em;text-transform:uppercase}
-#walk h3{margin:4px 0 4px;font-size:17px}
-#walk p{margin:0 0 10px;color:#e8e6df}
-#walk .row{display:flex;gap:8px;align-items:center}
-#walk button{white-space:nowrap;border:1px solid #55534d;background:#2c2b28;color:#fff;border-radius:8px;padding:7px 14px}
-#walk button.next{background:#fff;color:#1d1d1b;border-color:#fff;font-weight:600}
-#walk .grow{flex:1}
-#hint{position:fixed;left:340px;top:66px;z-index:31;max-width:420px;background:#fff8e1;border:1px solid #ecd48e;border-radius:10px;
-  padding:10px 12px;box-shadow:0 4px 16px rgba(0,0,0,.1);display:none}
-body.nostory #hint{left:110px}
-#hint.open{display:block}
-#hint button{margin-top:6px;border:1px solid #d9bf73;background:#fff;border-radius:7px;padding:4px 10px}
-
-/* the panel sits under the top bar */
-#panel{top:62px}
-body.panel-open #panel{display:flex}
-.techname{display:block;margin-top:4px;font:12px/1.3 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#3b4a63;
-  background:#eef1f7;border-radius:5px;padding:2px 6px;white-space:normal}
-body.z-far .techname{font-size:calc(12px * var(--inv))}
+.legend span{margin-right:8px;white-space:nowrap}
 .switch{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2)}
 .switch input{width:18px;height:18px}
-.notebadge{display:inline-block;font-size:11.5px;font-weight:700;border-radius:6px;padding:1px 7px;background:#1d1d1b;color:#fff}
-.notebadge.must{background:var(--must)}
-body.z-far .box .meta .notebadge{font-size:calc(11.5px * var(--inv))}
-#story .reading{margin:0 0 10px;font-size:13.5px;line-height:1.45}
-#story .reading summary{cursor:pointer;color:#2f5bd3;font-weight:600}
-#story .reading p{margin:6px 0 0}
-
-/* Review actions stay visible and say where the file goes. */
-.save-primary,#top .save-primary{background:var(--accent);color:#fff;border:1px solid var(--accent);border-radius:8px;padding:7px 11px;font-weight:600}
-#top .save-primary:hover{background:#2448a8}
-.review-next{border:1px solid var(--line);background:#f3f6fd;border-radius:9px;padding:12px;margin-bottom:16px}
+.word-meanings dt{font-weight:700;margin-top:16px}
+.word-meanings dd{margin:4px 0 0}
+.connection-description{border-left:3px solid var(--purple);padding-left:8px}
+.connection-description.evidence{border-color:#4675ba}
+.connection-description.feedback{border-color:#c54d46}
+.review-next{border:1px solid var(--line);background:#f3f6fd;border-radius:10px;padding:12px;margin-bottom:16px}
 .answer-label{display:block;font-weight:600;margin-top:10px}
 .review-answer{white-space:pre-wrap;border-left:3px solid var(--accent);padding-left:8px}
-
 .review-nav{display:flex;gap:8px;justify-content:space-between;margin:20px 0 12px}
 .review-nav button{border:1px solid var(--line);border-radius:8px;padding:8px 12px}
 .support{margin:14px 0}
 .support summary{cursor:pointer;color:var(--accent);font-weight:600}
-.decision-question{font-size:19px;font-weight:600;line-height:1.35}
+.decision-question{font-size:19px;font-weight:650;line-height:1.35}
+.recommendation{background:#f3f6fd;border-left:3px solid var(--accent);padding:10px 12px;margin:12px 0;border-radius:0 8px 8px 0}
+.recommendation p{margin:4px 0 0}
+/* before and after, in the panel */
+.change{border-radius:11px;padding:10px 12px;margin:0 0 12px}
+.change.new{background:var(--new-soft);border:1.5px dashed var(--new)}
+.change.gone{background:var(--gone-soft);border:1.5px dashed #bdb9af}
+.change.changed{background:var(--changed-soft);border:1.5px solid #ecc97a}
+.change p{margin:6px 0 0}
+.ba{margin-top:10px;display:grid;gap:6px}
+.ba-row{display:grid;grid-template-columns:78px 1fr 1fr;gap:6px;align-items:start}
+.ba-row.head .ba-cell{font-size:11.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;background:none;padding:0 2px;color:var(--muted)}
+.ba-row.head .ba-cell.after{color:var(--new)}
+.ba-label{font-size:12px;color:var(--muted);font-weight:600;padding-top:6px}
+.ba-cell{background:#fff;border-radius:8px;padding:6px 8px;font-size:13px;line-height:1.4}
+.ba-cell.before{border:1px solid #e3ddcf}
+.ba-cell.after{border:1px solid #9fd6d0}
+.ba del{background:#fbe0dc;color:#7d1d16;text-decoration:line-through;border-radius:3px;padding:0 1px}
+.ba ins{background:#d8f2ee;color:#0b5a55;text-decoration:none;font-weight:600;border-radius:3px;padding:0 1px}
 
-.short-label{display:none}
+/* ---------- layout with the side lists open ---------- */
+body.panel-open #panel{width:clamp(320px,30vw,460px)}
+body.panel-open #story{width:250px}
+body.panel-open #zoom{right:calc(clamp(320px,30vw,460px) + 24px)}
+@media(max-width:1100px){
+  body.panel-open #story{display:none}
+  body.panel-open #storytab{display:block}
+  #top .seg.in-top{display:none}
+}
+@media(min-width:721px) and (max-width:1100px){body.panel-open.show-navigation #story{display:block}}
 @media(max-width:720px){
   #top{gap:5px;padding:6px}
-  #top .title,#top .wide-label,#top .count,#tkeys{display:none}
+  #top .title,#top .wide-label{display:none}
   #top .short-label{display:inline}
-  #top button{padding:6px 8px;font-size:13px}
+  #top > button{padding:6px 8px;font-size:13px}
+  #top .count{margin-left:4px}
   #hint{left:10px;right:10px;max-width:none}
+  body.panel-open #panel{width:calc(100vw - 20px);top:auto;height:48vh}
+  body.panel-open #zoom{display:none}
 }
 
+/* ---------- print ---------- */
 #paper-review{display:none}
 @media print{
+  #top,#panel,#toast,#gloss,#zoom,#story,#storytab,#walk,#hint,#role-strip,#menu{display:none !important}
+  html,body{overflow:visible;height:auto;background:#fff}
+  #viewport{position:static;background:none !important}
+  #world{position:relative}
+  .box,.notecard{box-shadow:none;break-inside:avoid}
   body.print-review{height:auto;overflow:visible;background:#fff}
   body.print-review > *{display:none!important}
   body.print-review #paper-review{display:block!important;padding:16px}
@@ -270,79 +421,6 @@ body.z-far .box .meta .notebadge{font-size:calc(11.5px * var(--inv))}
   #paper-review h2{font-size:17px}
   .paper-space{height:90px;border-bottom:1px solid #ccc}
 }
-
-.recommendation{background:#f3f6fd;border-left:3px solid var(--accent);padding:10px 12px;margin:12px 0}
-.recommendation p{margin:4px 0 0}
-
-#story .workflow button{padding:12px 9px;font-weight:600}
-#story .more button[aria-current="true"]{background:#eaf0ff;border-color:#9fb4ee;color:#244ca6}
-
-/* Display controls have names on hover or focus, and a visible switch state. */
-#top .display-controls{display:flex;gap:5px;align-items:center}
-#top .icon-control{position:relative;width:36px;height:36px;padding:5px 6px 9px}
-.icon-control svg{display:block;width:22px;height:22px}
-#top .icon-control[aria-pressed="true"]{background:#eaf0ff;color:#244ca6;border-color:#9fb4ee}
-.toggle-state{position:absolute;bottom:3px;left:13px;width:11px;height:4px;border-radius:4px;background:#aaa}
-[aria-pressed="true"] .toggle-state{background:#244ca6}
-.control-tip{display:none;position:absolute;top:calc(100% + 9px);right:0;background:#1d1d1b;color:#fff;
-  font-size:12px;padding:6px 9px;border-radius:6px;pointer-events:none;z-index:60}
-.icon-control:hover .control-tip,.icon-control:focus-visible .control-tip{display:block}
-.word-meanings dt{font-weight:700;margin-top:16px}
-.word-meanings dd{margin:4px 0 0}
-@media(max-width:720px){#top .display-controls{gap:3px}#top .icon-control{width:32px;padding:5px 4px 9px}}
-
-/* Keep space for the drawing when details are open. */
-body.panel-open #panel{width:clamp(320px,30vw,460px)}
-body.panel-open #story{width:240px}
-body.panel-open #zoom{right:calc(clamp(320px,30vw,460px) + 24px)}
-.customer-step{border-top:4px solid #5b78b9}
-.timeline-title{background:#eef3ff;border-color:#b9c9ea}
-.links .customer-flow{stroke:#5b78b9;stroke-width:2}
-#story .seg button{padding:6px 4px}
-@media(max-width:1100px){body.panel-open #story{display:none}body.panel-open #storytab{display:block}}
-@media(max-width:720px){body.panel-open #panel{width:calc(100vw - 20px)}body.panel-open #zoom{display:none}}
-
-/* A stage spine anchors the work; proposals and feedback have distinct styles. */
-.box.stage{background:#f9d46b;border-color:#e5bd51;color:#3a2a00}
-.box.stage h3{font-size:23px;font-weight:600}
-.box.stage.first-stage{background:#7652d9;color:#fff;border-color:#7652d9}
-.box.stage.first-stage p{color:#fff}
-.box.planned-new{background:#effaf8;border-color:#81c9c1}
-.links .connection path{stroke:#7652d9;stroke-width:1.8;fill:none;opacity:.55}
-.links .connection.evidence path{stroke:#4675ba}
-.links .connection.feedback path{stroke:#c54d46;stroke-dasharray:6 4}
-.links .connection.active path{opacity:1;stroke-width:2.5}
-body.connection-focus .box:not(.connected){opacity:.4}
-.connection-description{border-left:3px solid #7652d9;padding-left:8px}
-.connection-description.evidence{border-color:#4675ba}
-.connection-description.feedback{border-color:#c54d46}
-@media(max-width:720px){#top .display-controls{flex:1;min-width:0;overflow-x:auto}#top .icon-control{flex-shrink:0}}
-
-#view-version{border:1px solid var(--line);border-radius:8px;background:#fff;padding:7px;font-size:13px;min-width:88px}
-@media(max-width:720px){body.panel-open #panel{top:auto;height:48vh}#top .display-controls select{flex-shrink:0}}
-
-@media(min-width:721px) and (max-width:1100px){body.panel-open.show-navigation #story{display:block}}
-
-/* Paper notes stay beside the work, with space for each person's perspective. */
-.notecard{border-radius:3px 3px 12px 3px;border:1px solid rgba(70,55,20,.12);padding:14px 14px 12px;
-  box-shadow:0 2px 2px rgba(0,0,0,.05),2px 7px 13px rgba(0,0,0,.13);transform:rotate(var(--note-tilt,0deg))}
-.notecard::before{top:-5px;bottom:auto;left:calc(50% - 22px);width:44px;height:12px;
-  background:rgba(255,255,255,.55)!important;transform:rotate(-3deg);border:1px solid rgba(255,255,255,.6)}
-.notecard::after{content:"";position:absolute;right:0;bottom:0;width:12px;height:12px;
-  background:linear-gradient(135deg,transparent 48%,rgba(0,0,0,.09) 50%,rgba(255,255,255,.7));border-radius:0 0 10px 0}
-.notecard:hover,.notecard:focus-visible{transform:none;box-shadow:2px 10px 18px rgba(0,0,0,.18)}
-.notecard .who{text-transform:none;letter-spacing:0;font-size:12px}
-.notecard h5{font-size:15px;line-height:1.3;margin:7px 0}
-.notecard .q{line-height:1.45}
-#role-strip{position:fixed;top:64px;z-index:29;display:flex;align-items:center;gap:7px;width:max-content;
-  max-width:calc(100vw - 24px);overflow-x:auto;background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:10px;padding:6px 9px}
-#role-strip[hidden]{display:none}
-#role-strip button{display:flex;align-items:center;gap:6px;white-space:nowrap;border:1px solid var(--line);border-radius:7px;background:#faf9f5;padding:4px 8px}
-#role-strip button[aria-pressed="true"]{background:#eef0ff;border-color:#b8b4dc}
-#role-strip button[aria-pressed="false"]{color:var(--muted);opacity:.7}
-.paper-swatch{width:14px;height:14px;border:1px solid;box-shadow:1px 2px 2px rgba(0,0,0,.12);transform:rotate(-5deg)}
-.role-caption{font-size:12px;color:var(--muted);white-space:nowrap}
-@media print{#role-strip{display:none!important}}
 
 </style>
 </head>
@@ -352,7 +430,9 @@ body.connection-focus .box:not(.connected){opacity:.4}
 <div id="menu" role="menu"></div>
 <aside id="story" aria-label="What is in this decision"></aside>
 <button id="storytab" type="button">Show list</button>
-<main id="viewport" aria-label="Decision map. Use Tab to move between boxes and Enter to open one."><div id="world"></div></main>
+<main id="viewport" aria-label="Decision map. Use Tab to move between boxes and Enter to open one."><div class="panelabel">Today</div><div id="world"></div></main>
+<div id="viewport2" aria-hidden="true"><div class="panelabel">In the plan</div><div id="world2"></div></div>
+<div id="pairline" aria-hidden="true"></div>
 <aside id="panel" aria-live="polite"></aside>
 <div id="zoom" role="group" aria-label="Zoom">
   <button id="zin" type="button">+ Zoom in</button>
@@ -363,15 +443,17 @@ body.connection-focus .box:not(.connected){opacity:.4}
 <div id="hint" role="note"></div>
 <div id="gloss" role="tooltip"></div>
 <div id="toast" role="status"></div>
-<script type="application/json" id="dc-model">{"format":"decisioncraft/1","title":"Riverside footbridge: repair or replace?","question":"Should the council repair the Riverside footbridge, replace it, or replace it with a wider bridge for walking and cycling?","summary":"A 1974 steel footbridge is corroding. It is the only step-free crossing to a school and a row of shops. This map shows the options, what a closure would be like for the people who use the bridge, and what the council still has to decide. All names and figures are made up.","roles":[{"id":"designer","label":"Access and design","color":"#e86a92","asks":"Can everyone use it, including people with prams, wheelchairs and bikes?"},{"id":"analyst","label":"Analyst","color":"#4f7fd8","asks":"Are the costs and lives compared on the same basis?"},{"id":"engineer","label":"Structural engineer","color":"#2f9e6a","asks":"Is it safe, how long will it last, and what could go wrong during the work?"},{"id":"owner","label":"Council lead","color":"#8a5cd6","asks":"What do we recommend to the committee, and what do we tell residents?"},{"id":"security","label":"Safety","color":"#d1543f","asks":"How do we keep people safe before, during and after the work?"},{"id":"voice","label":"Resident voice","color":"#d99a1e","asks":"What does this mean for the people who cross every day?"},{"id":"agent","label":"AI agent teammate","color":"#1f9aa6","asks":"What routine work could an assistant take on, with a person checking?"},{"id":"finance","label":"Finance","color":"#7a7a72","asks":"What does each option cost over its whole life, and who pays?"}],"reading":"Three views. The first traces the decision from what the inspection found to a bridge people can use, and whether it worked; switch between Today and Planned to see what exists and what is proposed. The second, The works, option by option, follows each option from committee to reopening across the council, designers, contractor, river authority and funders, so you can compare how long each takes and who it depends on. The third shows what a resident goes through before, during and after a closure. Turn on Show technical names to see engineering detail. Notes from the structural engineer, access, safety, finance and residents sit on the boxes they are about.","checked":{"date":"2026-06-30","note":"Checked against the principal inspection, early costs, two weeks of crossing counts, an access audit, quotes for temporary crossings, the programme and suppliers, a shops survey, and one public drop-in session."},"glossary":{"load rating":"The weight a bridge can safely carry, worked out by an engineer.","bearings":"The parts at each end that let the bridge move a little as it warms and cools.","section loss":"Steel lost to rust, as a share of the original thickness.","shared use":"A path for people walking and cycling together.","rest landing":"A flat section partway up a ramp where people can stop.","fabricated steel":"Steel parts cut, shaped and welded in a factory before they come to site.","framework":"A list of contractors the council has already vetted and can hire without a full tender.","programme":"The timetable for the works, week by week."},"sources":[{"id":"S1","title":"Principal inspection","kind":"document","date":"2026-05-11","ref":"material/inspection-report.md"},{"id":"S2","title":"Options and early costs","kind":"data","date":"2026-06-02","ref":"material/options-and-costs.md"},{"id":"S3","title":"Public drop-in session","kind":"meeting","date":"2026-06-20","ref":"material/public-drop-in.md"},{"id":"S4","title":"Crossing counts, June","kind":"data","date":"2026-06-24","ref":"material/crossing-counts.md"},{"id":"S5","title":"Ways across during a closure","kind":"document","date":"2026-06-26","ref":"material/temporary-crossing.md"},{"id":"S6","title":"Access audit of the ramps","kind":"observation","date":"2026-06-18","ref":"material/access-audit.md"},{"id":"S7","title":"Programme and suppliers","kind":"document","date":"2026-06-27","ref":"material/programme-and-suppliers.md"},{"id":"S8","title":"Survey of south-side shops","kind":"survey","date":"2026-06-25","ref":"material/shops-survey.md"}],"evidence":[{"id":"E1","source":"S1","kind":"data","text":"Corrosion at 6 of 14 lower joints; two show section loss over 20%.","where":"Findings"},{"id":"E2","source":"S1","kind":"quote","text":"With repairs, another 25 years is realistic. Without them, we would recommend a weight limit within three years.","where":"Inspector's summary"},{"id":"E3","source":"S1","kind":"observation","text":"Bearings at the north end have seized; the bridge cannot expand freely in summer.","where":"Findings"},{"id":"E4","source":"S2","kind":"data","text":"Repair £1.1m, 10 weeks closed, 25 years. Replace £3.4m, 9 months closed, 100 years. Wider replacement £4.2m, 11 months, 100 years.","where":"Options table"},{"id":"E5","source":"S2","kind":"data","text":"A regional cycling fund could pay up to 40% of a widened bridge, if bid by November.","where":"Notes"},{"id":"E6","source":"S2","kind":"data","text":"The river authority needs 6 months' notice for any work in the water.","where":"Notes"},{"id":"E7","source":"S3","kind":"quote","voice":true,"text":"It's the only step-free way to the school. A long closure means a 20-minute walk round by the main road.","where":"Parent with a pram"},{"id":"E8","source":"S3","kind":"quote","voice":true,"text":"It's too narrow to pass anyone. If you're rebuilding, make it wider.","where":"Regular cyclist"},{"id":"E9","source":"S3","kind":"quote","voice":true,"text":"Last time it shut for a month, my takings dropped by a third.","where":"Shop owner, south side"},{"id":"E10","source":"S3","kind":"quote","voice":true,"text":"The ramps at the north end are too steep for me on my own.","where":"Wheelchair user"},{"id":"E11","source":"S2","kind":"data","text":"Estimates are ±30% at this stage.","where":"Notes"},{"id":"E12","source":"S4","kind":"data","text":"Average 1,900 crossings a day on school days, 1,100 at weekends.","where":"Daily counts"},{"id":"E13","source":"S4","kind":"data","text":"About 260 crossings in each school-time peak; cycles and prams often wait for each other.","where":"Peaks"},{"id":"E14","source":"S4","kind":"data","text":"22% of crossings are cycles.","where":"Mix"},{"id":"E15","source":"S4","kind":"data","text":"About 40 wheelchair or mobility scooter crossings a day.","where":"Mix"},{"id":"E16","source":"S4","kind":"data","text":"Counts in the school summer holidays were 45% lower than in term time.","where":"Seasons"},{"id":"E17","source":"S5","kind":"data","text":"Temporary step-free bridge, 2 m wide: £380k for 9 months; needs its own 6 months' river notice.","where":"Temporary bridge"},{"id":"E18","source":"S5","kind":"data","text":"Minibus shuttle at school times: £1,450 a week, about 12 minutes each way, one wheelchair space.","where":"Shuttle"},{"id":"E19","source":"S5","kind":"data","text":"The road bridge footway is 1.4 m wide; two prams cannot pass.","where":"Detour"},{"id":"E20","source":"S6","kind":"data","text":"North ramp: 1 in 10 over 14 m with no rest landing; the standard is 1 in 15 with a landing every 10 m.","where":"North ramp"},{"id":"E21","source":"S6","kind":"data","text":"Two of six lamps on the north approach do not work; handrail on one side only.","where":"North approach"},{"id":"E22","source":"S6","kind":"data","text":"Rebuilding the north ramp to 1 in 15 needs 7 m more length, so the ramp must turn back on itself.","where":"Options"},{"id":"E23","source":"S7","kind":"data","text":"Fabricated steel for a new bridge takes 20 to 24 weeks from order; repair steel and bearings 8 weeks.","where":"Lead times"},{"id":"E24","source":"S7","kind":"data","text":"Committee meets 15 September, then 10 November. Cycling fund bids close 28 November; decisions in March.","where":"Dates"},{"id":"E25","source":"S7","kind":"data","text":"A full closure must avoid the two weeks before Christmas, when the shops are busiest.","where":"Constraints"},{"id":"E26","source":"S8","kind":"data","text":"Five of eight shops said takings fell by a quarter or more during the last four-week closure.","where":"Survey"},{"id":"E27","source":"S8","kind":"data","text":"What would help shops most: clear signs (7 of 8), works in summer (6), a rates holiday (5), a shuttle stop (4).","where":"Survey"},{"id":"E28","source":"S3","kind":"observation","text":"Several people asked whether the old bridge could stay open while a new one is built.","where":"Comment cards"}],"maps":[{"id":"m-chain","template":"decision-chain","title":"From inspection to a working bridge","intro":"Each stage is one step from what the inspection found to a bridge people can use, and whether it worked.","stages":[{"id":"c-source","label":"Source","verb":"backs up","sub":"Where it was found or said","items":[{"id":"ci1","title":"Principal inspection","text":"Every joint, bearing and board checked.","status":"works","when":"both","detail":"Principal inspection to the national code; tactile and close visual, with ultrasonic thickness readings at joints.","evidence":["E1","E3"]},{"id":"ci2","title":"Public drop-in","text":"About 60 people, comment cards.","status":"works","when":"both","evidence":["E7","E8"]},{"id":"ci2b","title":"Crossing counts and access audit","text":"Two weeks of counts; ramps measured.","status":"works","when":"both","evidence":["E12","E20"]}]},{"id":"c-evidence","label":"Evidence","verb":"informs","sub":"The findings we rely on","items":[{"id":"ci3","title":"Rust at two joints is serious","text":"Over 20% of the steel lost.","status":"works","when":"both","evidence":["E1"]},{"id":"ci4","title":"Closures hurt the school run and shops","text":"20-minute detour; takings down by a quarter or more last time.","status":"works","when":"both","evidence":["E7","E26"]},{"id":"ci4b","title":"The bridge is busy and mixed","text":"1,900 crossings a day, a fifth by cycle, 40 by wheelchair or scooter.","status":"works","when":"both","evidence":["E12","E14","E15"]},{"id":"ci4c","title":"The north ramp fails the standard","text":"1 in 10 with no landing.","status":"works","when":"both","evidence":["E20"]}]},{"id":"c-decision","label":"Decision","verb":"shapes","sub":"What we choose, and why","items":[{"id":"ci5","title":"Repair now, plan a wider bridge later","text":"One option on the table.","status":"planned","when":"planned","evidence":["E2","E4"]},{"id":"ci6","title":"Replace with a wider bridge now","text":"The other option on the table.","status":"planned","when":"planned","evidence":["E5","E8"]},{"id":"ci6b","title":"Bearings freed now, whatever we choose","text":"Decided as urgent works in August.","status":"works","when":"both","evidence":["E3"]}]},{"id":"c-intent","label":"Intent","verb":"spells out","sub":"The result we want","items":[{"id":"ci7","title":"A safe, step-free crossing for decades","text":"With the shortest possible closure, and a way across while it is shut.","status":"planned","when":"planned","evidence":["E7","E28"]}]},{"id":"c-spec","label":"Spec","verb":"plans","sub":"What the bridge must do","items":[{"id":"ci8","title":"Ramps anyone can use alone","text":"1 in 15 at the north end, with rest landings and handrails both sides.","status":"missing","when":"planned","evidence":["E10","E20","E22"]},{"id":"ci9","title":"Room to pass","text":"4 m wide if replaced.","status":"planned","when":"planned","evidence":["E8","E13"]},{"id":"ci9b","title":"Lit and safe at night","text":"All approach lamps working; new lighting on any new bridge.","status":"partial","when":"planned","evidence":["E21"]}]},{"id":"c-plan","label":"Plan","verb":"produces","sub":"The work, in order","items":[{"id":"ci10","title":"Give the river authority notice","text":"Six months before any work in the water.","status":"missing","when":"planned","evidence":["E6"]},{"id":"ci10b","title":"Order steel early","text":"20 to 24 weeks for a new bridge.","status":"missing","when":"planned","evidence":["E23"]},{"id":"ci10c","title":"Bid to the cycling fund","text":"By 28 November, if the wider option is chosen.","status":"missing","when":"planned","evidence":["E5","E24"]}]},{"id":"c-work","label":"Work","verb":"creates","sub":"What was done","items":[{"id":"ci11","title":"Inspection and early costs","text":"Done. Nothing built yet.","status":"works","when":"today","evidence":["E4"]},{"id":"ci11b","title":"Broken approach lamps","text":"Reported; not yet fixed.","status":"partial","when":"today","evidence":["E21"]}]},{"id":"c-outcome","label":"Outcome","verb":"","sub":"Did it work?","items":[{"id":"ci12","title":"Measures to agree","text":"Crossings per day, days closed, complaints, upkeep cost.","status":"missing","when":"both","evidence":["E12"]}]}]},{"id":"m-works","template":"system-journeys","title":"The works, option by option","intro":"Each option from committee to reopening, across the people and bodies involved. Compare how long each takes and what it waits on.","lanes":[{"id":"people","label":"Residents","sub":"Who it affects"},{"id":"council","label":"Council","sub":"Committee and officers"},{"id":"design","label":"Design team","sub":"Engineers and access"},{"id":"builder","label":"Contractor","sub":"On site"},{"id":"permits","label":"River and permits","sub":"Notices and approvals"},{"id":"funders","label":"Funders","sub":"Cycling fund"}],"journeys":[{"id":"j-repair","title":"Option A: repair","summary":"Fix joints, bearings and deck; about 10 weeks closed; 25 more years.","creates":["A repair contract","New joints, bearings and deck boards","A new north ramp, if added"],"steps":[{"id":"ra1","lane":"council","text":"Committee chooses repair on 15 September","status":"planned","detail":"Report with whole-life cost over 50 years.","evidence":["E24","E4"]},{"id":"ra2","lane":"design","text":"Repair design and steel schedule","status":"planned","detail":"Replace plates at 6 joints; new elastomeric bearings north end.","evidence":["E1","E3"]},{"id":"ra3","lane":"design","text":"Decide whether the repair includes a new north ramp","status":"missing","detail":"Ramp must turn back on itself to reach 1 in 15.","moment":true,"evidence":["E20","E22"]},{"id":"ra4","lane":"permits","text":"River notice given (6 months)","status":"planned","detail":"Scaffold under the deck counts as work in the water.","evidence":["E6"]},{"id":"ra5","lane":"builder","text":"Order repair steel and bearings (8 weeks)","status":"planned","evidence":["E23"]},{"id":"ra6","lane":"people","text":"Bridge closes for about 10 weeks","status":"planned","detail":"Best in the school summer holidays, when counts are 45% lower.","feeling":"bad","moment":true,"evidence":["E16","E7"]},{"id":"ra7","lane":"builder","text":"Joints, bearings and deck boards replaced","status":"planned","detail":"Grit-blast and repaint the truss while scaffolded.","evidence":["E1"]},{"id":"ra8","lane":"people","text":"Bridge reopens; a weight limit is not needed","status":"planned","feeling":"good","evidence":["E2"]},{"id":"ra9","lane":"council","text":"A wider bridge stays on the list for later","status":"planned","detail":"Repair life of 25 years means the question comes back around 2050.","evidence":["E2"]}]},{"id":"j-replace","title":"Option B: replace at today's width","summary":"A new steel bridge, 2.2 m wide; about 9 months closed; 100 years.","creates":["A design-and-build contract","A new bridge and ramps","The old bridge removed"],"steps":[{"id":"rb1","lane":"council","text":"Committee chooses replace on 15 September","status":"planned","evidence":["E24"]},{"id":"rb2","lane":"design","text":"Outline design and ramps to the standard","status":"planned","detail":"New ramps at both ends designed to 1 in 15.","evidence":["E20"]},{"id":"rb3","lane":"council","text":"Hire a contractor from the framework","status":"planned","detail":"One of three firms has rebuilt two similar footbridges."},{"id":"rb4","lane":"permits","text":"River notice given (6 months)","status":"planned","evidence":["E6"]},{"id":"rb5","lane":"builder","text":"Order fabricated steel (20 to 24 weeks)","status":"planned","moment":true,"evidence":["E23"]},{"id":"rb6","lane":"people","text":"Bridge closes for about 9 months","status":"planned","detail":"Must avoid the two weeks before Christmas for the final lift.","feeling":"bad","moment":true,"evidence":["E7","E25"]},{"id":"rb7","lane":"people","text":"People cross by shuttle, detour or temporary bridge","status":"missing","detail":"No way across agreed yet.","pain":"20-minute detour on a 1.4 m footway.","evidence":["E17","E18","E19"]},{"id":"rb8","lane":"builder","text":"Old bridge lifted out, new one lifted in","status":"planned","detail":"One weekend road closure for the crane."},{"id":"rb9","lane":"people","text":"New bridge opens","status":"planned","feeling":"good"}]},{"id":"j-wider","title":"Option C: replace wider, with a fund bid","summary":"A 4 m shared-use bridge; about 11 months closed; up to 40% paid by the fund.","creates":["A fund bid","A design-and-build contract","A 4 m bridge for walking and cycling"],"steps":[{"id":"rc1","lane":"council","text":"Committee chooses the wider option, subject to the bid","status":"planned","detail":"Decision on 15 September; bid by 28 November.","evidence":["E24"]},{"id":"rc2","lane":"funders","text":"Bid to the cycling fund","status":"missing","detail":"Uses counts showing 22% cycles and peak conflicts.","moment":true,"evidence":["E5","E14","E13"]},{"id":"rc3","lane":"design","text":"Design a 4 m deck and ramps to the standard","status":"planned","evidence":["E8","E20"]},{"id":"rc4","lane":"funders","text":"Fund decides in March","status":"planned","detail":"If refused, the council pays the full £4.2m or falls back.","pain":"Five months of waiting before steel can be ordered.","evidence":["E24","E4"]},{"id":"rc5","lane":"permits","text":"River notice given (6 months)","status":"planned","evidence":["E6"]},{"id":"rc6","lane":"builder","text":"Order fabricated steel","status":"planned","detail":"Wider deck may need the longer end of 20 to 24 weeks.","evidence":["E23"]},{"id":"rc7","lane":"people","text":"Bridge closes for about 11 months","status":"planned","feeling":"bad","evidence":["E7","E26"]},{"id":"rc8","lane":"people","text":"Cycles and prams can pass on the new bridge","status":"planned","feeling":"good","evidence":["E8","E13"]}]},{"id":"j-urgent","title":"Urgent works: free the seized bearings","summary":"Decided already: done in August whatever option is chosen.","creates":["An urgent works order","Freed north bearings"],"steps":[{"id":"ub1","lane":"design","text":"Engineer flags the seized bearings","status":"works","detail":"Bridge cannot expand in summer; stress builds at the north end.","evidence":["E3"]},{"id":"ub2","lane":"council","text":"Head of highways approves urgent works","status":"works"},{"id":"ub3","lane":"permits","text":"Works kept above the river, so no 6-month notice","status":"works","detail":"Access from the deck and north bank only.","evidence":["E6"]},{"id":"ub4","lane":"people","text":"Bridge closes for two nights in August","status":"planned","detail":"Overnight closures, signed in advance.","evidence":["E16"]},{"id":"ub5","lane":"builder","text":"Bearings freed and greased","status":"planned","evidence":["E3"]},{"id":"ub6","lane":"design","text":"Re-check movement in the first hot week","status":"planned"}]}]},{"id":"m-closure","template":"service-blueprint","title":"Closing the bridge for works","intro":"What a resident goes through when the bridge shuts, what the council does in front of them and out of sight, and what supports it.","lanes":[{"id":"person","label":"Resident","sub":"What they do"},{"id":"front","label":"In front of them","sub":"Signs, staff, website"},{"id":"back","label":"Out of sight","sub":"Council and contractor"},{"id":"support","label":"Support","sub":"Permits, suppliers, rules"},{"id":"proof","label":"What they keep","sub":"Letters and notices"}],"journeys":[{"id":"j-before","title":"Before the closure","summary":"Finding out, and planning another way.","creates":["A letter to every home and shop nearby","Detour signs","A way across, if agreed"],"steps":[{"id":"b1","lane":"proof","text":"Letter through the door: dates and the detour","status":"planned","detail":"Letters to homes and shops within 800 m, six weeks before."},{"id":"b1b","lane":"front","text":"Notices at both ends of the bridge and on the website","status":"planned"},{"id":"b2","lane":"person","text":"Works out a new school run","status":"planned","feeling":"bad","moment":true,"evidence":["E7"]},{"id":"b3","lane":"back","text":"Council agrees a temporary crossing or shuttle","status":"missing","detail":"Shuttle £1,450 a week; temporary bridge £380k.","evidence":["E7","E9","E17","E18"]},{"id":"b4","lane":"support","text":"River authority notice and permits","status":"missing","evidence":["E6"]},{"id":"b5","lane":"front","text":"Shops get signs pointing customers the long way round","status":"missing","detail":"Shops' top request.","evidence":["E27"]},{"id":"b6","lane":"back","text":"School told the dates and asked to share them","status":"missing","evidence":["E7"]}]},{"id":"j-during","title":"During the works","summary":"Getting across, and getting news.","creates":["Weekly updates","A shuttle timetable, if chosen"],"steps":[{"id":"w1","lane":"person","text":"Follows the signed detour","status":"planned","detail":"Two crossings of a busy road; footway 1.4 m.","feeling":"bad","evidence":["E19"]},{"id":"w1b","lane":"person","text":"Wheelchair users use the shuttle's one space","status":"missing","detail":"40 wheelchair or scooter crossings a day; one space per trip.","pain":"One space may not be enough at school times.","evidence":["E15","E18"]},{"id":"w2","lane":"front","text":"Signs at both ends show the detour and the end date","status":"planned"},{"id":"w3","lane":"front","text":"Website shows progress each week","status":"missing"},{"id":"w4","lane":"person","text":"Shops on the south side see fewer customers","status":"planned","feeling":"bad","evidence":["E9","E26"]},{"id":"w5","lane":"back","text":"Contractor keeps the end date or warns early","status":"planned","detail":"Weekly progress meeting with the council."},{"id":"w6","lane":"support","text":"Complaints line answered within two days","status":"missing"}]},{"id":"j-after","title":"After reopening","summary":"Back to normal, and checking it worked.","creates":["A reopening notice","Counts after three months"],"steps":[{"id":"a1","lane":"proof","text":"Notice: the bridge is open again","status":"planned"},{"id":"a2","lane":"person","text":"Goes back to the old route","status":"planned","feeling":"good"},{"id":"a3","lane":"back","text":"Counter left in place to compare crossings","status":"planned","detail":"Compare with 1,900 a day before.","evidence":["E12"]},{"id":"a4","lane":"person","text":"Wheelchair user tries the new north ramp alone","status":"missing","detail":"Only if the ramp is rebuilt.","moment":true,"evidence":["E10","E20"]},{"id":"a5","lane":"back","text":"Upkeep plan starts","status":"planned","detail":"£18k a year after repair; £6k to £7k after replacement.","evidence":["E4"]}]}]}],"gaps":[{"id":"G1","title":"A way across during a long closure","why":"A nine-month closure without a crossing cuts off the school's only step-free route.","anchors":["b3","w1","rb7"],"impact":5,"effort":4,"stories":[{"as":"As a parent with a pram, I want a step-free way across while the bridge is shut, so the school run stays under ten minutes.","done_when":["a temporary crossing or shuttle runs at school times","the route is signed and lit","the detour is no more than 10 minutes longer"]},{"as":"As a wheelchair user, I want to be sure of a place on the shuttle, so I am not left behind at school time.","done_when":["a wheelchair space can be booked by text","a second space is added at the two school-time peaks"]},{"as":"As the council lead, I want the cost of each way across side by side, so the committee can choose.","done_when":["shuttle, temporary bridge and detour are compared on cost, time and step-free access","the comparison is in the 15 September report"]}]},{"id":"G2","title":"Ramps people can use on their own","why":"The north ramp is 1 in 10 with no landing; the standard is 1 in 15.","anchors":["ci8","ra3","a4"],"impact":4,"effort":2,"stories":[{"as":"As a wheelchair user, I want ramps I can manage alone, so I do not need help to cross.","done_when":["ramp slopes meet the access standard","a wheelchair user tests the design before it is approved"]},{"as":"As a parent with a pram, I want a rest landing on the way up, so I can stop safely.","done_when":["a level landing at least every 10 m","handrails on both sides"]}]},{"id":"G3","title":"Bid to the cycling fund by November","why":"Up to 40% of a wider bridge could be paid for, but only with a bid by 28 November.","anchors":["ci6","rc2"],"impact":4,"effort":3,"stories":[{"as":"As the council lead, I want the bid submitted by November, so the wider option is affordable.","done_when":["a bid is submitted before the deadline","the bid shows the drop-in feedback"]},{"as":"As finance, I want a fall-back if the bid fails, so we are not stuck in March.","done_when":["the report says what we do if the bid is refused","the fall-back is agreed before the bid goes in"]}]},{"id":"G4","title":"Weekly news during works","why":"People put up with closures better when they can see progress.","anchors":["w3","w5"],"impact":2,"effort":1,"stories":[{"as":"As a resident, I want a weekly update, so I know the end date is real.","done_when":["a photo and a line of news go up every Friday"]},{"as":"As a shop owner, I want to know a week ahead if the end date moves, so I can plan stock and staff.","done_when":["any change to the end date is posted within a day of the contractor knowing","shops get it by text as well"]}]},{"id":"G5","title":"Help for south-side shops","why":"Five of eight shops lost a quarter or more of takings last time.","anchors":["w4","b5"],"impact":3,"effort":2,"stories":[{"as":"As a shop owner, I want signs that send people my way, so customers still find me.","done_when":["signs at both ends name the shops and the walking time","the shuttle stops outside the shops"]},{"as":"As the council lead, I want to know what support we can give, so we can say it in the letter.","done_when":["the report says whether a rates holiday is possible","the letter says what help is on offer"]}]},{"id":"G6","title":"Fix the approach lighting now","why":"Two of six lamps on the north approach do not work, whatever option is chosen.","anchors":["ci9b","ci11b"],"impact":3,"effort":1,"stories":[{"as":"As someone crossing after dark, I want every lamp working, so the approach feels safe.","done_when":["all six lamps work within a month","lamps are checked at each inspection"]}]}],"notes":[{"id":"N1","role":"engineer","anchor":"ci3","title":"Repairs buy 25 years, not 100","body":"Repair is sound engineering, but the bridge will need replacing in the 2050s anyway.","recommend":"Compare options over 50 years, not on build cost alone.","question":"Do we judge the options over 50 years of cost and closures?","urgency":"must","evidence":["E2","E4"]},{"id":"N2","role":"engineer","anchor":"b4","title":"The river notice sets the earliest start","body":"Any option needs six months' notice for work in the water.","recommend":"Send a notice for the larger option now; it can be narrowed later.","question":"Can we give notice before the committee decides?","urgency":"should","evidence":["E6"]},{"id":"N3","role":"security","anchor":"ci5","title":"Seized bearings are a summer risk","body":"A bridge that cannot expand is stressed on hot days.","recommend":"Free or replace the north bearings this year, whatever we decide.","question":"Do we fix the bearings now as urgent work?","urgency":"must","evidence":["E3"]},{"id":"N4","role":"voice","anchor":"b2","title":"The school run is the hardest hit","body":"Families with prams have no other step-free route.","recommend":"Plan the closure around school holidays where possible.","question":"Can the longest part of the works fall in the summer holidays?","urgency":"must","evidence":["E7"]},{"id":"N5","role":"voice","anchor":"w4","title":"Shops felt the last closure","body":"One owner lost a third of takings during a one-month closure.","recommend":"Talk to the south-side shops before setting dates; consider signs that say 'shops open'.","question":"Is there any support we can offer shops during a long closure?","urgency":"should","evidence":["E9"]},{"id":"N6","role":"designer","anchor":"ci8","title":"Fix the ramps in either option","body":"A repair could rebuild the north ramps too.","recommend":"Include gentler ramps in the repair option so the comparison is fair.","question":"Does the repair price include new ramps?","urgency":"should","evidence":["E10"]},{"id":"N7","role":"finance","anchor":"ci6","title":"The fund changes the sums","body":"With 40% from the fund, the wider bridge costs the council about £2.5m.","recommend":"Show the committee both prices: with and without the fund.","question":"Do we commit to the wider option if the bid fails?","urgency":"must","evidence":["E4","E5"]},{"id":"N8","role":"analyst","anchor":"c-decision","title":"The estimates are rough","body":"At ±30%, repair and replace overlap less than they seem, but the ranking could still shift.","recommend":"Show ranges, not single numbers.","question":"Do we wait for firmer prices before deciding?","urgency":"should","evidence":["E11"]},{"id":"N9","role":"owner","anchor":"c-intent","title":"Say what we are aiming for","body":"Residents care about the closure as much as the bridge.","recommend":"State the aim as a safe crossing with the shortest closure we can manage.","question":"Which matters more to the committee: lowest cost or shortest closure?","urgency":"must","evidence":["E7","E9"]},{"id":"N10","role":"agent","anchor":"w3","title":"An assistant can draft the weekly update","body":"Site photos and the contractor's diary hold most of the news.","recommend":"Let an assistant draft the Friday update from the diary; a council officer approves it.","question":"Who approves the weekly update before it goes out?","urgency":"info"},{"id":"N11","role":"designer","anchor":"ci9","title":"Wider means safer, not just nicer","body":"People cannot pass on the current width.","recommend":"Treat 4 m as the access option, not an extra.","question":"Is 4 m enough for the expected number of cycles?","urgency":"info","evidence":["E8"]},{"id":"N12","role":"engineer","anchor":"rb5","title":"Steel lead time decides the closure start","body":"Fabricated steel takes 20 to 24 weeks; nothing can close until it is near delivery.","recommend":"Plan the closure back from the steel delivery date, not forward from the decision.","question":"Can we place a provisional steel order before the fund decision?","urgency":"must","evidence":["E23"]},{"id":"N13","role":"engineer","anchor":"ra3","title":"A new north ramp changes the repair","body":"Reaching 1 in 15 means a longer ramp that turns back on itself.","recommend":"Price the repair with and without a new north ramp.","question":"Do we compare repair-with-ramp against replacement, not bare repair?","urgency":"should","evidence":["E22","E20"]},{"id":"N14","role":"engineer","anchor":"ub6","title":"Check the bearings in the first hot week","body":"Freeing the bearings fixes the summer risk only if they move as expected.","recommend":"Measure movement on the first day over 25°C.","question":"Who takes the reading and where is it recorded?","urgency":"info","evidence":["E3"]},{"id":"N15","role":"analyst","anchor":"rc4","title":"The fund decision lands in March","body":"Choosing the wider option in September means waiting five months to know if it is affordable.","recommend":"Agree the fall-back in September so March is not a new decision.","question":"What is the fall-back if the bid is refused: repair, or replace at today's width?","urgency":"must","evidence":["E24","E5"]},{"id":"N16","role":"analyst","anchor":"a3","title":"Agree the measures before the works","body":"Counts already exist, so we can compare like with like.","recommend":"Keep the counter in place through and after the works.","question":"Do we judge success on crossings in term time only?","urgency":"should","evidence":["E12","E16"]},{"id":"N17","role":"owner","anchor":"c-decision","title":"Whole-life cost and closure months, side by side","body":"Repair is cheapest now but returns in 25 years with another closure.","recommend":"Show cost over 50 years and total months closed for each option.","question":"Which weighs more for us: total cost over 50 years, or months closed?","urgency":"must","evidence":["E4","E2"]},{"id":"N18","role":"owner","anchor":"b3","title":"A way across is part of the option, not an extra","body":"A long closure without one cuts off the school's step-free route.","recommend":"Price each replacement option with its way across included.","question":"Do we rule out any option that has no step-free way across?","urgency":"should","evidence":["E7","E17"]},{"id":"N19","role":"security","anchor":"w1","title":"The detour is not safe for prams at peak","body":"The road bridge footway is 1.4 m; two prams cannot pass, and the detour crosses a busy road twice.","recommend":"Add a crossing patrol at school times if the detour is used.","question":"Can we staff a crossing patrol for the whole closure?","urgency":"must","evidence":["E19","E13"]},{"id":"N20","role":"security","anchor":"ci9b","title":"Fix the lamps before anything else","body":"Broken lamps on the north approach make it feel unsafe after dark.","recommend":"Fix within a month as routine maintenance.","question":"Who owns the lamp repair, highways or lighting?","urgency":"should","evidence":["E21"]},{"id":"N21","role":"security","anchor":"rb8","title":"The lift needs a weekend road closure","body":"Lifting the old and new spans needs a crane and a road closure.","recommend":"Book the lift weekend early and tell bus operators.","question":"Which weekend avoids school and Christmas trading?","urgency":"info","evidence":["E25"]},{"id":"N22","role":"voice","anchor":"w1b","title":"One wheelchair space is not enough at peak","body":"About 40 wheelchair or scooter crossings a day; the shuttle has one space per trip.","recommend":"Add a second accessible vehicle at the two school-time peaks.","question":"Will we guarantee a space for wheelchair users at school times?","urgency":"must","evidence":["E15","E18"]},{"id":"N23","role":"voice","anchor":"rc8","title":"People asked for room to pass","body":"Cycles and prams wait for each other at peak; a cyclist asked for a wider bridge.","recommend":"Use the counts and comments in the fund bid.","question":"Do we ask the drop-in group to back the bid?","urgency":"should","evidence":["E8","E13"]},{"id":"N24","role":"voice","anchor":"c-intent","title":"Could the old bridge stay open?","body":"Several people asked if the old bridge could stay open while a new one is built.","recommend":"Ask the design team whether a new bridge beside the old one is possible.","question":"Is building beside the old bridge worth a quick study?","urgency":"info","evidence":["E28"]},{"id":"N25","role":"designer","anchor":"b5","title":"Signs should name the shops","body":"Shops' top request was clear signs.","recommend":"Put shop names and walking times on the detour signs.","question":"Can the shops supply their own sign board at the bridge ends?","urgency":"should","evidence":["E27"]},{"id":"N26","role":"designer","anchor":"a4","title":"Test the new ramp with the people who use it","body":"A wheelchair user said they cannot manage the north ramp alone.","recommend":"Invite two wheelchair users to test the ramp before it opens.","question":"Who invites the testers and records what they find?","urgency":"info","evidence":["E10"]},{"id":"N27","role":"finance","anchor":"ra9","title":"Repair returns the question in 25 years","body":"£1.1m now, plus a likely replacement around 2050.","recommend":"Show the second closure and its cost in the repair option.","question":"Do we include a 2050 replacement in the repair option's cost?","urgency":"must","evidence":["E2","E4"]},{"id":"N28","role":"finance","anchor":"b3","title":"A temporary bridge costs a third of a repair","body":"£380k for nine months against a shuttle at about £56k.","recommend":"Compare the shuttle with the temporary bridge per crossing.","question":"Is the temporary bridge worth £380k for nine months?","urgency":"should","evidence":["E17","E18"]},{"id":"N29","role":"agent","anchor":"w6","title":"An agent can sort complaints and answer the routine ones","body":"Most questions will be dates and detours.","recommend":"Let an agent answer routine questions from the latest update; people handle the rest.","question":"Which complaints must always go to a person?","urgency":"info","evidence":["E7"]},{"id":"N30","role":"agent","anchor":"rc2","title":"An agent can assemble the fund bid","body":"The bid needs counts, comments and costs already in this canvas.","recommend":"Draft the bid from the canvas evidence for officers to edit.","question":"Who signs off the bid before it goes in?","urgency":"info","evidence":["E5","E12"]},{"id":"N31","role":"analyst","anchor":"G5","title":"Shops want summer works","body":"Six of eight shops said summer works would help most; term-time counts are 45% higher.","recommend":"Aim the longest closure at the summer holidays.","question":"Can a nine-month closure start in July so the worst comes in summer?","urgency":"info","evidence":["E27","E16"]},{"id":"N32","role":"owner","anchor":"ci6b","title":"The bearings are already decided","body":"Freeing the bearings goes ahead in August whatever the committee chooses.","recommend":"Say so in the report so it is not reopened.","question":"Do we report the bearing work as done before 15 September?","urgency":"info","evidence":["E3"]}],"decisions":[{"id":"D1","question":"Repair, replace, or replace wider?","notes":["N1","N7","N8","N9"],"options":["Repair now","Replace","Replace wider (with fund bid)"],"owner":"Council lead","status":"open","due":"2026-09-15"},{"id":"D2","question":"Do we fix the seized bearings now?","notes":["N3"],"options":["Yes, urgent works","No, wait for the main decision"],"owner":"Structural engineer","status":"decided","decided_by":"Head of highways","decision":"Yes. Bearings freed in August as urgent works.","due":"2026-07-10"},{"id":"D3","question":"How do people cross during a long closure?","notes":["N4","N5"],"owner":"Council lead","status":"open","due":"2026-10-01"},{"id":"D4","question":"Which way across do we offer during a long closure?","notes":["N22","N28","N19"],"options":["Shuttle at school times","Temporary bridge","Signed detour with a crossing patrol"],"owner":"Council lead","status":"open","due":"2026-09-15"},{"id":"D5","question":"Does the repair option include a new north ramp?","notes":["N13","N26"],"options":["Yes, rebuild to 1 in 15","No, ramp later"],"owner":"Structural engineer","status":"open","due":"2026-09-01"}],"outcomes":[{"id":"O1","measure":"Crossings per day after reopening","baseline":"About 1,900","target":"No fall"},{"id":"O2","measure":"Days closed","target":"As few as the chosen option allows"},{"id":"O3","measure":"Wheelchair and scooter crossings a day","baseline":"About 40","target":"No fall; more if the north ramp is rebuilt"},{"id":"O4","measure":"Shops reporting takings down by a quarter or more during works","baseline":"5 of 8 last time","target":"2 of 8 or fewer"}]}</script>
+<script type="application/json" id="dc-model">{"format":"decisioncraft/1","title":"Riverside footbridge: repair or replace?","question":"Should the council repair the Riverside footbridge, replace it, or replace it with a wider bridge for walking and cycling?","summary":"A 1974 steel footbridge is corroding. It is the only step-free crossing to a school and a row of shops. This map shows the options, what a closure would be like for the people who use the bridge, and what the council still has to decide. All names and figures are made up.","roles":[{"id":"designer","label":"Access and design","color":"#e86a92","asks":"Can everyone use it, including people with prams, wheelchairs and bikes?"},{"id":"analyst","label":"Analyst","color":"#4f7fd8","asks":"Are the costs and lives compared on the same basis?"},{"id":"engineer","label":"Structural engineer","color":"#2f9e6a","asks":"Is it safe, how long will it last, and what could go wrong during the work?"},{"id":"owner","label":"Council lead","color":"#8a5cd6","asks":"What do we recommend to the committee, and what do we tell residents?"},{"id":"security","label":"Safety","color":"#d1543f","asks":"How do we keep people safe before, during and after the work?"},{"id":"voice","label":"Resident voice","color":"#d99a1e","asks":"What does this mean for the people who cross every day?"},{"id":"agent","label":"AI agent teammate","color":"#1f9aa6","asks":"What routine work could an assistant take on, with a person checking?"},{"id":"finance","label":"Finance","color":"#7a7a72","asks":"What does each option cost over its whole life, and who pays?"}],"reading":"Three views. The first traces the decision from what the inspection found to a bridge people can use, and whether it worked; switch between Today and Planned to see what exists and what is proposed. The second, The works, option by option, follows each option from committee to reopening across the council, designers, contractor, river authority and funders, so you can compare how long each takes and who it depends on. The third shows what a resident goes through before, during and after a closure. Turn on Show technical names to see engineering detail. Notes from the structural engineer, access, safety, finance and residents sit on the boxes they are about.","checked":{"date":"2026-06-30","note":"Checked against the principal inspection, early costs, two weeks of crossing counts, an access audit, quotes for temporary crossings, the programme and suppliers, a shops survey, and one public drop-in session."},"glossary":{"load rating":"The weight a bridge can safely carry, worked out by an engineer.","bearings":"The parts at each end that let the bridge move a little as it warms and cools.","section loss":"Steel lost to rust, as a share of the original thickness.","shared use":"A path for people walking and cycling together.","rest landing":"A flat section partway up a ramp where people can stop.","fabricated steel":"Steel parts cut, shaped and welded in a factory before they come to site.","framework":"A list of contractors the council has already vetted and can hire without a full tender.","programme":"The timetable for the works, week by week."},"sources":[{"id":"S1","title":"Principal inspection","kind":"document","date":"2026-05-11","ref":"material/inspection-report.md"},{"id":"S2","title":"Options and early costs","kind":"data","date":"2026-06-02","ref":"material/options-and-costs.md"},{"id":"S3","title":"Public drop-in session","kind":"meeting","date":"2026-06-20","ref":"material/public-drop-in.md"},{"id":"S4","title":"Crossing counts, June","kind":"data","date":"2026-06-24","ref":"material/crossing-counts.md"},{"id":"S5","title":"Ways across during a closure","kind":"document","date":"2026-06-26","ref":"material/temporary-crossing.md"},{"id":"S6","title":"Access audit of the ramps","kind":"observation","date":"2026-06-18","ref":"material/access-audit.md"},{"id":"S7","title":"Programme and suppliers","kind":"document","date":"2026-06-27","ref":"material/programme-and-suppliers.md"},{"id":"S8","title":"Survey of south-side shops","kind":"survey","date":"2026-06-25","ref":"material/shops-survey.md"}],"evidence":[{"id":"E1","source":"S1","kind":"data","text":"Corrosion at 6 of 14 lower joints; two show section loss over 20%.","where":"Findings"},{"id":"E2","source":"S1","kind":"quote","text":"With repairs, another 25 years is realistic. Without them, we would recommend a weight limit within three years.","where":"Inspector's summary"},{"id":"E3","source":"S1","kind":"observation","text":"Bearings at the north end have seized; the bridge cannot expand freely in summer.","where":"Findings"},{"id":"E4","source":"S2","kind":"data","text":"Repair £1.1m, 10 weeks closed, 25 years. Replace £3.4m, 9 months closed, 100 years. Wider replacement £4.2m, 11 months, 100 years.","where":"Options table"},{"id":"E5","source":"S2","kind":"data","text":"A regional cycling fund could pay up to 40% of a widened bridge, if bid by November.","where":"Notes"},{"id":"E6","source":"S2","kind":"data","text":"The river authority needs 6 months' notice for any work in the water.","where":"Notes"},{"id":"E7","source":"S3","kind":"quote","voice":true,"text":"It's the only step-free way to the school. A long closure means a 20-minute walk round by the main road.","where":"Parent with a pram"},{"id":"E8","source":"S3","kind":"quote","voice":true,"text":"It's too narrow to pass anyone. If you're rebuilding, make it wider.","where":"Regular cyclist"},{"id":"E9","source":"S3","kind":"quote","voice":true,"text":"Last time it shut for a month, my takings dropped by a third.","where":"Shop owner, south side"},{"id":"E10","source":"S3","kind":"quote","voice":true,"text":"The ramps at the north end are too steep for me on my own.","where":"Wheelchair user"},{"id":"E11","source":"S2","kind":"data","text":"Estimates are ±30% at this stage.","where":"Notes"},{"id":"E12","source":"S4","kind":"data","text":"Average 1,900 crossings a day on school days, 1,100 at weekends.","where":"Daily counts"},{"id":"E13","source":"S4","kind":"data","text":"About 260 crossings in each school-time peak; cycles and prams often wait for each other.","where":"Peaks"},{"id":"E14","source":"S4","kind":"data","text":"22% of crossings are cycles.","where":"Mix"},{"id":"E15","source":"S4","kind":"data","text":"About 40 wheelchair or mobility scooter crossings a day.","where":"Mix"},{"id":"E16","source":"S4","kind":"data","text":"Counts in the school summer holidays were 45% lower than in term time.","where":"Seasons"},{"id":"E17","source":"S5","kind":"data","text":"Temporary step-free bridge, 2 m wide: £380k for 9 months; needs its own 6 months' river notice.","where":"Temporary bridge"},{"id":"E18","source":"S5","kind":"data","text":"Minibus shuttle at school times: £1,450 a week, about 12 minutes each way, one wheelchair space.","where":"Shuttle"},{"id":"E19","source":"S5","kind":"data","text":"The road bridge footway is 1.4 m wide; two prams cannot pass.","where":"Detour"},{"id":"E20","source":"S6","kind":"data","text":"North ramp: 1 in 10 over 14 m with no rest landing; the standard is 1 in 15 with a landing every 10 m.","where":"North ramp"},{"id":"E21","source":"S6","kind":"data","text":"Two of six lamps on the north approach do not work; handrail on one side only.","where":"North approach"},{"id":"E22","source":"S6","kind":"data","text":"Rebuilding the north ramp to 1 in 15 needs 7 m more length, so the ramp must turn back on itself.","where":"Options"},{"id":"E23","source":"S7","kind":"data","text":"Fabricated steel for a new bridge takes 20 to 24 weeks from order; repair steel and bearings 8 weeks.","where":"Lead times"},{"id":"E24","source":"S7","kind":"data","text":"Committee meets 15 September, then 10 November. Cycling fund bids close 28 November; decisions in March.","where":"Dates"},{"id":"E25","source":"S7","kind":"data","text":"A full closure must avoid the two weeks before Christmas, when the shops are busiest.","where":"Constraints"},{"id":"E26","source":"S8","kind":"data","text":"Five of eight shops said takings fell by a quarter or more during the last four-week closure.","where":"Survey"},{"id":"E27","source":"S8","kind":"data","text":"What would help shops most: clear signs (7 of 8), works in summer (6), a rates holiday (5), a shuttle stop (4).","where":"Survey"},{"id":"E28","source":"S3","kind":"observation","text":"Several people asked whether the old bridge could stay open while a new one is built.","where":"Comment cards"}],"maps":[{"id":"m-chain","template":"decision-chain","title":"From inspection to a working bridge","intro":"Each stage is one step from what the inspection found to a bridge people can use, and whether it worked.","stages":[{"id":"c-source","label":"Source","verb":"backs up","sub":"Where it was found or said","items":[{"id":"ci1","title":"Principal inspection","text":"Every joint, bearing and board checked.","status":"works","when":"both","detail":"Principal inspection to the national code; tactile and close visual, with ultrasonic thickness readings at joints.","evidence":["E1","E3"]},{"id":"ci2","title":"Public drop-in","text":"About 60 people, comment cards.","status":"works","when":"both","evidence":["E7","E8"]},{"id":"ci2b","title":"Crossing counts and access audit","text":"Two weeks of counts; ramps measured.","status":"works","when":"both","evidence":["E12","E20"]}]},{"id":"c-evidence","label":"Evidence","verb":"informs","sub":"The findings we rely on","items":[{"id":"ci3","title":"Rust at two joints is serious","text":"Over 20% of the steel lost.","status":"works","when":"both","evidence":["E1"]},{"id":"ci4","title":"Closures hurt the school run and shops","text":"20-minute detour; takings down by a quarter or more last time.","status":"works","when":"both","evidence":["E7","E26"]},{"id":"ci4b","title":"The bridge is busy and mixed","text":"1,900 crossings a day, a fifth by cycle, 40 by wheelchair or scooter.","status":"works","when":"both","evidence":["E12","E14","E15"]},{"id":"ci4c","title":"The north ramp fails the standard","text":"1 in 10 with no landing.","status":"works","when":"both","evidence":["E20"]}]},{"id":"c-decision","label":"Decision","verb":"shapes","sub":"What we choose, and why","items":[{"id":"ci5","title":"Repair now, plan a wider bridge later","text":"One option on the table.","status":"planned","when":"planned","evidence":["E2","E4"]},{"id":"ci6","title":"Replace with a wider bridge now","text":"The other option on the table.","status":"planned","when":"planned","evidence":["E5","E8"]},{"id":"ci6b","title":"Bearings freed now, whatever we choose","text":"Decided as urgent works in August.","status":"works","when":"both","evidence":["E3"]}]},{"id":"c-intent","label":"Intent","verb":"spells out","sub":"The result we want","items":[{"id":"ci7","title":"A safe, step-free crossing for decades","text":"With the shortest possible closure, and a way across while it is shut.","status":"planned","when":"planned","evidence":["E7","E28"]}]},{"id":"c-spec","label":"Spec","verb":"plans","sub":"What the bridge must do","items":[{"id":"ci8","title":"Ramps anyone can use alone","text":"1 in 15 at the north end, with rest landings and handrails both sides.","status":"missing","when":"planned","evidence":["E10","E20","E22"]},{"id":"ci9","title":"Room to pass","text":"4 m wide if replaced.","status":"planned","when":"planned","evidence":["E8","E13"]},{"id":"ci9b","title":"Lit and safe at night","text":"All approach lamps working; new lighting on any new bridge.","status":"partial","when":"planned","evidence":["E21"]}]},{"id":"c-plan","label":"Plan","verb":"produces","sub":"The work, in order","items":[{"id":"ci10","title":"Give the river authority notice","text":"Six months before any work in the water.","status":"missing","when":"planned","evidence":["E6"]},{"id":"ci10b","title":"Order steel early","text":"20 to 24 weeks for a new bridge.","status":"missing","when":"planned","evidence":["E23"]},{"id":"ci10c","title":"Bid to the cycling fund","text":"By 28 November, if the wider option is chosen.","status":"missing","when":"planned","evidence":["E5","E24"]}]},{"id":"c-work","label":"Work","verb":"creates","sub":"What was done","items":[{"id":"ci11","title":"Inspection and early costs","text":"Done. Nothing built yet.","status":"works","when":"today","evidence":["E4"]},{"id":"ci11b","title":"Broken approach lamps","text":"Reported; not yet fixed.","status":"partial","when":"today","evidence":["E21"]},{"id":"ci11p","title":"Works built and signed off","text":"Bearings freed, joints repaired or the new span in place, inspected before opening.","status":"planned","when":"planned","replaces":"ci11","evidence":["E4"]},{"id":"ci11bp","title":"Approach lamps working","text":"Broken lamps replaced before any closure, so the detour is lit.","status":"planned","when":"planned","replaces":"ci11b","evidence":["E21"]},{"id":"ci11c","title":"Barrier at the north ramp","text":"The steepest part has been fenced off since the spring inspection.","status":"partial","when":"today","evidence":["E20"]}]},{"id":"c-outcome","label":"Outcome","verb":"","sub":"Did it work?","items":[{"id":"ci12","title":"Measures to agree","text":"Crossings per day, days closed, complaints, upkeep cost.","status":"missing","when":"both","evidence":["E12"]}]}]},{"id":"m-works","template":"system-journeys","title":"The works, option by option","intro":"Each option from committee to reopening, across the people and bodies involved. Compare how long each takes and what it waits on.","lanes":[{"id":"people","label":"Residents","sub":"Who it affects"},{"id":"council","label":"Council","sub":"Committee and officers"},{"id":"design","label":"Design team","sub":"Engineers and access"},{"id":"builder","label":"Contractor","sub":"On site"},{"id":"permits","label":"River and permits","sub":"Notices and approvals"},{"id":"funders","label":"Funders","sub":"Cycling fund"}],"journeys":[{"id":"j-repair","title":"Option A: repair","summary":"Fix joints, bearings and deck; about 10 weeks closed; 25 more years.","creates":["A repair contract","New joints, bearings and deck boards","A new north ramp, if added"],"steps":[{"id":"ra1","lane":"council","text":"Committee chooses repair on 15 September","status":"planned","detail":"Report with whole-life cost over 50 years.","evidence":["E24","E4"]},{"id":"ra2","lane":"design","text":"Repair design and steel schedule","status":"planned","detail":"Replace plates at 6 joints; new elastomeric bearings north end.","evidence":["E1","E3"]},{"id":"ra3","lane":"design","text":"Decide whether the repair includes a new north ramp","status":"missing","detail":"Ramp must turn back on itself to reach 1 in 15.","moment":true,"evidence":["E20","E22"]},{"id":"ra4","lane":"permits","text":"River notice given (6 months)","status":"planned","detail":"Scaffold under the deck counts as work in the water.","evidence":["E6"]},{"id":"ra5","lane":"builder","text":"Order repair steel and bearings (8 weeks)","status":"planned","evidence":["E23"]},{"id":"ra6","lane":"people","text":"Bridge closes for about 10 weeks","status":"planned","detail":"Best in the school summer holidays, when counts are 45% lower.","feeling":"bad","moment":true,"evidence":["E16","E7"]},{"id":"ra7","lane":"builder","text":"Joints, bearings and deck boards replaced","status":"planned","detail":"Grit-blast and repaint the truss while scaffolded.","evidence":["E1"]},{"id":"ra8","lane":"people","text":"Bridge reopens; a weight limit is not needed","status":"planned","feeling":"good","evidence":["E2"]},{"id":"ra9","lane":"council","text":"A wider bridge stays on the list for later","status":"planned","detail":"Repair life of 25 years means the question comes back around 2050.","evidence":["E2"]}]},{"id":"j-replace","title":"Option B: replace at today's width","summary":"A new steel bridge, 2.2 m wide; about 9 months closed; 100 years.","creates":["A design-and-build contract","A new bridge and ramps","The old bridge removed"],"steps":[{"id":"rb1","lane":"council","text":"Committee chooses replace on 15 September","status":"planned","evidence":["E24"]},{"id":"rb2","lane":"design","text":"Outline design and ramps to the standard","status":"planned","detail":"New ramps at both ends designed to 1 in 15.","evidence":["E20"]},{"id":"rb3","lane":"council","text":"Hire a contractor from the framework","status":"planned","detail":"One of three firms has rebuilt two similar footbridges."},{"id":"rb4","lane":"permits","text":"River notice given (6 months)","status":"planned","evidence":["E6"]},{"id":"rb5","lane":"builder","text":"Order fabricated steel (20 to 24 weeks)","status":"planned","moment":true,"evidence":["E23"]},{"id":"rb6","lane":"people","text":"Bridge closes for about 9 months","status":"planned","detail":"Must avoid the two weeks before Christmas for the final lift.","feeling":"bad","moment":true,"evidence":["E7","E25"]},{"id":"rb7","lane":"people","text":"People cross by shuttle, detour or temporary bridge","status":"missing","detail":"No way across agreed yet.","pain":"20-minute detour on a 1.4 m footway.","evidence":["E17","E18","E19"]},{"id":"rb8","lane":"builder","text":"Old bridge lifted out, new one lifted in","status":"planned","detail":"One weekend road closure for the crane."},{"id":"rb9","lane":"people","text":"New bridge opens","status":"planned","feeling":"good"}]},{"id":"j-wider","title":"Option C: replace wider, with a fund bid","summary":"A 4 m shared-use bridge; about 11 months closed; up to 40% paid by the fund.","creates":["A fund bid","A design-and-build contract","A 4 m bridge for walking and cycling"],"steps":[{"id":"rc1","lane":"council","text":"Committee chooses the wider option, subject to the bid","status":"planned","detail":"Decision on 15 September; bid by 28 November.","evidence":["E24"]},{"id":"rc2","lane":"funders","text":"Bid to the cycling fund","status":"missing","detail":"Uses counts showing 22% cycles and peak conflicts.","moment":true,"evidence":["E5","E14","E13"]},{"id":"rc3","lane":"design","text":"Design a 4 m deck and ramps to the standard","status":"planned","evidence":["E8","E20"]},{"id":"rc4","lane":"funders","text":"Fund decides in March","status":"planned","detail":"If refused, the council pays the full £4.2m or falls back.","pain":"Five months of waiting before steel can be ordered.","evidence":["E24","E4"]},{"id":"rc5","lane":"permits","text":"River notice given (6 months)","status":"planned","evidence":["E6"]},{"id":"rc6","lane":"builder","text":"Order fabricated steel","status":"planned","detail":"Wider deck may need the longer end of 20 to 24 weeks.","evidence":["E23"]},{"id":"rc7","lane":"people","text":"Bridge closes for about 11 months","status":"planned","feeling":"bad","evidence":["E7","E26"]},{"id":"rc8","lane":"people","text":"Cycles and prams can pass on the new bridge","status":"planned","feeling":"good","evidence":["E8","E13"]}]},{"id":"j-urgent","title":"Urgent works: free the seized bearings","summary":"Decided already: done in August whatever option is chosen.","creates":["An urgent works order","Freed north bearings"],"steps":[{"id":"ub1","lane":"design","text":"Engineer flags the seized bearings","status":"works","detail":"Bridge cannot expand in summer; stress builds at the north end.","evidence":["E3"]},{"id":"ub2","lane":"council","text":"Head of highways approves urgent works","status":"works"},{"id":"ub3","lane":"permits","text":"Works kept above the river, so no 6-month notice","status":"works","detail":"Access from the deck and north bank only.","evidence":["E6"]},{"id":"ub4","lane":"people","text":"Bridge closes for two nights in August","status":"planned","detail":"Overnight closures, signed in advance.","evidence":["E16"]},{"id":"ub5","lane":"builder","text":"Bearings freed and greased","status":"planned","evidence":["E3"]},{"id":"ub6","lane":"design","text":"Re-check movement in the first hot week","status":"planned"}]}]},{"id":"m-closure","template":"service-blueprint","title":"Closing the bridge for works","intro":"What a resident goes through when the bridge shuts, what the council does in front of them and out of sight, and what supports it.","lanes":[{"id":"person","label":"Resident","sub":"What they do"},{"id":"front","label":"In front of them","sub":"Signs, staff, website"},{"id":"back","label":"Out of sight","sub":"Council and contractor"},{"id":"support","label":"Support","sub":"Permits, suppliers, rules"},{"id":"proof","label":"What they keep","sub":"Letters and notices"}],"journeys":[{"id":"j-before","title":"Before the closure","summary":"Finding out, and planning another way.","creates":["A letter to every home and shop nearby","Detour signs","A way across, if agreed"],"steps":[{"id":"b1","lane":"proof","text":"Letter through the door: dates and the detour","status":"planned","detail":"Letters to homes and shops within 800 m, six weeks before."},{"id":"b1b","lane":"front","text":"Notices at both ends of the bridge and on the website","status":"planned"},{"id":"b2","lane":"person","text":"Works out a new school run","status":"planned","feeling":"bad","moment":true,"evidence":["E7"]},{"id":"b3","lane":"back","text":"Council agrees a temporary crossing or shuttle","status":"missing","detail":"Shuttle £1,450 a week; temporary bridge £380k.","evidence":["E7","E9","E17","E18"]},{"id":"b4","lane":"support","text":"River authority notice and permits","status":"missing","evidence":["E6"]},{"id":"b5","lane":"front","text":"Shops get signs pointing customers the long way round","status":"missing","detail":"Shops' top request.","evidence":["E27"]},{"id":"b6","lane":"back","text":"School told the dates and asked to share them","status":"missing","evidence":["E7"]}]},{"id":"j-during","title":"During the works","summary":"Getting across, and getting news.","creates":["Weekly updates","A shuttle timetable, if chosen"],"steps":[{"id":"w1","lane":"person","text":"Follows the signed detour","status":"planned","detail":"Two crossings of a busy road; footway 1.4 m.","feeling":"bad","evidence":["E19"]},{"id":"w1b","lane":"person","text":"Wheelchair users use the shuttle's one space","status":"missing","detail":"40 wheelchair or scooter crossings a day; one space per trip.","pain":"One space may not be enough at school times.","evidence":["E15","E18"]},{"id":"w2","lane":"front","text":"Signs at both ends show the detour and the end date","status":"planned"},{"id":"w3","lane":"front","text":"Website shows progress each week","status":"missing"},{"id":"w4","lane":"person","text":"Shops on the south side see fewer customers","status":"planned","feeling":"bad","evidence":["E9","E26"]},{"id":"w5","lane":"back","text":"Contractor keeps the end date or warns early","status":"planned","detail":"Weekly progress meeting with the council."},{"id":"w6","lane":"support","text":"Complaints line answered within two days","status":"missing"}]},{"id":"j-after","title":"After reopening","summary":"Back to normal, and checking it worked.","creates":["A reopening notice","Counts after three months"],"steps":[{"id":"a1","lane":"proof","text":"Notice: the bridge is open again","status":"planned"},{"id":"a2","lane":"person","text":"Goes back to the old route","status":"planned","feeling":"good"},{"id":"a3","lane":"back","text":"Counter left in place to compare crossings","status":"planned","detail":"Compare with 1,900 a day before.","evidence":["E12"]},{"id":"a4","lane":"person","text":"Wheelchair user tries the new north ramp alone","status":"missing","detail":"Only if the ramp is rebuilt.","moment":true,"evidence":["E10","E20"]},{"id":"a5","lane":"back","text":"Upkeep plan starts","status":"planned","detail":"£18k a year after repair; £6k to £7k after replacement.","evidence":["E4"]}]}]}],"gaps":[{"id":"G1","title":"A way across during a long closure","why":"A nine-month closure without a crossing cuts off the school's only step-free route.","anchors":["b3","w1","rb7"],"impact":5,"effort":4,"stories":[{"as":"As a parent with a pram, I want a step-free way across while the bridge is shut, so the school run stays under ten minutes.","done_when":["a temporary crossing or shuttle runs at school times","the route is signed and lit","the detour is no more than 10 minutes longer"]},{"as":"As a wheelchair user, I want to be sure of a place on the shuttle, so I am not left behind at school time.","done_when":["a wheelchair space can be booked by text","a second space is added at the two school-time peaks"]},{"as":"As the council lead, I want the cost of each way across side by side, so the committee can choose.","done_when":["shuttle, temporary bridge and detour are compared on cost, time and step-free access","the comparison is in the 15 September report"]}]},{"id":"G2","title":"Ramps people can use on their own","why":"The north ramp is 1 in 10 with no landing; the standard is 1 in 15.","anchors":["ci8","ra3","a4"],"impact":4,"effort":2,"stories":[{"as":"As a wheelchair user, I want ramps I can manage alone, so I do not need help to cross.","done_when":["ramp slopes meet the access standard","a wheelchair user tests the design before it is approved"]},{"as":"As a parent with a pram, I want a rest landing on the way up, so I can stop safely.","done_when":["a level landing at least every 10 m","handrails on both sides"]}]},{"id":"G3","title":"Bid to the cycling fund by November","why":"Up to 40% of a wider bridge could be paid for, but only with a bid by 28 November.","anchors":["ci6","rc2"],"impact":4,"effort":3,"stories":[{"as":"As the council lead, I want the bid submitted by November, so the wider option is affordable.","done_when":["a bid is submitted before the deadline","the bid shows the drop-in feedback"]},{"as":"As finance, I want a fall-back if the bid fails, so we are not stuck in March.","done_when":["the report says what we do if the bid is refused","the fall-back is agreed before the bid goes in"]}]},{"id":"G4","title":"Weekly news during works","why":"People put up with closures better when they can see progress.","anchors":["w3","w5"],"impact":2,"effort":1,"stories":[{"as":"As a resident, I want a weekly update, so I know the end date is real.","done_when":["a photo and a line of news go up every Friday"]},{"as":"As a shop owner, I want to know a week ahead if the end date moves, so I can plan stock and staff.","done_when":["any change to the end date is posted within a day of the contractor knowing","shops get it by text as well"]}]},{"id":"G5","title":"Help for south-side shops","why":"Five of eight shops lost a quarter or more of takings last time.","anchors":["w4","b5"],"impact":3,"effort":2,"stories":[{"as":"As a shop owner, I want signs that send people my way, so customers still find me.","done_when":["signs at both ends name the shops and the walking time","the shuttle stops outside the shops"]},{"as":"As the council lead, I want to know what support we can give, so we can say it in the letter.","done_when":["the report says whether a rates holiday is possible","the letter says what help is on offer"]}]},{"id":"G6","title":"Fix the approach lighting now","why":"Two of six lamps on the north approach do not work, whatever option is chosen.","anchors":["ci9b","ci11b"],"impact":3,"effort":1,"stories":[{"as":"As someone crossing after dark, I want every lamp working, so the approach feels safe.","done_when":["all six lamps work within a month","lamps are checked at each inspection"]}]}],"notes":[{"id":"N1","role":"engineer","anchor":"ci3","title":"Repairs buy 25 years, not 100","body":"Repair is sound engineering, but the bridge will need replacing in the 2050s anyway.","recommend":"Compare options over 50 years, not on build cost alone.","question":"Do we judge the options over 50 years of cost and closures?","urgency":"must","evidence":["E2","E4"]},{"id":"N2","role":"engineer","anchor":"b4","title":"The river notice sets the earliest start","body":"Any option needs six months' notice for work in the water.","recommend":"Send a notice for the larger option now; it can be narrowed later.","question":"Can we give notice before the committee decides?","urgency":"should","evidence":["E6"]},{"id":"N3","role":"security","anchor":"ci5","title":"Seized bearings are a summer risk","body":"A bridge that cannot expand is stressed on hot days.","recommend":"Free or replace the north bearings this year, whatever we decide.","question":"Do we fix the bearings now as urgent work?","urgency":"must","evidence":["E3"]},{"id":"N4","role":"voice","anchor":"b2","title":"The school run is the hardest hit","body":"Families with prams have no other step-free route.","recommend":"Plan the closure around school holidays where possible.","question":"Can the longest part of the works fall in the summer holidays?","urgency":"must","evidence":["E7"]},{"id":"N5","role":"voice","anchor":"w4","title":"Shops felt the last closure","body":"One owner lost a third of takings during a one-month closure.","recommend":"Talk to the south-side shops before setting dates; consider signs that say 'shops open'.","question":"Is there any support we can offer shops during a long closure?","urgency":"should","evidence":["E9"]},{"id":"N6","role":"designer","anchor":"ci8","title":"Fix the ramps in either option","body":"A repair could rebuild the north ramps too.","recommend":"Include gentler ramps in the repair option so the comparison is fair.","question":"Does the repair price include new ramps?","urgency":"should","evidence":["E10"]},{"id":"N7","role":"finance","anchor":"ci6","title":"The fund changes the sums","body":"With 40% from the fund, the wider bridge costs the council about £2.5m.","recommend":"Show the committee both prices: with and without the fund.","question":"Do we commit to the wider option if the bid fails?","urgency":"must","evidence":["E4","E5"]},{"id":"N8","role":"analyst","anchor":"c-decision","title":"The estimates are rough","body":"At ±30%, repair and replace overlap less than they seem, but the ranking could still shift.","recommend":"Show ranges, not single numbers.","question":"Do we wait for firmer prices before deciding?","urgency":"should","evidence":["E11"]},{"id":"N9","role":"owner","anchor":"c-intent","title":"Say what we are aiming for","body":"Residents care about the closure as much as the bridge.","recommend":"State the aim as a safe crossing with the shortest closure we can manage.","question":"Which matters more to the committee: lowest cost or shortest closure?","urgency":"must","evidence":["E7","E9"]},{"id":"N10","role":"agent","anchor":"w3","title":"An assistant can draft the weekly update","body":"Site photos and the contractor's diary hold most of the news.","recommend":"Let an assistant draft the Friday update from the diary; a council officer approves it.","question":"Who approves the weekly update before it goes out?","urgency":"info"},{"id":"N11","role":"designer","anchor":"ci9","title":"Wider means safer, not just nicer","body":"People cannot pass on the current width.","recommend":"Treat 4 m as the access option, not an extra.","question":"Is 4 m enough for the expected number of cycles?","urgency":"info","evidence":["E8"]},{"id":"N12","role":"engineer","anchor":"rb5","title":"Steel lead time decides the closure start","body":"Fabricated steel takes 20 to 24 weeks; nothing can close until it is near delivery.","recommend":"Plan the closure back from the steel delivery date, not forward from the decision.","question":"Can we place a provisional steel order before the fund decision?","urgency":"must","evidence":["E23"]},{"id":"N13","role":"engineer","anchor":"ra3","title":"A new north ramp changes the repair","body":"Reaching 1 in 15 means a longer ramp that turns back on itself.","recommend":"Price the repair with and without a new north ramp.","question":"Do we compare repair-with-ramp against replacement, not bare repair?","urgency":"should","evidence":["E22","E20"]},{"id":"N14","role":"engineer","anchor":"ub6","title":"Check the bearings in the first hot week","body":"Freeing the bearings fixes the summer risk only if they move as expected.","recommend":"Measure movement on the first day over 25°C.","question":"Who takes the reading and where is it recorded?","urgency":"info","evidence":["E3"]},{"id":"N15","role":"analyst","anchor":"rc4","title":"The fund decision lands in March","body":"Choosing the wider option in September means waiting five months to know if it is affordable.","recommend":"Agree the fall-back in September so March is not a new decision.","question":"What is the fall-back if the bid is refused: repair, or replace at today's width?","urgency":"must","evidence":["E24","E5"]},{"id":"N16","role":"analyst","anchor":"a3","title":"Agree the measures before the works","body":"Counts already exist, so we can compare like with like.","recommend":"Keep the counter in place through and after the works.","question":"Do we judge success on crossings in term time only?","urgency":"should","evidence":["E12","E16"]},{"id":"N17","role":"owner","anchor":"c-decision","title":"Whole-life cost and closure months, side by side","body":"Repair is cheapest now but returns in 25 years with another closure.","recommend":"Show cost over 50 years and total months closed for each option.","question":"Which weighs more for us: total cost over 50 years, or months closed?","urgency":"must","evidence":["E4","E2"]},{"id":"N18","role":"owner","anchor":"b3","title":"A way across is part of the option, not an extra","body":"A long closure without one cuts off the school's step-free route.","recommend":"Price each replacement option with its way across included.","question":"Do we rule out any option that has no step-free way across?","urgency":"should","evidence":["E7","E17"]},{"id":"N19","role":"security","anchor":"w1","title":"The detour is not safe for prams at peak","body":"The road bridge footway is 1.4 m; two prams cannot pass, and the detour crosses a busy road twice.","recommend":"Add a crossing patrol at school times if the detour is used.","question":"Can we staff a crossing patrol for the whole closure?","urgency":"must","evidence":["E19","E13"]},{"id":"N20","role":"security","anchor":"ci9b","title":"Fix the lamps before anything else","body":"Broken lamps on the north approach make it feel unsafe after dark.","recommend":"Fix within a month as routine maintenance.","question":"Who owns the lamp repair, highways or lighting?","urgency":"should","evidence":["E21"]},{"id":"N21","role":"security","anchor":"rb8","title":"The lift needs a weekend road closure","body":"Lifting the old and new spans needs a crane and a road closure.","recommend":"Book the lift weekend early and tell bus operators.","question":"Which weekend avoids school and Christmas trading?","urgency":"info","evidence":["E25"]},{"id":"N22","role":"voice","anchor":"w1b","title":"One wheelchair space is not enough at peak","body":"About 40 wheelchair or scooter crossings a day; the shuttle has one space per trip.","recommend":"Add a second accessible vehicle at the two school-time peaks.","question":"Will we guarantee a space for wheelchair users at school times?","urgency":"must","evidence":["E15","E18"]},{"id":"N23","role":"voice","anchor":"rc8","title":"People asked for room to pass","body":"Cycles and prams wait for each other at peak; a cyclist asked for a wider bridge.","recommend":"Use the counts and comments in the fund bid.","question":"Do we ask the drop-in group to back the bid?","urgency":"should","evidence":["E8","E13"]},{"id":"N24","role":"voice","anchor":"c-intent","title":"Could the old bridge stay open?","body":"Several people asked if the old bridge could stay open while a new one is built.","recommend":"Ask the design team whether a new bridge beside the old one is possible.","question":"Is building beside the old bridge worth a quick study?","urgency":"info","evidence":["E28"]},{"id":"N25","role":"designer","anchor":"b5","title":"Signs should name the shops","body":"Shops' top request was clear signs.","recommend":"Put shop names and walking times on the detour signs.","question":"Can the shops supply their own sign board at the bridge ends?","urgency":"should","evidence":["E27"]},{"id":"N26","role":"designer","anchor":"a4","title":"Test the new ramp with the people who use it","body":"A wheelchair user said they cannot manage the north ramp alone.","recommend":"Invite two wheelchair users to test the ramp before it opens.","question":"Who invites the testers and records what they find?","urgency":"info","evidence":["E10"]},{"id":"N27","role":"finance","anchor":"ra9","title":"Repair returns the question in 25 years","body":"£1.1m now, plus a likely replacement around 2050.","recommend":"Show the second closure and its cost in the repair option.","question":"Do we include a 2050 replacement in the repair option's cost?","urgency":"must","evidence":["E2","E4"]},{"id":"N28","role":"finance","anchor":"b3","title":"A temporary bridge costs a third of a repair","body":"£380k for nine months against a shuttle at about £56k.","recommend":"Compare the shuttle with the temporary bridge per crossing.","question":"Is the temporary bridge worth £380k for nine months?","urgency":"should","evidence":["E17","E18"]},{"id":"N29","role":"agent","anchor":"w6","title":"An agent can sort complaints and answer the routine ones","body":"Most questions will be dates and detours.","recommend":"Let an agent answer routine questions from the latest update; people handle the rest.","question":"Which complaints must always go to a person?","urgency":"info","evidence":["E7"]},{"id":"N30","role":"agent","anchor":"rc2","title":"An agent can assemble the fund bid","body":"The bid needs counts, comments and costs already in this canvas.","recommend":"Draft the bid from the canvas evidence for officers to edit.","question":"Who signs off the bid before it goes in?","urgency":"info","evidence":["E5","E12"]},{"id":"N31","role":"analyst","anchor":"G5","title":"Shops want summer works","body":"Six of eight shops said summer works would help most; term-time counts are 45% higher.","recommend":"Aim the longest closure at the summer holidays.","question":"Can a nine-month closure start in July so the worst comes in summer?","urgency":"info","evidence":["E27","E16"]},{"id":"N32","role":"owner","anchor":"ci6b","title":"The bearings are already decided","body":"Freeing the bearings goes ahead in August whatever the committee chooses.","recommend":"Say so in the report so it is not reopened.","question":"Do we report the bearing work as done before 15 September?","urgency":"info","evidence":["E3"]}],"decisions":[{"id":"D1","question":"Repair, replace, or replace wider?","notes":["N1","N7","N8","N9"],"options":["Repair now","Replace","Replace wider (with fund bid)"],"owner":"Council lead","status":"open","due":"2026-09-15"},{"id":"D2","question":"Do we fix the seized bearings now?","notes":["N3"],"options":["Yes, urgent works","No, wait for the main decision"],"owner":"Structural engineer","status":"decided","decided_by":"Head of highways","decision":"Yes. Bearings freed in August as urgent works.","due":"2026-07-10"},{"id":"D3","question":"How do people cross during a long closure?","notes":["N4","N5"],"owner":"Council lead","status":"open","due":"2026-10-01"},{"id":"D4","question":"Which way across do we offer during a long closure?","notes":["N22","N28","N19"],"options":["Shuttle at school times","Temporary bridge","Signed detour with a crossing patrol"],"owner":"Council lead","status":"open","due":"2026-09-15"},{"id":"D5","question":"Does the repair option include a new north ramp?","notes":["N13","N26"],"options":["Yes, rebuild to 1 in 15","No, ramp later"],"owner":"Structural engineer","status":"open","due":"2026-09-01"}],"outcomes":[{"id":"O1","measure":"Crossings per day after reopening","baseline":"About 1,900","target":"No fall"},{"id":"O2","measure":"Days closed","target":"As few as the chosen option allows"},{"id":"O3","measure":"Wheelchair and scooter crossings a day","baseline":"About 40","target":"No fall; more if the north ramp is rebuilt"},{"id":"O4","measure":"Shops reporting takings down by a quarter or more during works","baseline":"5 of 8 last time","target":"2 of 8 or fewer"}]}</script>
 <script type="application/json" id="dc-merged"></script>
 <script type="application/json" id="dc-since"></script>
-<script type="application/json" id="dc-meta">{"fingerprint":"38fc0c2db3df","generator":"decisioncraft"}</script>
+<script type="application/json" id="dc-meta">{"fingerprint":"e396f88d5b51","generator":"decisioncraft"}</script>
 <script>
 /* Decisioncraft canvas engine. Reads a decision model from #dc-model and draws it.
    No outside requests. Plain DOM, no libraries.
    The page: one quiet top bar; a numbered story list on the left; the map in the middle;
-   a detail panel on the right; zoom buttons bottom right; a walk-through card. */
+   a detail panel on the right; zoom buttons bottom right; a walk-through card.
+   Maps that hold a plan can be read three ways: Today, Planned, and What changes (one map
+   where each box says whether it is new, changed or goes away), plus Side by side. */
 (function () {
 "use strict";
 
@@ -396,7 +478,7 @@ const DEFAULT_ROLES = [
 const KIND = {"system-journeys":"journeys","customer-journey":"journeys","service-blueprint":"journeys",
   "decision-chain":"chain","opportunity-tree":"tree"};
 const TREE_LEVELS = ["What we want","What needs attention","Possible next step","How we will check"];
-const MIN_Z = 0.15, MAX_Z = 2.2;
+const MIN_Z = 0.25, MAX_Z = 2.2;
 const STORY_W = 320, PANEL_W = 480, TOP_H = 52;
 
 const ROLES = (MODEL.roles && MODEL.roles.length ? MODEL.roles : DEFAULT_ROLES);
@@ -419,13 +501,14 @@ let saved = {}, storageOK = true;
 try { saved = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { saved = {}; storageOK = false; }
 const seed = SESSION ? {answers:SESSION.review.answers || {}, votes:SESSION.review.dots || {},
   decisions:SESSION.review.decisions || {}, reviewer:SESSION.review.reviewer || ""} : {};
-const S = Object.assign({map:0, mode:MODEL.maps[0].when === "planned" ? "planned" : "compare", journey:-1, tech:false, notesOnMap:false, lines:false, dots:true, story:true,
+const S = Object.assign({map:0, mode:"changes", sbs:false, journey:-1, tech:false, notesOnMap:false, lines:false, dots:true, story:true,
   hintSeen:false, roles:Object.fromEntries(ROLES.map(r => [r.id, true])),
   answers:{}, votes:{}, decisions:{}, reviewer:""}, seed, saved);
 if (SESSION && saved.syncedVersion !== SESSION.version) Object.assign(S, seed);
 if (SESSION) { S.syncedVersion = SESSION.version; S.sessionFinished = SESSION.state === "finished"; }
 ROLES.forEach(r => { if (!(r.id in S.roles)) S.roles[r.id] = true; });
 if (S.map >= MODEL.maps.length) S.map = 0;
+if (S.mode === "compare" || S.mode === "both") S.mode = "changes";
 let completedHandoff = SESSION && SESSION.handoff || null;
 let syncVersion = SESSION ? SESSION.version : 0, syncPromise = null, syncTimer = null;
 let syncState = SESSION ? "saved" : "", syncError = "", finishing = false;
@@ -534,13 +617,79 @@ MODEL.maps.forEach((m, mi) => {
 });
 GAPS.forEach(g => BOX[g.id] = {box:g, mi:-1, kind:"gap"});
 const notesOn = id => NOTES.filter(n => n.anchor === id && S.roles[n.role] !== false);
+
+/* ---------- today, planned and what changes ---------- */
+const MODES = {today:"Today", planned:"Planned", changes:"What changes"};
+const CHANGE_WORD = {new:"New", changed:"Changed", gone:"Goes away"};
+const groupsOf = m => [...(m.journeys || []).map(j => j.steps || []), ...(m.stages || []).map(st => st.items || [])];
+const hasChanges = m => groupsOf(m).some(g => g.some(b => b.when === "today" || b.when === "planned"));
+const modeOf = m => hasChanges(m) ? (MODES[S.mode] ? S.mode : "changes") : "all";
+const sbsOn = () => !!S.sbs && modeOf(MODEL.maps[S.map]) === "changes" && innerWidth >= 1000;
+/* One journey's steps or one stage's items, as slots for the mode. In What changes every
+   thing gets one slot in the plan's order: a planned box that replaces a today box is one
+   "changed" slot that carries both versions. */
+function arrange(boxes, mode) {
+  const byId = Object.fromEntries(boxes.map(b => [b.id, b]));
+  const replaced = new Set(boxes.filter(b => b.replaces && b.when === "planned").map(b => b.replaces));
+  const out = [];
+  boxes.forEach(b => {
+    const when = b.when || "both";
+    if (mode === "all") out.push({box:b, change:""});
+    else if (mode === "today") { if (when !== "planned") out.push({box:b, change:""}); }
+    else if (mode === "planned") { if (when !== "today") out.push({box:b, change:""}); }
+    else if (when === "today") { if (!replaced.has(b.id)) out.push({box:b, change:"gone"}); }
+    else if (when === "planned") { const before = b.replaces ? byId[b.replaces] : null; out.push({box:b, change:before ? "changed" : "new", before}); }
+    else out.push({box:b, change:"same"});
+  });
+  return out;
+}
+const changeList = m => groupsOf(m).flatMap(g => arrange(g, "changes").filter(s => s.change !== "same"));
+const CHANGE_INFO = {};
+MODEL.maps.forEach(m => changeList(m).forEach(s => {
+  CHANGE_INFO[s.box.id] = s;
+  if (s.before) CHANGE_INFO[s.before.id] = {change:"replaced", box:s.before, by:s.box};
+}));
+function changeCounts(list) {
+  const n = k => list.filter(s => s.change === k).length;
+  return [["new", n("new"), "new"], ["changed", n("changed"), "changed"], ["gone", n("gone"), n("gone") === 1 ? "goes away" : "go away"]].filter(c => c[1]);
+}
+const countsText = list => changeCounts(list).map(([, n, w]) => `${n} ${w}`).join(" · ");
+const countsHtml = list => changeCounts(list).map(([k, n, w]) => `<span class="ribbon ${k}">${n} ${w}</span>`).join("");
+/* A changed box carries both versions in one grid cell, so it is as tall as the taller one
+   and rows line up in Side by side. */
+const RIBBON = s => s.change && s.change !== "same"
+  ? `<span class="ribbon ${s.change}">${CHANGE_WORD[s.change]}</span>${s.change === "new" ? "" : `<span class="ribbon-today ${s.change}">${s.change === "changed" ? "Will change" : "Goes away"}</span>`}` : "";
+const GHOST = s => s.change === "new" ? `<span class="ghostlabel">Not there today</span>` : s.change === "gone" ? `<span class="ghostlabel">Goes away</span>` : "";
+function slotHtml(s, inner) {
+  const now = inner(s.box);
+  return RIBBON(s) + (s.before ? `<div class="vwrap"><div class="v-now">${now}</div><div class="v-before">${inner(s.before)}</div></div>` : now) + GHOST(s);
+}
+const slotLabel = (s, text) => (s.change && s.change !== "same" ? CHANGE_WORD[s.change] + ": " : "") + text;
+
+/* Word-level differences between two short texts, for the Before and After view. */
+function wordDiff(a, b) {
+  const A = String(a || "").split(/(\s+)/).filter(Boolean), B = String(b || "").split(/(\s+)/).filter(Boolean);
+  const n = A.length, m = B.length;
+  const dp = Array.from({length:n + 1}, () => new Uint16Array(m + 1));
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) dp[i][j] = A[i] === B[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+  const mark = (t, tag) => /^\s+$/.test(t) ? esc(t) : `<${tag}>${esc(t)}</${tag}>`;
+  let i = 0, j = 0, oa = "", ob = "";
+  while (i < n && j < m) {
+    if (A[i] === B[j]) { oa += esc(A[i]); ob += esc(B[j]); i++; j++; }
+    else if (dp[i + 1][j] >= dp[i][j + 1]) oa += mark(A[i++], "del");
+    else ob += mark(B[j++], "ins");
+  }
+  while (i < n) oa += mark(A[i++], "del");
+  while (j < m) ob += mark(B[j++], "ins");
+  return [oa, ob];
+}
 const mapOfAnchor = a => BOX[a] ? (BOX[a].mi >= 0 ? BOX[a].mi : mapOfAnchor((BOX[a].box.anchors || [])[0])) : -1;
 const titleOf = b => b.title || b.label || b.text || b.id;
 
 function badges(b) {
   const out = [];
-  if (sinceAdded.has(b.id)) out.push(`<span class="chip new">New</span>`);
-  else if (sinceChanged[b.id]) out.push(`<span class="chip changed">Changed</span>`);
+  if (sinceAdded.has(b.id)) out.push(`<span class="chip since">New since last review</span>`);
+  else if (sinceChanged[b.id]) out.push(`<span class="chip since">Changed since last review</span>`);
   const ref = (MODEL.checked || {}).date;
   if (b.checked && ref && days(ref, b.checked) > FRESH_DAYS) out.push(`<span class="chip stale" title="Checked ${esc(b.checked)}">May be out of date</span>`);
   if (b.moment) out.push(`<span class="chip moment">Moment that matters</span>`);
@@ -549,20 +698,23 @@ function badges(b) {
   const ev = (b.evidence || []).length;
   if (ev) out.push(`<span class="chip">Evidence: ${ev}</span>`);
   const notes = notesOn(b.id);
-  if (notes.length) out.push(`<span class="notebadge${notes.some(n => n.urgency === "must") ? " must" : ""}">${plural(notes.length, "note")}</span>`);
+  if (notes.length) {
+    const colours = [...new Set(notes.map(n => (ROLE[n.role] || {}).color || "#888"))].slice(0, 3);
+    out.push(`<span class="notebadge${notes.some(n => n.urgency === "must") ? " must" : ""}"><span class="stack" aria-hidden="true">${colours.map(c => `<i style="background:${tint(c)};border-color:${c}"></i>`).join("")}</span>${plural(notes.length, "note")}</span>`);
+  }
   return out.join("");
 }
 const tech = b => S.tech && b.detail ? `<span class="techname">${esc(b.detail)}</span>` : "";
 
 /* ---------- DOM helpers ---------- */
 const world = $("#world"), viewport = $("#viewport");
-let nodes = {}, rows = [], svg;
+let nodes = {}, rows = [], svg, K = 0;
 function place(cls, x, y, w, html, data, label) {
   const d = document.createElement("div");
   d.className = cls; d.style.left = x + "px"; d.style.top = y + "px";
   if (w) d.style.width = w + "px";
   d.innerHTML = html;
-  if (data) { d.tabIndex = 0; d.setAttribute("role", "button"); d.setAttribute("aria-label", label || ""); d._data = data; }
+  if (data) { d.tabIndex = 0; d.setAttribute("role", "button"); d.setAttribute("aria-label", label || ""); d._data = data; d.dataset.k = ++K; }
   world.appendChild(d);
   return d;
 }
@@ -574,7 +726,8 @@ function link(x1, y1, x2, y2, cls, label) {
   svg.appendChild(p);
   if (label) {
     const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    t.setAttribute("x", (x1 + x2) / 2 + 10); t.setAttribute("y", my + 5); t.textContent = label;
+    t.setAttribute("x", (x1 + x2) / 2 + 16); t.setAttribute("y", my + 5); t.textContent = label;
+    t.setAttribute("class", "verb");
     svg.appendChild(t);
   }
   return p;
@@ -603,12 +756,13 @@ function notePile(anchors, x, y, max, rowKey) {
     const c = colH[0] <= colH[1] ? 0 : 1;
     const r = ROLE[n.role] || {label:n.role, color:"#888"};
     const el = place(`notecard ${n.urgency || "info"} inj`, x + c * (NOTE_W + NOTE_GAP), y + colH[c], NOTE_W,
-      `<div><span class="who">${esc(r.label)}</span><span class="urg">${URG[n.urgency || "info"]}</span></div>
+      `<div class="notehead"><span class="who"><i style="background:${r.color}"></i>${esc(r.label)}</span><span class="urg">${URG[n.urgency || "info"]}</span></div>
        <h5>${esc(n.title)}</h5><div class="q">${esc(n.question || n.body || "")}</div>`,
       {type:"note", n}, `${r.label} note: ${n.title}`);
     el.style.background = tint(r.color);
-    el.style.setProperty("--note-tilt", [-0.7, 0.5, -0.3, 0.6][i % 4] + "deg");
-    el.dataset.row = rowKey;
+    el.style.setProperty("--note-tilt", [-1.1, 0.8, -0.5, 1][i % 4] + "deg");
+    el.style.setProperty("--role", r.color);
+    el.dataset.row = rowKey; el.dataset.anchor = n.anchor;
     colH[c] += el.offsetHeight + NOTE_GAP;
   });
   let h = Math.max(colH[0], colH[1]);
@@ -626,46 +780,74 @@ function header(m, width) {
   place("stamp", 0, 6, 0, (MODEL.checked && MODEL.checked.date) ? `Checked against the sources on ${esc(MODEL.checked.date)}` : "Not yet checked against sources");
   const t = place("maptitle", 0, 40, Math.max(width, 600), esc(m.title || MODEL.title));
   const q = place("mapintro", 0, 40 + t.offsetHeight + 8, Math.min(Math.max(width, 600), 900), gl(m.intro || ""));
-  return 40 + t.offsetHeight + 8 + q.offsetHeight + 40;
+  let y = 40 + t.offsetHeight + 8 + q.offsetHeight;
+  const mode = modeOf(m);
+  if (mode !== "all") {
+    const list = changeList(m);
+    const text = mode === "today" ? "<b>Today.</b> What exists now, before any change." :
+      mode === "planned" ? "<b>Planned.</b> How it works once the plan is done." :
+      `<b>What changes.</b> The plan, with every change marked. ${countsHtml(list)}`;
+    const lg = place("modebar", 0, y + 14, 0, `${text}${mode === "changes" ? `<span class="hint-sbs">${sbsOn() ? "Left: today. Right: the plan. Rows line up." : "Faded boxes go away. Open a box to compare before and after."}</span>` : ""}`);
+    y += 14 + lg.offsetHeight;
+  }
+  return y + 40;
 }
 
 /* ---------- journeys ---------- */
-const J = {laneW:260, laneGap:22, stepW:236, stepH:84, rowGap:16, headW:330, headGap:40, bandGap:70};
+/* Each lane keeps one colour, so a step's edge says which part of the system it runs in. */
+const LANE_COLORS = ["#4f7fd8", "#8a5cd6", "#d99a1e", "#2f9e6a", "#d1543f", "#1f9aa6", "#b5568c", "#7a7a72"];
+const laneColor = i => LANE_COLORS[i % LANE_COLORS.length];
+const J = {laneW:262, laneGap:20, stepW:238, stepH:86, rowGap:18, headW:330, headGap:44, bandGap:76};
+function stepInner(n) {
+  return b => `<div class="row1"><span class="n">${n}</span><div class="t">${gl(b.text)}</div></div>${tech(b)}
+    <div class="meta">${pill(b.status)}${badges(b)}</div>`;
+}
+function journeyHead(m, j, ji, slots, mode) {
+  const changed = mode === "changes" ? slots.filter(s => s.change && s.change !== "same") : [];
+  return `<h3><span class="n">${ji + 1}</span>${gl(j.title)}</h3><p>${gl(j.summary || "")}</p>
+    ${(j.creates || []).length ? `<div class="creates"><b>What gets created</b><ul>${j.creates.map(c => `<li>${esc(c)}</li>`).join("")}</ul></div>` : ""}
+    ${changed.length ? `<div class="creates changes"><b>What changes</b><p>${countsHtml(changed)}</p></div>` : ""}
+    ${tech(j)}<div class="meta">${badges(j)}<span class="chip">${plural(slots.length, "step")}</span></div>`;
+}
 function renderJourneys(m) {
   const lanes = m.lanes || [];
+  const mode = modeOf(m);
   const LI = Object.fromEntries(lanes.map((l, i) => [l.id, i]));
   const laneX = i => J.headW + J.headGap + i * (J.laneW + J.laneGap);
   const lanesRight = laneX(lanes.length - 1) + J.laneW;
-  const notesX = lanesRight + 48;
+  const notesX = lanesRight + 56;
   const W = lanesRight + notesWidth();
   let y = header(m, W);
-  lanes.forEach((l, i) => place("lanehead", laneX(i), y, J.laneW, `${esc(l.label)}<small>${esc(l.sub || "")}</small>`));
+  lanes.forEach((l, i) => {
+    const h = place("lanehead", laneX(i), y, J.laneW, `<i style="background:${laneColor(i)}"></i>${esc(l.label)}<small>${esc(l.sub || "")}</small>`);
+    h.style.setProperty("--lane", laneColor(i));
+  });
   if (S.notesOnMap) place("label", notesX, y + 4, 0, "Notes from each role");
-  y += 60;
-  const laneTop = y - 70;
+  y += 66;
+  const laneTop = y - 78;
   (m.journeys || []).forEach((j, ji) => {
     const y0 = y;
-    const hd = place("box jhead inj", 0, y0, J.headW,
-      `<h3><span class="n">${ji + 1}</span>${gl(j.title)}</h3><p>${gl(j.summary || "")}</p>
-       ${(j.creates || []).length ? `<p class="sub small"><b>What it leaves behind:</b> ${j.creates.map(esc).join(", ")}</p>` : ""}
-       ${tech(j)}<div class="meta">${badges(j)}<span class="chip">${plural((j.steps || []).length, "step")}</span></div>`,
+    const slots = arrange(j.steps || [], mode);
+    const hd = place("box jhead inj", 0, y0, J.headW, journeyHead(m, j, ji, slots, mode),
       {type:"box", id:j.id}, `Journey ${ji + 1}: ${j.title}`);
     hd.dataset.row = "j" + ji;
     nodes[j.id] = hd;
     let sy = y0, prev = null;
-    (j.steps || []).forEach((s, k) => {
-      const x = laneX(LI[s.lane] || 0) + (J.laneW - J.stepW) / 2;
-      const el = place("box step inj", x, sy, J.stepW,
-        `<div class="row1"><span class="n">${k + 1}</span><div class="t">${gl(s.text)}</div></div>${tech(s)}
-         <div class="meta">${pill(s.status)}${badges(s)}</div>`,
-        {type:"box", id:s.id}, `Step ${k + 1} of journey ${ji + 1}: ${s.text}`);
+    slots.forEach((slot, k) => {
+      const s = slot.box;
+      const li = LI[s.lane] || 0;
+      const x = laneX(li) + (J.laneW - J.stepW) / 2;
+      const el = place(`box step inj${slot.change ? " chg-" + slot.change : ""}`, x, sy, J.stepW,
+        slotHtml(slot, stepInner(k + 1)),
+        {type:"box", id:s.id}, slotLabel(slot, `Step ${k + 1} of journey ${ji + 1}: ${s.text}`));
       el.style.minHeight = J.stepH + "px";
+      el.style.setProperty("--lane", laneColor(li));
       el.dataset.row = "j" + ji;
       nodes[s.id] = el;
       const h = el.offsetHeight;
       if (prev) {
-        const p = link(prev.x + J.stepW / 2, prev.y + prev.h, x + J.stepW / 2, sy - 2, "inj");
-        p.dataset.row = "j" + ji; arrowHead(x + J.stepW / 2, sy - 2);
+        const p = link(prev.x + J.stepW / 2, prev.y + prev.h, x + J.stepW / 2, sy - 3, "inj flow");
+        p.dataset.row = "j" + ji; arrowHead(x + J.stepW / 2, sy - 3);
       }
       prev = {x, y:sy, h};
       sy += h + J.rowGap;
@@ -677,7 +859,8 @@ function renderJourneys(m) {
   });
   lanes.forEach((l, i) => {
     const bg = document.createElement("div"); bg.className = "lanebg";
-    Object.assign(bg.style, {left:(laneX(i) - 8) + "px", top:laneTop + "px", width:(J.laneW + 16) + "px", height:(y - laneTop) + "px"});
+    Object.assign(bg.style, {left:(laneX(i) - 9) + "px", top:laneTop + "px", width:(J.laneW + 18) + "px", height:(y - laneTop - J.bandGap + 24) + "px"});
+    bg.style.setProperty("--lane", laneColor(i));
     world.prepend(bg);
   });
   return {x:0, y:0, w:W, h:y};
@@ -685,34 +868,41 @@ function renderJourneys(m) {
 
 /* A customer's actions run left to right, in the supplied order. */
 function renderCustomerJourney(m) {
-  const cardW = 250, gap = 64;
-  const count = Math.max(1, ...(m.journeys || []).map(j => (j.steps || []).length));
+  const cardW = 252, gap = 62;
+  const mode = modeOf(m);
+  const all = (m.journeys || []).map(j => arrange(j.steps || [], mode));
+  const count = Math.max(1, ...all.map(s => s.length));
   const timelineW = count * (cardW + gap) - gap;
-  const notesX = timelineW + 48;
+  const notesX = timelineW + 56;
   const W = timelineW + notesWidth();
+  const LI = Object.fromEntries((m.lanes || []).map((l, i) => [l.id, i]));
   let y = header(m, W);
   (m.journeys || []).forEach((j, ji) => {
     const start = y;
-    const hd = place("box timeline-title inj", 0, y, Math.min(600, timelineW),
-      `<h3>${gl(j.title)}</h3><p>${gl(j.summary || "")}</p>${tech(j)}<div class="meta">${badges(j)}</div>`,
-      {type:"box", id:j.id}, j.title);
+    const slots = all[ji];
+    const hd = place("box timeline-title inj", 0, y, Math.min(640, timelineW),
+      journeyHead(m, j, ji, slots, mode), {type:"box", id:j.id}, j.title);
     nodes[j.id] = hd; hd.dataset.row = "j" + ji;
-    y += hd.offsetHeight + 48;
+    y += hd.offsetHeight + 52;
     let maxH = 0, prev = null;
-    (j.steps || []).forEach((step, i) => {
+    slots.forEach((slot, i) => {
+      const step = slot.box;
       const x = i * (cardW + gap);
-      const lane = (m.lanes || []).find(l => l.id === step.lane);
-      place("label", x, y - 26, cardW, `${i + 1}. ${esc(lane ? lane.label : "Next step")}`);
-      const card = place("box customer-step inj", x, y, cardW,
-        `<h4>${gl(step.text)}</h4>${tech(step)}<div class="meta">${pill(step.status)}${badges(step)}</div>`,
-        {type:"box", id:step.id}, `Step ${i + 1}: ${step.text}`);
+      const li = LI[step.lane];
+      const lane = (m.lanes || [])[li];
+      const lb = place("steplabel", x, y - 28, cardW, `<i style="background:${laneColor(li || 0)}"></i>${i + 1}. ${esc(lane ? lane.label : "Next step")}`);
+      lb.dataset.row = "j" + ji;
+      const card = place(`box customer-step inj${slot.change ? " chg-" + slot.change : ""}`, x, y, cardW,
+        slotHtml(slot, b => `<h4>${gl(b.text)}</h4>${tech(b)}<div class="meta">${pill(b.status)}${badges(b)}</div>`),
+        {type:"box", id:step.id}, slotLabel(slot, `Step ${i + 1}: ${step.text}`));
+      card.style.setProperty("--lane", laneColor(li || 0));
       card.dataset.row = "j" + ji; nodes[step.id] = card;
       maxH = Math.max(maxH, card.offsetHeight);
       if (prev !== null) {
-        const line = link(prev + cardW, y + 30, x - 8, y + 30, "inj customer-flow");
+        const line = link(prev + cardW + 6, y + 32, x - 10, y + 32, "inj customer-flow");
         line.dataset.row = "j" + ji;
         const arrow = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        arrow.setAttribute("d", `M${x - 16},${y + 24} L${x - 8},${y + 30} L${x - 16},${y + 36}`);
+        arrow.setAttribute("d", `M${x - 18},${y + 26} L${x - 10},${y + 32} L${x - 18},${y + 38}`);
         arrow.setAttribute("class", "customer-flow"); svg.appendChild(arrow);
       }
       prev = x;
@@ -720,59 +910,56 @@ function renderCustomerJourney(m) {
     const nh = notePile([j.id, ...(j.steps || []).map(step => step.id)], notesX, start, 4, "j" + ji);
     const h = Math.max(y - start + maxH, nh);
     rows.push({key:"j" + ji, y:start, h, x:0, w:W});
-    y = start + h + 64;
+    y = start + h + 70;
   });
   return {x:0, y:0, w:W, h:y};
 }
 
 /* ---------- chain ---------- */
-const C = {stageW:300, stageH:96, itemW:250, itemGap:14, perRow:3, gap:64};
+const C = {stageW:300, stageH:104, itemW:262, itemGap:16, perRow:3, gap:70};
+const itemInner = b => `<h4>${gl(b.title)}</h4><p class="t">${gl(b.text || "")}</p>${tech(b)}<div class="meta">${pill(b.status)}${badges(b)}</div>`;
 function renderChain(m) {
-  const compare = S.mode === "compare";
-  const itemsX = C.stageW + 50;
-  const perRow = compare ? 2 : C.perRow;
-  const columnW = perRow * (C.itemW + C.itemGap) - C.itemGap;
-  const versions = compare ? ["today", "planned"] : [S.mode];
-  const notesX = itemsX + versions.length * (columnW + 44) + 34;
-  const W = notesX - 34 + notesWidth();
+  const mode = modeOf(m);
+  const itemsX = C.stageW + 64;
+  const columnW = C.perRow * (C.itemW + C.itemGap) - C.itemGap;
+  const notesX = itemsX + columnW + 56;
+  const W = notesX - 56 + notesWidth();
   let y = header(m, W);
-  place("label", 0, y, 0, "Stage");
-  versions.forEach((version, i) => place("label", itemsX + i * (columnW + 44), y, columnW,
-    version === "today" ? "Current" : "Proposed · dashed boxes are new"));
+  place("label", 0, y, 0, "The chain");
+  place("label", itemsX, y, columnW, {today:"What exists today", planned:"What the plan puts in place", changes:"The plan, with every change marked", all:"What is here"}[mode]);
   if (S.notesOnMap) place("label", notesX, y, 0, "Notes from each role");
-  y += 30;
+  y += 34;
   let prevStage = null;
   (m.stages || []).forEach((st, si) => {
     const y0 = y;
     const stEl = place(`box stage inj${si === 0 ? " first-stage" : ""}`, 0, y0, C.stageW,
-      `<h3>${gl(st.label)}</h3><p>${gl(st.sub || "")}</p>${tech(st)}<div class="meta">${badges(st)}</div>`,
+      `<span class="stagenum">${si + 1}</span><h3>${gl(st.label)}</h3><p>${gl(st.sub || "")}</p>${tech(st)}<div class="meta">${badges(st)}</div>`,
       {type:"box", id:st.id}, `Stage ${si + 1}: ${st.label}`);
     stEl.style.minHeight = C.stageH + "px";
     stEl.dataset.row = "s" + si; nodes[st.id] = stEl;
-    let ih = 0;
-    versions.forEach((version, vi) => {
-      const items = (st.items || []).filter(it => (it.when || "both") === "both" || it.when === version);
-      const columnX = itemsX + vi * (columnW + 44);
-      let rowMax = 0, iy = y0, col = 0;
-      items.forEach(it => {
-        const el = place(`box item inj${it.when === "planned" ? " planned-new" : ""}`,
-          columnX + col * (C.itemW + C.itemGap), iy, C.itemW,
-          `<h4>${gl(it.title)}</h4><p class="t">${gl(it.text || "")}</p>${tech(it)}<div class="meta">${pill(it.status)}${badges(it)}${compare && (it.when || "both") === "both" ? '<span class="chip">Unchanged</span>' : ""}</div>`,
-          {type:"box", id:it.id}, `${compare ? version === "today" ? "Current: " : "Proposed: " : ""}${it.title}`);
-        el.dataset.row = "s" + si;
-        if (!nodes[it.id]) nodes[it.id] = el;
-        rowMax = Math.max(rowMax, el.offsetHeight);
-        if (++col === perRow) { col = 0; iy += rowMax + C.itemGap; rowMax = 0; }
-      });
-      ih = Math.max(ih, iy - y0 + rowMax);
-      if (!items.length) { place("label", columnX, y0 + 10, columnW, version === "planned" ? "Nothing proposed here" : "Nothing here today"); ih = Math.max(ih, 40); }
+    const slots = arrange(st.items || [], mode);
+    let rowMax = 0, iy = y0, col = 0;
+    slots.forEach(slot => {
+      const it = slot.box;
+      const el = place(`box item inj${slot.change ? " chg-" + slot.change : ""}`,
+        itemsX + col * (C.itemW + C.itemGap), iy, C.itemW, slotHtml(slot, itemInner),
+        {type:"box", id:it.id}, slotLabel(slot, it.title));
+      el.dataset.row = "s" + si;
+      nodes[it.id] = el;
+      rowMax = Math.max(rowMax, el.offsetHeight);
+      if (++col === C.perRow) { col = 0; iy += rowMax + C.itemGap; rowMax = 0; }
     });
+    let ih = iy - y0 + rowMax;
+    if (!slots.length) {
+      const e = place("emptyslot", itemsX, y0, C.itemW, mode === "today" ? "Nothing here today" : mode === "planned" ? "Nothing planned here" : "Nothing here yet");
+      e.dataset.row = "s" + si; ih = e.offsetHeight;
+    }
     const nh = notePile([st.id, ...(st.items || []).map(i => i.id)], notesX, y0, 4, "s" + si);
     const h = Math.max(stEl.offsetHeight, ih, nh);
     rows.push({key:"s" + si, y:y0, h, x:0, w:W});
     if (prevStage) {
-      const p = link(C.stageW / 2, prevStage.y + prevStage.h, C.stageW / 2, y0 - 2, "inj", prevStage.verb);
-      p.dataset.row = "s" + si; arrowHead(C.stageW / 2, y0 - 2);
+      const p = link(C.stageW / 2, prevStage.y + prevStage.h + 4, C.stageW / 2, y0 - 6, "inj spine", prevStage.verb);
+      p.dataset.row = "s" + si; arrowHead(C.stageW / 2, y0 - 6);
     }
     prevStage = {y:y0, h:stEl.offsetHeight, verb:st.verb || ""};
     y = y0 + h + C.gap;
@@ -871,7 +1058,8 @@ function renderTree(m) {
 
 /* Named connections come from the model, never from the card positions. */
 function visibleLinks() {
-  return (MODEL.links || []).filter(l => S.mode === "compare" || (l.when || "both") === "both" || l.when === S.mode);
+  const mode = modeOf(MODEL.maps[S.map]);
+  return (MODEL.links || []).filter(l => mode === "changes" || mode === "all" || (l.when || "both") === "both" || l.when === mode);
 }
 function drawConnections() {
   const connections = visibleLinks().filter(l => nodes[l.from] && nodes[l.to]);
@@ -912,31 +1100,95 @@ function applyConnections() {
 
 /* ---------- render ---------- */
 let bounds = {x:0, y:0, w:1000, h:800};
+/* Dashed lines join each note on the map to the box it is about. */
+function drawNoteLinks() {
+  world.querySelectorAll(".notecard").forEach(note => {
+    const box = nodes[note.dataset.anchor];
+    if (!box) return;
+    const nx = parseFloat(note.style.left), ny = parseFloat(note.style.top) + 22;
+    const bx = parseFloat(box.style.left) + box.offsetWidth, by = parseFloat(box.style.top) + Math.min(box.offsetHeight / 2, 40);
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    const mx = bx + (nx - bx) * 0.55;
+    path.setAttribute("d", `M${bx + 4},${by} C${mx},${by} ${mx},${ny} ${nx - 4},${ny}`);
+    path.setAttribute("class", "notelink inj"); path.dataset.row = note.dataset.row;
+    path.style.stroke = note.style.getPropertyValue("--role");
+    svg.appendChild(path);
+  });
+}
 function layout() {
   world.innerHTML = "";
-  nodes = {}; rows = [];
+  nodes = {}; rows = []; K = 0;
   svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.setAttribute("class", "links"); svg.setAttribute("aria-hidden", "true");
   world.appendChild(svg);
   const m = MODEL.maps[S.map];
   const kind = KIND[m.template];
+  document.body.dataset.mode = modeOf(m);
   bounds = m.template === "customer-journey" ? renderCustomerJourney(m) : kind === "journeys" ? renderJourneys(m) : kind === "chain" ? renderChain(m) : renderTree(m);
+  drawNoteLinks();
   drawConnections();
   applyFocus();
   if (current && current.kind === "box" && nodes[current.arg]) nodes[current.arg].classList.add("sel");
+  syncPanes();
 }
 function render() {
   layout();
   topBar();
   story();
 }
+/* Side by side: the same drawing twice, today on the left and the plan on the right, with
+   one pan and zoom. The right copy is for looking; clicks open the matching box. */
+const world2 = $("#world2"), viewport2 = $("#viewport2");
+function syncPanes() {
+  const on = sbsOn();
+  document.body.classList.toggle("sbs", on);
+  world.classList.toggle("pane-today", on);
+  world2.innerHTML = "";
+  if (!on) return;
+  const copy = world.cloneNode(true);
+  world2.append(...copy.childNodes);
+  world2.querySelectorAll("[tabindex]").forEach(e => e.setAttribute("tabindex", "-1"));
+  world2.querySelectorAll("[id]").forEach(e => e.removeAttribute("id"));
+}
+function twin(el) {
+  if (!el || !el.dataset.k) return null;
+  const other = el.closest("#world2") ? world : world2;
+  return other.querySelector(`[data-k="${el.dataset.k}"]`);
+}
+const pairline = $("#pairline");
+function showPair(el) {
+  const t = twin(el);
+  document.querySelectorAll(".pair").forEach(x => x.classList.remove("pair"));
+  if (!sbsOn() || !t) { pairline.style.display = "none"; return; }
+  const [a, b] = el.closest("#world2") ? [t, el] : [el, t];
+  a.classList.add("pair"); b.classList.add("pair");
+  const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+  const x1 = ra.right, y1 = ra.top + Math.min(ra.height / 2, 30), x2 = rb.left, y2 = rb.top + Math.min(rb.height / 2, 30);
+  const len = Math.hypot(x2 - x1, y2 - y1);
+  Object.assign(pairline.style, {display:"block", left:x1 + "px", top:y1 + "px", width:len + "px", transform:`rotate(${Math.atan2(y2 - y1, x2 - x1)}rad)`});
+}
+[world, world2].forEach(w => {
+  w.addEventListener("mouseover", e => { const el = e.target.closest("[data-k]"); if (el) showPair(el); });
+  w.addEventListener("mouseleave", () => showPair(null));
+});
 
 /* ---------- pan and zoom ---------- */
 let Z = 1, X = 40, Y = 80;
 const leftEdge = () => S.story && getComputedStyle($("#story")).display !== "none" ? $("#story").getBoundingClientRect().right : 0;
 const rightEdge = () => document.body.classList.contains("panel-open") && innerWidth > 720 ? innerWidth - $("#panel").getBoundingClientRect().left : 0;
+/* The drawing area: the whole screen with the side lists as insets, or in Side by side the
+   left half of the space between them. X and Y are measured from the pane's corner. */
+function pane() {
+  if (!sbsOn()) return {x:0, w:innerWidth, l:leftEdge(), r:rightEdge()};
+  const l = leftEdge(), w = Math.floor((innerWidth - l - rightEdge()) / 2);
+  return {x:l, w, l:0, r:0};
+}
 function apply() {
-  world.style.transform = `translate(${X}px,${Y}px) scale(${Z})`;
+  const P = pane(), on = sbsOn();
+  Object.assign(viewport.style, on ? {left:P.x + "px", width:P.w + "px", right:"auto"} : {left:"", width:"", right:""});
+  Object.assign(viewport2.style, on ? {left:(P.x + P.w) + "px", width:P.w + "px"} : {left:"", width:""});
+  const tf = `translate(${X}px,${Y}px) scale(${Z})`;
+  world.style.transform = tf; world2.style.transform = tf;
   document.documentElement.style.setProperty("--z", Z);
   const inv = Math.min(2.4, Math.max(1, 0.62 / Z));
   const changed = document.body.classList.contains("z-far") !== (Z < 0.55) ||
@@ -944,21 +1196,29 @@ function apply() {
   document.documentElement.style.setProperty("--inv", inv);
   document.body.classList.toggle("z-far", Z < 0.55);
   if (changed) layout();
+  pairline.style.display = "none";
 }
 function zoomAt(f, cx, cy) {
+  const P = pane();
+  const ox = sbsOn() && cx >= P.x + P.w ? P.x + P.w : P.x;
+  const lx = cx - ox;
   const nz = Math.min(MAX_Z, Math.max(MIN_Z, Z * f));
-  X = cx - (cx - X) * (nz / Z); Y = cy - (cy - Y) * (nz / Z); Z = nz; apply();
+  X = lx - (lx - X) * (nz / Z); Y = cy - (cy - Y) * (nz / Z); Z = nz; apply();
 }
 const bottomEdge = () => document.body.classList.contains("panel-open") && innerWidth <= 720 ? innerHeight - $("#panel").getBoundingClientRect().top : 0;
-const topEdge = () => S.notesOnMap && NOTES.length ? TOP_H + 50 : TOP_H;
-const viewCenter = () => [leftEdge() + (innerWidth - leftEdge() - rightEdge()) / 2, topEdge() + (innerHeight - topEdge() - bottomEdge()) / 2];
+const topEdge = () => (S.notesOnMap && NOTES.length ? TOP_H + 50 : TOP_H) + (sbsOn() ? 34 : 0);
+const viewCenter = () => { const P = pane(); return [P.x + P.l + (P.w - P.l - P.r) / 2, topEdge() + (innerHeight - topEdge() - bottomEdge()) / 2]; };
 function fitTo(b) {
-  const vw = innerWidth - leftEdge() - rightEdge() - 40, vh = innerHeight - topEdge() - bottomEdge() - 40;
-  let z = Math.min(vw / b.w, vh / b.h) * 0.95;
-  const tall = z < MIN_Z + 0.08;
-  if (tall) z = Math.min(1, Math.max(MIN_Z + 0.1, vw / b.w * 0.96));   // too tall: fit the width, start at the top
+  const P = pane();
+  const vw = P.w - P.l - P.r - 40, vh = innerHeight - topEdge() - bottomEdge() - 40;
+  const zw = vw / b.w * 0.96, zh = vh / b.h * 0.95;
+  let z = Math.min(zw, zh);
+  // A tall map would shrink until its words are unreadable: fit the width instead and start
+  // at the top, so people scroll down through readable boxes.
+  const tall = zh < 0.62 && zw > zh * 1.2;
+  if (tall) z = Math.min(1, Math.max(sbsOn() ? MIN_Z : MIN_Z + 0.1, zw));
   Z = Math.min(1.3, Math.max(MIN_Z, z));
-  X = leftEdge() + 20 + Math.max(0, (vw - b.w * Z) / 2) - b.x * Z;
+  X = P.l + 20 + Math.max(0, (vw - b.w * Z) / 2) - b.x * Z;
   Y = topEdge() + 20 + (tall ? 0 : Math.max(0, (vh - b.h * Z) / 2)) - b.y * Z;
   apply();
 }
@@ -971,20 +1231,22 @@ function centerOn(el) {
   const x = parseFloat(el.style.left) + el.offsetWidth / 2, y = parseFloat(el.style.top) + el.offsetHeight / 2;
   if (Z < 0.75) Z = 0.9;
   const [cx, cy] = viewCenter();
-  X = cx - x * Z; Y = cy - y * Z; apply();
+  X = cx - pane().x - x * Z; Y = cy - y * Z; apply();
 }
 let drag = null;
-viewport.addEventListener("pointerdown", e => {
-  if (e.target.closest(".box,.notecard,.morenotes,button")) return;
-  drag = {x:e.clientX, y:e.clientY, X, Y}; viewport.classList.add("dragging"); viewport.setPointerCapture(e.pointerId);
+[viewport, viewport2].forEach(vp => {
+  vp.addEventListener("pointerdown", e => {
+    if (e.target.closest(".box,.notecard,.morenotes,button")) return;
+    drag = {x:e.clientX, y:e.clientY, X, Y, vp}; vp.classList.add("dragging"); vp.setPointerCapture(e.pointerId);
+  });
+  vp.addEventListener("pointermove", e => { if (!drag) return; X = drag.X + e.clientX - drag.x; Y = drag.Y + e.clientY - drag.y; apply(); });
+  vp.addEventListener("pointerup", () => { if (drag) drag.vp.classList.remove("dragging"); drag = null; });
+  vp.addEventListener("wheel", e => {
+    e.preventDefault();
+    if (e.ctrlKey || e.metaKey) zoomAt(Math.exp(-e.deltaY * 0.01), e.clientX, e.clientY);
+    else { X -= e.deltaX; Y -= e.deltaY; apply(); }
+  }, {passive:false});
 });
-viewport.addEventListener("pointermove", e => { if (!drag) return; X = drag.X + e.clientX - drag.x; Y = drag.Y + e.clientY - drag.y; apply(); });
-viewport.addEventListener("pointerup", () => { drag = null; viewport.classList.remove("dragging"); });
-viewport.addEventListener("wheel", e => {
-  e.preventDefault();
-  if (e.ctrlKey || e.metaKey) zoomAt(Math.exp(-e.deltaY * 0.01), e.clientX, e.clientY);
-  else { X -= e.deltaX; Y -= e.deltaY; apply(); }
-}, {passive:false});
 $("#zin").addEventListener("click", () => zoomAt(1.25, ...viewCenter()));
 $("#zout").addEventListener("click", () => zoomAt(1 / 1.25, ...viewCenter()));
 $("#zfit").addEventListener("click", () => fit());
@@ -995,48 +1257,67 @@ function applyFocus() {
   document.body.classList.toggle("dim", on);
   world.querySelectorAll(".inj").forEach(el => el.classList.toggle("hot", on && el.dataset.row === "j" + S.journey));
   svg.querySelectorAll("path").forEach(p => p.classList.toggle("hot", on && p.dataset.row === "j" + S.journey));
+  if (sbsOn()) syncPanes();
 }
 function showMap(i) { if (i !== S.map) { S.map = i; S.journey = -1; persist(); render(); } }
 function focusJourney(mi, ji) { showMap(mi); S.journey = ji; persist(); applyFocus(); story(); fit(); }
 function focusRow(mi, key) { showMap(mi); S.journey = -1; persist(); applyFocus(); story(); fitRow(key); }
-function setMode(m) { S.mode = m; persist(); render(); }
+function setMode(m) { S.mode = m; if (m !== "changes") S.sbs = false; persist(); render(); }
+function setSideBySide(on) {
+  if (on && innerWidth < 1000) return toast("Side by side needs a wider window. What changes shows the same on one map.");
+  S.sbs = on; if (on) S.mode = "changes"; persist(); render(); fit();
+}
 
 /* ---------- top bar ---------- */
-const ICONS = {
-  lines:'<path d="M4 6h6l4 12h6M16 14l4 4-4 4"/><circle cx="4" cy="6" r="2"/><circle cx="20" cy="18" r="2"/>',
-  notes:'<path d="M4 4h16v12H9l-5 4V4Z"/><path d="M8 8h8M8 12h5"/>',
-  tech:'<path d="M4 5h16M4 10h12M4 15h7M16 14v7M12.5 17.5h7"/>',
-  dots:'<path stroke-linecap="round" stroke-width="3" d="M5 5h.01M12 5h.01M19 5h.01M5 12h.01M12 12h.01M19 12h.01M5 19h.01M12 19h.01M19 19h.01"/>',
-  story:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M5.5 8h1M5.5 12h1"/>',
-  glossary:'<path d="M12 5v15M12 5C9 3 5 3 2 4v15c3-1 7-1 10 1 3-2 7-2 10-1V4c-3-1-7-1-10 1Z"/>'
-};
-function iconControl(action, label, on) {
-  const state = on === undefined ? "" : ` · ${on ? "On" : "Off"}`;
-  return `<button class="icon-control" data-tool="${action}" aria-label="${label}" title="${label}${state}"${on === undefined ? "" : ` aria-pressed="${on}"`}>
-    <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7">${ICONS[action]}</svg>
-    <span class="control-tip">${label}${state}</span>${on === undefined ? "" : '<span class="toggle-state" aria-hidden="true"></span>'}</button>`;
+/* Words, not icons: the view switch, one View menu for display options, the questions, the
+   save button and Tools. */
+function modeSwitch(where) {
+  const m = MODEL.maps[S.map];
+  if (!hasChanges(m)) return "";
+  const mode = modeOf(m);
+  return `<div class="seg mode-seg ${where}" role="group" aria-label="Today, planned, or what changes">
+    ${Object.entries(MODES).map(([k, l]) => `<button data-mode="${k}" aria-pressed="${mode === k && !(k === "changes" && sbsOn())}">${l}</button>`).join("")}
+    <button data-sbs class="sbs" aria-pressed="${sbsOn()}">Side by side</button></div>`;
+}
+function wireModeSwitch(root) {
+  root.querySelectorAll("[data-mode]").forEach(b => b.addEventListener("click", () => { setMode(b.dataset.mode); b.dataset.mode === "changes" ? fitFirstChange() : fit(); }));
+  root.querySelectorAll("[data-sbs]").forEach(b => b.addEventListener("click", () => { setSideBySide(!sbsOn()); if (sbsOn()) fitFirstChange(); }));
+}
+/* On a journey map the changes can sit far down: start at the first journey that changes. */
+function fitFirstChange() {
+  const m = MODEL.maps[S.map];
+  const ji = (m.journeys || []).findIndex(j => (j.steps || []).some(s => s.when === "today" || s.when === "planned"));
+  if (KIND[m.template] === "journeys" && ji > 0) fitRow("j" + ji); else fit();
+}
+function viewItems() {
+  const details = Object.values(BOX).some(info => info.mi === S.map && info.box.detail);
+  return [
+    NOTES.length ? ["notes", "Notes on the map", S.notesOnMap] : null,
+    (MODEL.links || []).length ? ["lines", "All connections", S.lines] : null,
+    details ? ["tech", "Technical names on the map", S.tech] : null,
+    ["dots", "Background dots", S.dots],
+    ["story", "List on the left", leftEdge() > 0],
+    TERMS.length ? ["glossary", "Word meanings", ""] : null,
+    ["key", "What the colours mean", ""],
+  ].filter(Boolean);
 }
 function topBar() {
-  const details = Object.values(BOX).filter(info => info.mi === S.map && info.box.detail);
+  const qn = questionList().length;
   $("#top").innerHTML = `
     <span class="title" title="${esc(MODEL.title)}">${esc(MODEL.title)}</span>
-    <div class="display-controls" role="group" aria-label="Map display">
-      ${KIND[MODEL.maps[S.map].template] === "chain" ? `<select id="view-version" aria-label="Current and proposed work">${[["compare","Compare"],["today","Current"],["planned","Proposed"]].map(([value,label]) => `<option value="${value}"${S.mode === value ? " selected" : ""}>${label}</option>`).join("")}</select>` : ""}
-      ${iconControl("story", "Left navigation", leftEdge() > 0)}
-      ${NOTES.length ? iconControl("notes", "Notes beside boxes", S.notesOnMap) : ""}
-      ${(MODEL.links || []).length ? iconControl("lines", "All connections", S.lines) : ""}
-      ${details.length ? iconControl("tech", "Extra details on the map", S.tech) : ""}
-      ${iconControl("dots", "Background dots", S.dots)}
-      ${TERMS.length ? iconControl("glossary", "Word meanings") : ""}
-    </div>
+    ${modeSwitch("in-top")}
+    <button id="tview" aria-haspopup="true" aria-expanded="false">View ▾</button>
+    <button id="tquestions" class="primary"><span class="wide-label">Questions to decide</span><span class="short-label">Questions</span><span class="count">${qn}</span></button>
     <button id="tsave" class="save-primary">${SESSION ? S.sessionFinished ? "Read my answers" : "Finish review" : "Save my answers"}</button>
     <button id="tshare" aria-haspopup="true" aria-expanded="false">Tools ▾</button>`;
   roleStrip();
-  const version = $("#view-version"); if (version) version.addEventListener("change", () => { setMode(version.value); fit(); });
-  $("#top").querySelectorAll("[data-tool]").forEach(button => button.addEventListener("click", () => { const action = button.dataset.tool; act(action); const next = $("#top [data-tool=" + action + "]"); if (next) next.focus({preventScroll:true}); }));
+  wireModeSwitch($("#top"));
+  $("#tview").addEventListener("click", e => menu(e.currentTarget, viewItems()));
+  $("#tquestions").addEventListener("click", () => open("questions"));
   $("#tsave").addEventListener("click", () => SESSION && S.sessionFinished ? open("reviewsummary") : saveReview());
   $("#tshare").addEventListener("click", e => menu(e.currentTarget, [
     ["walk", "Walk me through it", ""],
+    ...(hasChanges(MODEL.maps[S.map]) ? [["walkchanges", "Walk through the changes", ""]] : []),
     [SESSION ? "backup" : "save", SESSION ? "Download a backup copy" : "Save my answers as a file", ""],
     ["copy", "Copy the questions as a list", ""], ["paper", "Print the questions", ""],
     ["print", "Print this view", ""], ["roles", "Whose notes to show", ""],
@@ -1063,7 +1344,9 @@ function menu(btn, items) {
   document.querySelectorAll("#top [aria-expanded]").forEach(b => b.setAttribute("aria-expanded", "false"));
   if (reopen) return;
   mm._from = btn;
-  mm.innerHTML = items.map(([a, label, state]) => `<button role="menuitem" data-a="${a}"><span>${label}</span><span class="state">${state}</span></button>`).join("");
+  mm.innerHTML = items.map(([a, label, state]) => typeof state === "boolean"
+    ? `<button role="menuitemcheckbox" aria-checked="${state}" aria-label="${label}" data-a="${a}"><span>${label}</span><span class="state" aria-hidden="true">${state ? "On" : "Off"}</span></button>`
+    : `<button role="menuitem" data-a="${a}"><span>${label}</span><span class="state">${state}</span></button>`).join("");
   const r = btn.getBoundingClientRect();
   mm.style.left = Math.max(8, Math.min(r.left, innerWidth - 290)) + "px"; mm.style.top = (r.bottom + 6) + "px";
   mm.classList.add("open"); btn.setAttribute("aria-expanded", "true");
@@ -1073,6 +1356,7 @@ function menu(btn, items) {
 document.addEventListener("click", e => { if (!e.target.closest("#menu,#tshare,#tview")) $("#menu").classList.remove("open"); });
 function act(a) {
   if (a === "walk") walk(0);
+  if (a === "walkchanges") walkChanges(0);
   if (a === "tech" && !Object.values(BOX).some(info => info.mi === S.map && info.box.detail)) return toast("This map has no extra box details.");
   if (a === "lines") { S.lines = !S.lines; persist(); topBar(); applyConnections(); }
   if (a === "glossary") open("glossary");
@@ -1096,7 +1380,6 @@ function act(a) {
 /* ---------- left story list ---------- */
 function setStory(on) { document.body.classList.toggle("show-navigation", on); S.story = on; persist(); document.body.classList.toggle("nostory", !on); story(); topBar(); fit(); }
 $("#storytab").addEventListener("click", () => setStory(true));
-let exploringMaps = false;
 function story() {
   const el = $("#story");
   if (!S.story) { el.innerHTML = ""; return; }
@@ -1107,13 +1390,20 @@ function story() {
     if (kind === "journeys") sub = (m.journeys || []).map((j, ji) => `<li><button class="view" data-j="${mi}:${ji}" aria-current="${cur && S.journey === ji}"><b><span class="num">${mi + 1}.${ji + 1}</span>${esc(j.title)}</b><span>${esc(j.summary || plural((j.steps || []).length, "step"))}</span></button></li>`).join("");
     if (kind === "chain") sub = (m.stages || []).map((st, si) => `<li><button class="view" data-row="${mi}:s${si}"><b><span class="num">${mi + 1}.${si + 1}</span>${esc(st.label)}</b><span>${esc(st.sub || "")}</span></button></li>`).join("");
     if (kind === "tree") sub = (m.root.children || []).map((b, bi) => `<li><button class="view" data-row="${mi}:b${bi}"><b><span class="num">${mi + 1}.${bi + 1}</span>${esc(b.title)}</b><span>${plural((b.children || []).length, "idea")}</span></button></li>`).join("");
-    const seg = kind === "chain" && cur ? `<div class="seg" role="group" aria-label="Current and proposed work"><button data-mode="compare" aria-pressed="${S.mode === "compare"}">Compare</button><button data-mode="today" aria-pressed="${S.mode === "today"}">Current</button><button data-mode="planned" aria-pressed="${S.mode === "planned"}">Proposed</button></div>` : "";
-    return `<li><button class="view" data-map="${mi}" aria-current="${cur && S.journey < 0}"><b><span class="num">${mi + 1}.</span>${esc(m.title)}</b><span>${esc(m.intro || "")}</span></button>${seg}<ol class="sub">${sub}</ol></li>`;
+    const tag = hasChanges(m) ? `<span class="viewtag">${countsText(changeList(m))}</span>` : "";
+    return `<li class="${cur ? "cur" : ""}"><button class="view top-view" data-map="${mi}" aria-current="${cur && S.journey < 0}"><b><span class="num">${mi + 1}.</span>${esc(m.title)}</b><span>${esc(m.intro || "")}</span>${tag}</button>${cur ? modeSwitch("in-story") : ""}${cur ? `<ol class="sub">${sub}</ol>` : ""}</li>`;
   }).join("");
+  const m = MODEL.maps[S.map];
+  const changes = hasChanges(m) ? changeList(m) : [];
   const qs = questionList(), done = qs.filter(q => answerDone(q.n)).length;
   const active = current && current.kind;
   el.innerHTML = `<button class="hide" data-hide>Hide list</button>
     <div class="small">The decision</div><p class="q">${gl(MODEL.question, true)}</p>
+    <button class="walkbtn" data-walk>▶ Walk me through it</button>
+    <h2>The maps</h2><ol class="maps">${views}</ol>
+    ${changes.length ? `<h2>What changes on this map</h2><p class="chg-legend">${countsHtml(changes)}</p>
+      <button class="walkbtn alt" data-walk-changes>▶ Walk through the changes</button>
+      <ol class="changes">${changes.map((c, i) => `<li><button class="view chg" data-change="${i}"><span class="ribbon ${c.change}">${CHANGE_WORD[c.change]}</span><b>${esc(titleOf(c.box))}</b>${c.before ? `<span>Today: ${esc(titleOf(c.before))}</span>` : ""}</button></li>`).join("")}</ol>` : ""}
     <h2>Your review</h2><p class="small">${done} of ${qs.length} questions answered</p>
     <div class="more workflow">
       <button data-open="reviewstart" aria-current="${active === 'reviewstart'}">1. Understand the decision</button>
@@ -1121,24 +1411,25 @@ function story() {
       <button data-open="reviewsummary" aria-current="${active === 'reviewsummary'}">3. Check your answers</button>
     </div>
     <h2>Supporting material</h2><div class="more">
-      <button data-explore aria-current="${exploringMaps}">Explore the map</button>
       ${MODEL.comparison ? `<button data-open="comparison">Compare the options</button>` : ""}
       <button data-open="evidence">Supporting sources</button>
       ${DECISIONS.length ? `<button data-open="decisions">Decision record</button>` : ""}
       ${GAPS.length ? `<button data-open="gaps">Changes to consider</button>` : ""}
       ${MODEL.reading ? `<button data-open="reading">How to read the map</button>` : ""}
-    </div>
-    ${exploringMaps ? `<h2>Map views</h2><ol>${views}</ol>` : ""}`;
+    </div>`;
   el.querySelector("[data-hide]").addEventListener("click", () => setStory(false));
-  el.querySelector("[data-give]").addEventListener("click", () => {
-    exploringMaps = false;
-    goReview(Math.max(0, qs.findIndex(q => !answerDone(q.n))));
-  });
-  el.querySelector("[data-explore]").addEventListener("click", () => { exploringMaps = !exploringMaps; close(); story(); fit(); });
+  el.querySelector("[data-walk]").addEventListener("click", () => walk(0));
+  const wc = el.querySelector("[data-walk-changes]"); if (wc) wc.addEventListener("click", () => walkChanges(0));
+  el.querySelector("[data-give]").addEventListener("click", () => goReview(Math.max(0, qs.findIndex(q => !answerDone(q.n)))));
   el.querySelectorAll("[data-map]").forEach(b => b.addEventListener("click", () => { showMap(+b.dataset.map); S.journey = -1; persist(); applyFocus(); story(); fit(); }));
   el.querySelectorAll("[data-j]").forEach(b => b.addEventListener("click", () => { const [mi, ji] = b.dataset.j.split(":").map(Number); focusJourney(mi, ji); }));
   el.querySelectorAll("[data-row]").forEach(b => b.addEventListener("click", () => { const [mi, key] = b.dataset.row.split(":"); focusRow(+mi, key); }));
-  el.querySelectorAll("[data-mode]").forEach(b => b.addEventListener("click", () => setMode(b.dataset.mode)));
+  el.querySelectorAll("[data-change]").forEach(b => b.addEventListener("click", () => {
+    const c = changes[+b.dataset.change];
+    if (modeOf(m) === "today" || modeOf(m) === "planned") setMode("changes");
+    open("box", c.box.id); jumpTo(c.box.id);
+  }));
+  wireModeSwitch(el);
   el.querySelectorAll("[data-open]").forEach(b => b.addEventListener("click", () => open(b.dataset.open)));
   wireTerms(el);
 }
@@ -1155,7 +1446,7 @@ function steps() {
       out.push({title:`${ji + 1}. ${j.title}`, text:(j.summary || "") + ` ${plural((j.steps || []).length, "step")}.` + (moments.length ? ` Moments that matter: ${moments.join("; ")}.` : ""), go:() => focusJourney(mi, ji)});
     });
     if (kind === "chain") (m.stages || []).forEach((st, si) => {
-      const items = (st.items || []).filter(it => (it.when || "both") === "both" || it.when === S.mode).map(it => it.title);
+      const items = arrange(st.items || [], modeOf(m)).map(slot => slotLabel(slot, slot.box.title));
       out.push({title:`${si + 1}. ${st.label}`, text:`${st.sub || ""}. ${items.length ? items.join("; ") + "." : "Nothing here yet."}`, go:() => focusRow(mi, "s" + si)});
     });
     if (kind === "tree") (m.root.children || []).forEach((b, bi) => {
@@ -1171,11 +1462,11 @@ function steps() {
   out.push({title:"What we need to decide", text:`${plural(qs.length, "question")}, ${must} that must be decided. Answer them on the right, then press Save my answers. Send the downloaded file to the review owner.`, panel:true, go:() => open("questions")});
   return out;
 }
-let walkAt = -1;
+let walkAt = -1, walkKind = "tour";
 function walk(i) {
   const list = steps();
   if (i < 0 || i >= list.length) return endWalk();
-  walkAt = i;
+  walkAt = i; walkKind = "tour";
   hideHint();
   const s = list[i];
   if (!s.panel) close();
@@ -1192,12 +1483,37 @@ function walk(i) {
   wireTerms(w);
 }
 function endWalk() { walkAt = -1; $("#walk").classList.remove("open"); }
+const stepWalk = d => walkKind === "changes" ? walkChanges(walkAt + d) : walk(walkAt + d);
+/* One change at a time: the box is outlined on the map and its before and after open on the right. */
+function walkChanges(i) {
+  const m = MODEL.maps[S.map];
+  const list = changeList(m);
+  if (!list.length || i < 0 || i >= list.length) return endWalk();
+  walkAt = i; walkKind = "changes";
+  hideHint();
+  if (modeOf(m) !== "changes") { S.mode = "changes"; persist(); render(); }
+  const c = list[i];
+  open("box", c.box.id);
+  jumpTo(c.box.id);
+  const what = c.change === "changed" ? `Today: ${esc(titleOf(c.before))}. In the plan: ${esc(titleOf(c.box))}.`
+    : c.change === "new" ? "Not there today. The plan adds it." : "There today. The plan drops it.";
+  const w = $("#walk");
+  w.innerHTML = `<div class="step">Change ${i + 1} of ${list.length} · ${countsText(list)}</div>
+    <h3><span class="ribbon ${c.change}">${CHANGE_WORD[c.change]}</span> ${esc(titleOf(c.box))}</h3><p>${what}</p>
+    <div class="row"><button data-w="back"${i === 0 ? " disabled" : ""}>Back</button><span class="grow"></span>
+    <button data-w="end">End the walk-through</button><button class="next" data-w="next">${i === list.length - 1 ? "Finish" : "Next"}</button></div>`;
+  w.classList.add("open");
+  w.querySelector('[data-w="back"]').addEventListener("click", () => walkChanges(walkAt - 1));
+  w.querySelector('[data-w="next"]').addEventListener("click", () => walkChanges(walkAt + 1));
+  w.querySelector('[data-w="end"]').addEventListener("click", endWalk);
+  w.querySelector('[data-w="next"]').focus();
+}
 
 /* ---------- first-visit hint ---------- */
 function hint() {
   if (S.hintSeen) return;
   const h = $("#hint");
-  h.innerHTML = `<b>New here?</b> Press <b>Walk me through it</b> in Tools for a short tour, or click any box to read about it. ${SESSION ? "Answer questions on the right. Your answers save for your agent automatically; press Finish review when ready." : "Answer questions on the right, then press Save my answers. Send the downloaded file to the review owner."}<br><button id="hintok">Got it</button>`;
+  h.innerHTML = `<b>New here?</b> Pick a view on the left, or press <b>Walk me through it</b>. Click any box to read about it. ${hasChanges(MODEL.maps[S.map]) ? "Use <b>Today</b>, <b>Planned</b> and <b>What changes</b> to see the plan. " : ""}${SESSION ? "Answer questions on the right. Your answers save for your agent automatically; press Finish review when ready." : "Answer questions on the right, then press Save my answers. Send the downloaded file to the review owner."}<br><button id="hintok">Got it</button>`;
   h.classList.add("open");
   $("#hintok").addEventListener("click", hideHint);
 }
@@ -1225,6 +1541,27 @@ function close() {
   current = null; topBar(); applyConnections(); world.querySelectorAll(".sel").forEach(x => x.classList.remove("sel")); story(); fit();
 }
 
+/* What the plan does to this box: new, gone, or before and after with the words that change. */
+function changeSection(id) {
+  const c = CHANGE_INFO[id];
+  if (!c) return "";
+  if (c.change === "new") return `<section class="change new"><span class="ribbon new">New</span><p>Not there today. The plan adds this.</p></section>`;
+  if (c.change === "gone") return `<section class="change gone"><span class="ribbon gone">Goes away</span><p>There today. The plan drops it.</p></section>`;
+  const before = c.change === "replaced" ? c.box : c.before, after = c.change === "replaced" ? c.by : c.box;
+  const field = (label, a, b) => {
+    if (!a && !b) return "";
+    const [da, db] = a === b ? [esc(a), esc(b)] : wordDiff(a, b);
+    return `<div class="ba-row"><div class="ba-label">${label}</div><div class="ba-cell before">${da || "<i>None</i>"}</div><div class="ba-cell after">${db || "<i>None</i>"}</div></div>`;
+  };
+  const st = x => x.status ? STATUS[x.status] : "";
+  return `<section class="change changed"><span class="ribbon changed">Changed</span>
+    ${c.change === "replaced" ? `<p>This is how it works today. In the plan it becomes <button class="mini" data-jump-to="${esc(after.id)}">${esc(titleOf(after))}</button>.</p>` : "<p>The plan changes this. Words that go are struck through; words that arrive are marked.</p>"}
+    <div class="ba"><div class="ba-row head"><div class="ba-label"></div><div class="ba-cell before">Today</div><div class="ba-cell after">In the plan</div></div>
+    ${field(before.title ? "Name" : "What happens", titleOf(before), titleOf(after))}
+    ${before.title || after.title ? field("In short", before.text || "", after.text || "") : ""}
+    ${field("Status", st(before), st(after))}
+    ${S.tech ? field("Technical", before.detail || "", after.detail || "") : ""}</div></section>`;
+}
 function evidenceHtml(refs) {
   return (refs || []).map(r => {
     const e = EVID[r]; if (!e) return "";
@@ -1307,17 +1644,18 @@ const PANELS = {
     const notes = notesOn(id);
     const where = info.kind === "step" ? `Step ${info.k + 1} · ${esc(lane ? lane.label : b.lane)}` : info.kind === "journey" ? `Journey ${info.ji + 1}` : info.kind === "stage" ? `Stage ${info.si + 1}` : "";
     return [esc(titleOf(b)), `
+      ${changeSection(id)}
       <p class="small">${where} ${pill(b.status)}</p>
       ${b.title && b.text ? `<p>${gl(b.text, true)}</p>` : ""}${b.summary ? `<p>${gl(b.summary, true)}</p>` : ""}${b.sub ? `<p>${gl(b.sub, true)}</p>` : ""}
       ${b.pain ? `<p><b>Pain point:</b> ${gl(b.pain, true)}</p>` : ""}
       ${b.moment ? `<p><b>A moment that matters.</b> Get this right and people trust the rest.</p>` : ""}
       ${b.feeling ? `<p><i class="feel ${b.feeling}"></i>${FEEL[b.feeling]}</p>` : ""}
-      ${sinceAdded.has(id) ? `<p><span class="chip new">New</span> since the last review.</p>` : ""}
-      ${ch ? `<p><span class="chip changed">Changed</span> since the last review: ${ch.map(esc).join(", ")}.</p>` : ""}
+      ${sinceAdded.has(id) ? `<p><span class="chip since">New since last review</span></p>` : ""}
+      ${ch ? `<p><span class="chip since">Changed since last review</span> ${ch.map(esc).join(", ")}.</p>` : ""}
       ${b.checked ? `<p class="small">Checked ${esc(b.checked)}.</p>` : ""}
       ${visibleLinks().filter(l => l.from === id || l.to === id).length ? `<h3>Connected to this</h3>${visibleLinks().filter(l => l.from === id || l.to === id).map(l => {
         const other = l.from === id ? l.to : l.from;
-        return `<p class="connection-description ${l.kind || "flow"}">${esc(l.label)} ${l.from === id ? "→" : "←"} <button class="mini" data-connection-to="${esc(other)}">${esc(titleOf(BOX[other].box))}</button>${S.mode === "compare" && l.when && l.when !== "both" ? ` <span class="small">(${l.when === "today" ? "current" : "proposed"})</span>` : ""}</p>`;
+        return `<p class="connection-description ${l.kind || "flow"}">${esc(l.label)} ${l.from === id ? "→" : "←"} <button class="mini" data-connection-to="${esc(other)}">${esc(titleOf(BOX[other].box))}</button>${modeOf(MODEL.maps[S.map]) === "changes" && l.when && l.when !== "both" ? ` <span class="small">(${l.when === "today" ? "today only" : "in the plan"})</span>` : ""}</p>`;
       }).join("")}` : ""}
       ${b.detail ? `<h3>More about this</h3><p>${gl(b.detail, true)}</p>` : ""}
       ${(b.evidence || []).length ? `<h3>Evidence</h3>${evidenceHtml(b.evidence)}` : ""}
@@ -1478,12 +1816,14 @@ const PANELS = {
       <h3>Notes</h3><p>Each note is one role's comment and ends in a question. A box shows how many notes it has; red means at least one must be decided. The coloured edge on a note shows how urgent it is:</p>
       <p class="legend"><span><span class="swatch" style="background:var(--must)"></span>Must decide</span><span><span class="swatch" style="background:var(--should)"></span>Should decide</span><span><span class="swatch" style="background:var(--info)"></span>For information</span></p>
       <h3>Roles</h3><p class="legend">${ROLES.map(r => `<span><span class="swatch" style="background:${r.color}"></span>${esc(r.label)}</span>`).join(" ")}</p>
-      <h3>Marks on boxes</h3><p class="legend"><span class="chip moment">Moment that matters</span> <span class="chip pain">Pain point</span> <span class="chip new">New</span> <span class="chip changed">Changed</span> <span class="chip stale">May be out of date</span></p>`];
+      <h3>What changes</h3><p class="legend"><span class="ribbon new">New</span> <span class="ribbon changed">Changed</span> <span class="ribbon gone">Goes away</span></p>
+      <p>New boxes have a teal dashed edge, changed ones an amber edge, and boxes that go away are faded and struck through. Open a changed box to see today and the plan side by side. Side by side shows today on the left and the plan on the right.</p>
+      <h3>Marks on boxes</h3><p class="legend"><span class="chip moment">Moment that matters</span> <span class="chip pain">Pain point</span> <span class="chip since">New since last review</span> <span class="chip stale">May be out of date</span></p>`];
   },
   keys() {
     return ["Keyboard shortcuts", `<p class="small">Everything also works with the buttons on screen. These are only shortcuts.</p>
       <ul><li><b>Tab</b> and <b>Enter</b>: move between boxes and open one</li><li><b>W</b>: walk me through it; <b>→</b> and <b>←</b>: next and back during the walk-through</li>
-      <li><b>F</b>: fit to screen; <b>+</b> and <b>−</b>: zoom</li><li><b>Q</b>: questions to decide</li><li><b>T</b>: today or planned (on a chain view)</li>
+      <li><b>F</b>: fit to screen; <b>+</b> and <b>−</b>: zoom</li><li><b>Q</b>: questions to decide</li><li><b>T</b>: Today, Planned, What changes (where a map has a plan)</li><li><b>S</b>: side by side</li>
       <li><b>N</b>: show all notes on the map</li><li><b>X</b>: show extra box details on the map, when available</li><li><b>1</b> to <b>9</b>: switch view</li><li><b>Esc</b>: close the panel or menu</li></ul>
       <p class="small">Boxes are placed automatically. Drag empty space to move the view. Zoom with Ctrl and scroll, or pinch.</p>`];
   },
@@ -1569,7 +1909,12 @@ function jumpTo(id) {
   if (info && info.kind === "gap") return open("gaps");
   const mi = mapOfAnchor(id);
   if (mi >= 0) showMap(mi);
-  if (info && info.kind === "item" && !nodes[id]) setMode(info.box.when === "today" ? "today" : "planned");
+  if (info && !nodes[id] && hasChanges(MODEL.maps[S.map])) {
+    const c = CHANGE_INFO[id];
+    if (c && c.change === "replaced" && modeOf(MODEL.maps[S.map]) === "changes") id = c.by.id;
+    else if (info.box.when === "today") setMode("today");
+    else if (info.box.when === "planned") setMode("planned");
+  }
   if (S.journey >= 0 && info && info.ji !== S.journey) { S.journey = -1; applyFocus(); story(); }
   const el = nodes[id];
   if (el) { world.querySelectorAll(".sel").forEach(x => x.classList.remove("sel")); el.classList.add("sel"); centerOn(el); }
@@ -1585,6 +1930,7 @@ function activate(el) {
   else if (d.type === "outcome") open("outcome", d.o);
 }
 world.addEventListener("click", e => { const term = e.target.closest(".term"); if (term) { showTerm(term); return; } const el = e.target.closest("[role=button]"); if (el && el._data) activate(el); });
+world2.addEventListener("click", e => { const el = e.target.closest("[data-k]"); const t = twin(el); if (t && t._data) activate(t); });
 world.addEventListener("keydown", e => {
   const term = e.target.closest(".term"); if (term && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); showTerm(term); return; }
   const el = e.target.closest("[role=button]");
@@ -1674,7 +2020,7 @@ document.addEventListener("keydown", e => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   const k = e.key.toLowerCase();
   if (k === "escape") { $("#menu").classList.remove("open"); hideTerm(); if (walkAt >= 0) endWalk(); else close(); return; }
-  if (walkAt >= 0 && (k === "arrowright" || k === "arrowleft")) { walk(walkAt + (k === "arrowright" ? 1 : -1)); e.preventDefault(); return; }
+  if (walkAt >= 0 && (k === "arrowright" || k === "arrowleft")) { stepWalk(k === "arrowright" ? 1 : -1); e.preventDefault(); return; }
   const m = MODEL.maps[S.map];
   if (/^[1-9]$/.test(k) && +k <= MODEL.maps.length) { showMap(+k - 1); fit(); }
   else if (k === "w") walk(0);
@@ -1685,7 +2031,8 @@ document.addEventListener("keydown", e => {
   else if (k === "n") act("notes");
   else if (k === "x") act("tech");
   else if (k === "?") open("keys");
-  else if (k === "t" && KIND[m.template] === "chain") setMode(S.mode === "today" ? "planned" : "today");
+  else if (k === "t" && hasChanges(m)) { const order = ["today", "planned", "changes"]; setMode(order[(order.indexOf(modeOf(m)) + 1) % 3]); fit(); }
+  else if (k === "s" && hasChanges(m)) setSideBySide(!sbsOn());
   else return;
   e.preventDefault();
 });

@@ -864,8 +864,8 @@
         },
         {
           "id": "j-day",
-          "title": "Discharge day, as proposed",
-          "summary": "The changes the team wants to try for eight weeks.",
+          "title": "Discharge day: today and as proposed",
+          "summary": "The same day, read three ways. Today shows how it runs now; Planned shows the proposal; What changes marks each difference.",
           "creates": [
             "A completed electronic checklist",
             "A discharge letter sent the same day"
@@ -879,6 +879,18 @@
               "detail": "See 'The evening before'.",
               "evidence": [
                 "E9"
+              ],
+              "when": "planned"
+            },
+            {
+              "id": "w2t",
+              "lane": "back",
+              "text": "Medicines ordered on the morning of discharge, in the midday batch",
+              "status": "works",
+              "when": "today",
+              "evidence": [
+                "E13",
+                "E12"
               ]
             },
             {
@@ -889,6 +901,18 @@
               "evidence": [
                 "E3",
                 "E9"
+              ],
+              "when": "planned",
+              "replaces": "w2t"
+            },
+            {
+              "id": "w3t",
+              "lane": "support",
+              "text": "Paper checklist, often half-filled when the patient leaves",
+              "status": "partial",
+              "when": "today",
+              "evidence": [
+                "E10"
               ]
             },
             {
@@ -899,6 +923,19 @@
               "detail": "A required-fields form in the existing ward record system; no new software.",
               "evidence": [
                 "E10"
+              ],
+              "when": "planned",
+              "replaces": "w3t"
+            },
+            {
+              "id": "w3bt",
+              "lane": "front",
+              "text": "Patient waits in the bed until medicines and transport arrive",
+              "status": "works",
+              "when": "today",
+              "evidence": [
+                "E3",
+                "E15"
               ]
             },
             {
@@ -909,7 +946,9 @@
               "detail": "The lounge is free before noon on most days.",
               "evidence": [
                 "E15"
-              ]
+              ],
+              "when": "planned",
+              "replaces": "w3bt"
             },
             {
               "id": "w4",
@@ -920,7 +959,8 @@
               "moment": true,
               "evidence": [
                 "E8"
-              ]
+              ],
+              "when": "planned"
             },
             {
               "id": "w4b",
@@ -929,7 +969,8 @@
               "status": "planned",
               "evidence": [
                 "E5"
-              ]
+              ],
+              "when": "planned"
             },
             {
               "id": "w5",
@@ -938,6 +979,17 @@
               "status": "planned",
               "evidence": [
                 "E7"
+              ],
+              "when": "planned"
+            },
+            {
+              "id": "w6t",
+              "lane": "back",
+              "text": "Letter typed after the patient has gone, often the next day",
+              "status": "partial",
+              "when": "today",
+              "evidence": [
+                "E4"
               ]
             },
             {
@@ -949,6 +1001,18 @@
               "evidence": [
                 "E4",
                 "E17"
+              ],
+              "when": "planned",
+              "replaces": "w6t"
+            },
+            {
+              "id": "w0t",
+              "lane": "front",
+              "text": "Most patients leave after four, as the pharmacy closes",
+              "status": "works",
+              "when": "today",
+              "evidence": [
+                "E3"
               ]
             },
             {
@@ -958,7 +1022,8 @@
               "status": "missing",
               "evidence": [
                 "E11"
-              ]
+              ],
+              "when": "planned"
             }
           ]
         },

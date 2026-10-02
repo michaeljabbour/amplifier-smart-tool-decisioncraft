@@ -1164,6 +1164,17 @@
           "sub": "Pieces of work, in order",
           "items": [
             {
+              "id": "ci8t",
+              "title": "Half-price bags at closing",
+              "text": "Leftover loaves sold off cheaply after four; the plan bakes to a known number instead.",
+              "status": "works",
+              "when": "today",
+              "evidence": [
+                "E13",
+                "E14"
+              ]
+            },
+            {
               "id": "ci8",
               "title": "Pilot at Mill Lane for 8 weeks",
               "text": "Collection only, capped at 30 boxes.",
@@ -1208,6 +1219,28 @@
               "text": "Not started; nobody owns the list.",
               "status": "missing",
               "when": "today",
+              "evidence": [
+                "E12"
+              ]
+            },
+            {
+              "id": "ci9p",
+              "title": "Pilot boxes packed and costed weekly",
+              "text": "Packing time and cost per box tracked every Friday of the pilot.",
+              "status": "planned",
+              "when": "planned",
+              "replaces": "ci9",
+              "evidence": [
+                "E6"
+              ]
+            },
+            {
+              "id": "ci9bp",
+              "title": "Customer list owned and cleaned",
+              "text": "One named person keeps the list; people opt in at the counter.",
+              "status": "planned",
+              "when": "planned",
+              "replaces": "ci9b",
               "evidence": [
                 "E12"
               ]

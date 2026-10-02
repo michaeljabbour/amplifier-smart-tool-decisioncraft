@@ -120,10 +120,10 @@ def test_diff_finds_added_changed_and_removed():
     new = load(EX / "technical" / "model.json")
     d = dc.diff(old, new)
     assert {"t3", "N1"} <= {c["id"] for c in d["changed"]}
-    assert "j-direct" in {a["id"] for a in d["added"]}
+    assert {"j-move", "d2"} <= {a["id"] for a in d["added"]}
     assert d["removed"] == []
     back = dc.diff(new, old)
-    assert "j-direct" in {r["id"] for r in back["removed"]}
+    assert {"j-move", "d2"} <= {r["id"] for r in back["removed"]}
 
 
 def test_diff_of_identical_models_is_empty(model):
