@@ -29,9 +29,15 @@ Then run `decisioncraft --help` and follow it. It is the full guide and stays co
 when the tool changes. Each command has its own: `decisioncraft <command> --help`.
 
 **To show how something works:** `decisioncraft map <repo, folder, file or "topic"> --dry-run
---json` shows what it will read; then add `--complete-cmd 'your-command'` (or `--provider`)
-and `--open` to draw today's way, the planned way, gaps with user stories and "done when"
-checks, and a note from each role.
+--json` shows what it will read. Then either:
+
+- route a model with `--complete-cmd 'your-command'` (or `--provider`) and add `--open` to draw
+  today's way, the planned way, gaps with user stories and "done when" checks, and a note from
+  each role; or
+- if you can't route a model, run `decisioncraft map TARGET --starter --dir NAME --json`. It
+  writes `NAME/material/digest.md` (numbered lines to cite), a starter `NAME/model.json` and
+  `NAME/FILL-IN.md`. Fill the model in yourself using `decisioncraft guide`, then validate and
+  render with `--open`. Don't stop at a text summary when someone asked to see the map.
 
 **To help with a choice, start with triage.** When someone seems to be weighing options, run
 `decisioncraft triage --text "<their words>" --json` and follow its `mode`:

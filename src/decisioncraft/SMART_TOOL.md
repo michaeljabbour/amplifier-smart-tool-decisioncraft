@@ -1,7 +1,7 @@
 ---
 smart_tool_format: 1
 name: decisioncraft
-version: 0.1.0
+version: 0.2.0
 description: >-
   Point it at anything (a codebase, a folder of notes, a page or a topic) and get a map
   of how it works today, how it could work, the gaps as user stories with 'done when'
@@ -293,6 +293,13 @@ notes on the map. Other targets: a notes folder or file, `--page FILE` with a we
 `--allow-network`), or a topic in quotes with `--answers` (how_today, pain, goal; without
 answers the map is marked as unchecked). Over MCP: `decisioncraft_map`, and the `map_this`
 prompt.
+
+No model to route? `decisioncraft map ./the-repo --starter --dir repo-map --json` reads the same
+files with no model call and writes `repo-map/material/digest.md` (numbered lines to cite as
+`path:line`), a starter `repo-map/model.json` (the right template, the eight roles, notes on the
+map, opening on the plan) and `repo-map/FILL-IN.md` with the steps. Fill the model in using
+`decisioncraft guide`, run `decisioncraft validate repo-map/model.json` until it reports no
+errors, then `decisioncraft render repo-map/model.json --open`.
 
 **Talk a choice through, at the right depth.** Someone says "my lease is up in March,
 renew it or just buy the car?"

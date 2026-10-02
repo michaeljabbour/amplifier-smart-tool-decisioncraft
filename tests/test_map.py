@@ -147,3 +147,23 @@ def test_mcp_map():
                 assert "decisioncraft_map" in p.messages[0].content.text
 
     asyncio.run(run())
+
+
+def test_map_starter_writes_digest_model_and_instructions_without_a_model(tmp_path):
+    import json as _json
+    import subprocess as _sp
+    import sys as _sys
+    from pathlib import Path as _P
+
+    repo = _P(__file__).parent / "fixtures" / "sample-repo"
+    out = tmp_path / "m"
+    r = _sp.run([_sys.executable, str(_P(__file__).parents[1] / "bin" / "decisioncraft.py"), "map", str(repo),
+                 "--starter", "--dir", str(out), "--json"], capture_output=True, text=True, stdin=_sp.DEVNULL)
+    assert r.returncode == 0, r.stdout + r.stderr
+    d = _json.loads(r.stdout)
+    assert d["ok"] and d["next"][0] == "decisioncraft guide"
+    model = _json.loads((out / "model.json").read_text())
+    assert model["display"] == {"notes_on_map": True, "start_view": "planned"}
+    assert len(model["roles"]) == 8 and model["checked"]["note"]
+    assert "   1| " in (out / "material" / "digest.md").read_text()
+    assert "decisioncraft guide" in (out / "FILL-IN.md").read_text()

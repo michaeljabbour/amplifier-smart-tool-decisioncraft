@@ -25,14 +25,14 @@ from .starter import starter
 from .stats import summary
 from .modes import MODES, quick, triage
 from . import interview as _interview
-from .mapper import gather, map_target, plan_map
+from .mapper import gather, map_starter, map_target, plan_map
 
 __all__ = [
     "manifest", "templates", "roles", "new", "validate", "render", "words", "questions",
     "merge", "diff", "draft", "perspectives", "review_notes", "notes_to_ask", "session", "discover", "handoff",
     "starter", "example", "example_names", "doctor", "summary",
     "modes", "triage", "quick", "interview_step", "interview_questions",
-    "map_target", "plan_map", "gather",
+    "map_target", "map_starter", "plan_map", "gather",
 ]
 
 

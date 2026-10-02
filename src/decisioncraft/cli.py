@@ -209,6 +209,8 @@ def build() -> SkillParser:
     g.add_argument("--allow-network", action="store_true", help="For a web address: fetch that one page.")
     g.add_argument("--budget", type=int, default=120_000, help="Most characters to read (default 120000).")
     g.add_argument("--dry-run", action="store_true", help="Show what would be read; no model call.")
+    g.add_argument("--starter", action="store_true",
+                   help="Write the reading digest and a starter model to fill in yourself; no model call.")
     g = c.add_argument_group("Where it goes")
     g.add_argument("--dir", help="Folder for model.json and canvas.html (default: ./decisioncraft-map-NAME).")
     g.add_argument("--open", action="store_true", help="Open the canvas in your browser.")
@@ -1237,6 +1239,32 @@ def do_map(run: Run) -> Out:
             lines.append(f"Model calls: {plan['model_calls']} (none now: this was a dry run).")
             text = "\n".join(lines) + "\n"
         return Out(data=plan, text=text)
+    if a.starter:
+        kind = detect(a.target)
+        page = Path(a.page).expanduser().read_text(encoding="utf-8") if a.page else ""
+        try:
+            st = lib.map_starter(a.target, roles=roles, question=a.question, answers=answers,
+                                 page_text=page, budget=a.budget)
+        except ValueError as e:
+            raise ToolError("invalid_input", str(e), field="--page", exit_code=E.INPUT,
+                            hint="Save the page's text to a file and pass --page FILE.") from None
+        if kind in ("repo", "folder") and not st["plan"]["read"]:
+            raise ToolError("invalid_input", f"Found nothing readable in {a.target}.", file=a.target,
+                            hint="Point it at a folder with Markdown, text or code files.")
+        name = Path(a.target).expanduser().resolve().name if kind not in ("topic", "url") else slug(a.target)
+        folder = Path(a.dir).expanduser() if a.dir else Path(f"decisioncraft-map-{slug(name)}")
+        files = [run.write(folder / "model.json", json.dumps(st["model"], indent=2, ensure_ascii=False), "model"),
+                 run.write(folder / "material" / "digest.md", st["digest"], "material"),
+                 run.write(folder / "FILL-IN.md", st["instructions"], "instructions")]
+        mp = _q(folder / "model.json")
+        run.term.say(f"Wrote a starter map in {_q(folder)}: read FILL-IN.md, fill in model.json from "
+                     f"material/digest.md, then validate and render.")
+        nxt = ["decisioncraft guide", f"decisioncraft validate {mp}", f"decisioncraft render {mp} --open"]
+        return Out(data={"directory": str(folder.resolve()), "model_path": str((folder / "model.json").resolve()),
+                         "digest_path": str((folder / "material" / "digest.md").resolve()),
+                         "instructions_path": str((folder / "FILL-IN.md").resolve()),
+                         "instructions": st["instructions"], "plan": st["plan"]},
+                   files=files, next=nxt, text="")
     kind = detect(a.target)
     if kind == "url" and not a.page and not a.allow_network:
         raise ToolError("invalid_input", "Decisioncraft does not fetch web pages unless you allow it.",

@@ -325,6 +325,59 @@ def _template_for(kind: str) -> str:
     return "system-journeys" if kind == "repo" else "auto"
 
 
+def map_starter(target: str, *, roles: list[str] | None = None, question: str = "", answers: dict | None = None,
+                page_text: str = "", budget: int = 120_000) -> dict:
+    """Deterministic. Everything `map` needs, for an agent that writes the map itself.
+
+    Returns {model, digest, instructions, plan}: a starter model (the right template, the
+    eight map roles, display notes_on_map and start_view planned, a checked stamp) with no
+    boxes yet; the material digest with numbered lines to cite as evidence; and plain
+    instructions for filling it in. No model call happens.
+    """
+    from .model import new_model
+
+    g = gather(target, budget=budget)
+    kind = g["kind"]
+    material = list(g["material"])
+    if kind == "url":
+        if not page_text:
+            raise ValueError(g["needs"]["message"])
+        material = [{"name": target, "text": _numbered(page_text, budget)[0]}]
+    if kind == "topic":
+        lines = [f"Topic: {target}"]
+        for tq in TOPIC_QUESTIONS:
+            a = (answers or {}).get(tq["id"])
+            lines.append(f"{tq['ask']}\nAnswer from the person: {a or '(not given: mark boxes not sure)'}")
+        material = [{"name": "description from the person", "text": "\n\n".join(lines)}]
+    q = question or _question_for(target, kind)
+    template = _template_for(kind)
+    template = "system-journeys" if template == "auto" and kind in ("repo", "folder") else (
+        "decision-chain" if template == "auto" else template)
+    name = Path(target).expanduser().resolve().name if kind not in ("url", "topic") else target
+    model = new_model(template, f"How {name} works, and what is missing", q, date=g["checked"]["date"])
+    model["roles"] = map_roles(roles)
+    model["checked"] = g["checked"]
+    model["display"] = {"notes_on_map": True, "start_view": "planned"}
+    model["map_source"] = {"kind": kind, "target": target if kind in ("url", "topic") else name,
+                           "read": [r["path"] for r in g["read"]]}
+    digest = "\n\n".join(f"## {m['name']}\n\n{m['text']}" for m in material)
+    instructions = (
+        "# Fill in this map\n\n"
+        f"Question: {q}\n\n"
+        "1. Read `decisioncraft guide` for every field and its rules.\n"
+        "2. " + BRIEF_INTENT + "\n"
+        "3. Cite evidence from material/digest.md by path and line (the numbers at the start of "
+        "each line), for example 'src/app.py:42'. Add each cited file to `sources` and each quote to "
+        "`evidence`.\n"
+        "4. Add one note per role in `roles` (" + ", ".join(r["label"] for r in model["roles"]) + "), "
+        "each pointing at a box and ending in one question.\n"
+        "5. Run `decisioncraft validate model.json` until it reports no errors, then "
+        "`decisioncraft render model.json --open`.\n"
+    )
+    return {"model": model, "digest": digest, "instructions": instructions,
+            "plan": plan_map(target, roles=roles, budget=budget, answers=answers)}
+
+
 def map_target(target: str, *, roles: list[str] | None = None, question: str = "", answers: dict | None = None,
                page_text: str = "", budget: int = 120_000, per_role: int = 2, provider: str | None = None,
                model: str | None = None, complete=None, allow_network: bool = False) -> dict:
