@@ -1,6 +1,6 @@
 ---
 name: decisioncraft
-description: Map how a problem works, gather every point of view, and decide together. Builds a zoomable, offline HTML canvas and a plain-text version from a decision model.
+description: Map how a problem works, gather every point of view, and decide together. Builds a zoomable, offline HTML canvas and a plain-text version from a decision model. Use when a decision affects several groups and each should be heard, with a record of why it was decided, before anyone chooses.
 ---
 
 # Decisioncraft

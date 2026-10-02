@@ -7,6 +7,9 @@ license = "MIT"
 requires-python = ">=3.11"
 dependencies = []
 
+[project.urls]
+Repository = "https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft"
+
 [project.optional-dependencies]
 smart = ["anthropic>=0.70", "openai>=1"]
 

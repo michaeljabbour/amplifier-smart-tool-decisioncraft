@@ -5,6 +5,8 @@ version: 0.1.0
 description: >-
   Map how a problem works, gather every point of view, and decide together.
   Builds a zoomable, offline HTML canvas and a plain-text version from a decision model.
+  Use when a decision affects several groups and each should be heard, with a record
+  of why it was decided, before anyone chooses.
 use_cases:
   - Draft a decision map from meeting notes, interviews, documents or data
   - Run a review where designers, analysts, engineers, owners, security, customers and finance each leave notes that end in a question
@@ -13,7 +15,19 @@ use_cases:
 platforms:
   - macos
   - linux
-  - windows
+requires:
+  - name: ANTHROPIC_API_KEY
+    purpose: >-
+      `draft` and `perspectives` with --provider anthropic. Without it, those two
+      capabilities fail with a clear message; every other capability is unaffected.
+    install: https://docs.anthropic.com/en/api/getting-started
+    optional: true
+  - name: OPENAI_API_KEY
+    purpose: >-
+      `draft` and `perspectives` with --provider openai. Without it, those two
+      capabilities fail with a clear message; every other capability is unaffected.
+    install: https://platform.openai.com/docs/quickstart
+    optional: true
 ---
 # decisioncraft
 
@@ -86,10 +100,13 @@ decisioncraft draft notes/*.md --template decision-chain \
 
 ## Sharp edges
 
-- `draft` and `perspectives` are model-backed. They need `--provider` and the matching
-  API key, cost tokens, and differ run to run. Their output is validated and repaired
-  once, but a person must still read it. Install the extra:
-  `pip install 'amplifier-smart-tool-decisioncraft[smart]'`.
+- `draft` and `perspectives` are model-backed. They need one of `--provider` (with the
+  matching API key and the `[smart]` extra installed: `pip install
+  'amplifier-smart-tool-decisioncraft[smart]'`) or `--complete-cmd` (a command of your
+  own that reads `{system, prompt}` JSON on stdin and prints the reply -- use this to
+  route the call through a host's own model setup instead of a vendor SDK). They cost
+  tokens and differ run to run. Their output is validated and repaired once, but a
+  person must still read it.
 - Everything else runs with no model and no credentials.
 - Answers in the canvas are kept in the browser on that computer until saved as a file.
 - The canvas shows the first glossary term in each piece of text with a dotted line;
