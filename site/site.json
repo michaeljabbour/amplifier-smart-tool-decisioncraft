@@ -152,5 +152,6 @@
       "link": "examples/medical.html",
       "link_text": "Open the example canvas"
     }
-  ]
+  ],
+  "agent_install": "Install https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft"
 }
