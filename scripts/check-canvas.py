@@ -11,7 +11,9 @@ buttons, no keyboard shortcuts):
   3. Open a box, read its notes and answer a question there.
   4. Review the questions, copy them, and save with the visible button.
   5. Zoom in, zoom out and fit with the zoom buttons.
-Plus: display options from the View menu, and on maps with a plan: the Today / Planned /
+Plus: on scoring and cost maps, the table, the weights panel, What would change the winner,
+the chart with direct labels and crossings, the what-if and Table toggles, all reached by
+labelled buttons; display options from the View menu, and on maps with a plan: the Today / Planned /
 What changes switch is text-labelled, What changes marks boxes with ribbons and counts,
 Side by side keeps both panes on one pan and zoom, and nothing overlaps any text at about
 30%, 60%, 100% and 150% zoom.
@@ -41,6 +43,15 @@ OVERLAP_JS = """
     for (const n of notes) for (const b of boxes) if (hit(n, b)) hits++;
     for (const t of words) for (const b of [...boxes, ...notes]) if (hit(t, b)) hits++;
   }
+  return hits;
+}"""
+BLOCKS_JS = """
+() => {
+  const r = el => el.getBoundingClientRect();
+  const hit = (a, b) => a.width && b.width && a.left < b.right - 1 && a.right > b.left + 1 && a.top < b.bottom - 1 && a.bottom > b.top + 1;
+  const blocks = [...document.querySelectorAll('#world .scoreboard, #world .flipcard, #world .costbar, #world .costchart, #world .costsay, #world .costsplit, #world .maptitle, #world .mapintro, #world .notecard, #world .morenotes')].map(r);
+  let hits = 0;
+  for (let i = 0; i < blocks.length; i++) for (let j = i + 1; j < blocks.length; j++) if (hit(blocks[i], blocks[j])) hits++;
   return hits;
 }"""
 SCALE = "parseFloat((document.getElementById('world').style.transform.match(/scale\\(([^)]+)\\)/) || [0, 1])[1])"
@@ -133,7 +144,7 @@ def check(page, path: Path, shots: Path | None) -> tuple[list[str], list[str]]:
     # 3. open a box with notes and answer a question in the panel
     try:
         page.get_by_role("button", name="Fit to screen").click()
-        boxes = page.locator("#world .box[role=button]:has(.notebadge)")
+        boxes = page.locator("#world .box[role=button]:has(.notebadge), #world th:has(.notebadge) [data-choice-open]")
         box = None
         for i in range(boxes.count()):
             bb = boxes.nth(i).bounding_box()
@@ -303,6 +314,68 @@ def check(page, path: Path, shots: Path | None) -> tuple[list[str], list[str]]:
         done.append("added a rough note by keyboard, asked the experts, and added a free note")
     except Exception as e:  # noqa: BLE001
         problems.append(f"reviewer notes: {e}")
+
+    # scoring table and cost over time
+    try:
+        lis = page.locator("#story ol.maps > li > .view")
+        found = []
+        for i in range(lis.count()):
+            lis.nth(i).click(); page.wait_for_timeout(250)
+            if page.locator("#world .scoretable").count():
+                found.append("scoring")
+                t = page.locator("#world .scoretable")
+                assert t.locator("thead [data-choice-open]").count() >= 2, "options are not buttons"
+                assert t.locator("tr.totalrow td").count() >= 2, "no weighted totals row"
+                if page.locator("#world td.must.fails").count():
+                    assert page.get_by_text("Fails a must-have").first.is_visible(), "a failing option is not marked"
+                card = page.locator("#world .flipcard")
+                assert "What would change the winner?" in card.inner_text()
+                card.get_by_role("button", name="Change the weights").click(); page.wait_for_timeout(200)
+                assert page.is_visible("#panel"), "weights panel did not open"
+                slider = page.locator("#panel input[type=range]").first
+                label = page.locator("#panel label").first.inner_text()
+                assert label.strip(), "a weight slider has no label"
+                before = page.locator("#world tr.totalrow").inner_text()
+                slider.focus(); page.keyboard.press("Home"); page.wait_for_timeout(200)
+                after = page.locator("#world tr.totalrow").inner_text()
+                assert before != after, "moving a weight did not change the totals"
+                page.locator("#panel [data-resetw]").click(); page.wait_for_timeout(200)
+                click_text("Close", "#panel")
+                for target in (0.3, 0.6, 1.0):
+                    zoom_to(page, target)
+                    hits = page.evaluate(BLOCKS_JS)
+                    if hits:
+                        problems.append(f"scoring map at {target}: {hits} overlaps")
+                page.get_by_role("button", name="Fit to screen").click()
+                shot("9-scoring")
+            if page.locator("#world .costchart").count():
+                found.append("costs")
+                assert page.locator("#world svg.chart polyline").count() >= 2, "fewer than two lines on the chart"
+                assert page.locator("#world svg.chart text.lab").count() == page.locator("#world svg.chart polyline").count(), "lines are not labelled directly"
+                bar = page.locator("#world .costbar")
+                toggles = bar.locator("[data-whatif]")
+                if toggles.count():
+                    first = toggles.first
+                    say = page.locator("#world .costsay").inner_text()
+                    first.click(); page.wait_for_timeout(250)
+                    first = page.locator("#world .costbar [data-whatif]").first
+                    assert first.get_attribute("aria-pressed") == "true", "what-if toggle did not switch on"
+                    assert page.locator("#world .costsay").inner_text() != say, "a what-if did not change what the lines say"
+                    first.click(); page.wait_for_timeout(200)
+                page.locator("#world .costbar").get_by_role("button", name="Table", exact=True).click(); page.wait_for_timeout(200)
+                assert page.locator("#world table.costtable tbody tr").count() >= 2, "the table view is empty"
+                page.locator("#world .costbar").get_by_role("button", name="Chart", exact=True).click(); page.wait_for_timeout(200)
+                for target in (0.3, 0.6, 1.0):
+                    zoom_to(page, target)
+                    hits = page.evaluate(BLOCKS_JS)
+                    if hits:
+                        problems.append(f"cost map at {target}: {hits} overlaps")
+                page.get_by_role("button", name="Fit to screen").click()
+                shot("9-costs")
+        if found:
+            done.append("scoring table, weights and flips; cost chart, what-ifs and table" if len(found) > 1 else f"{found[0]} map")
+    except Exception as e:  # noqa: BLE001
+        problems.append(f"scoring and cost maps: {e}")
 
     # maps with a plan: the switch, What changes, Side by side, zoom levels
     try:
