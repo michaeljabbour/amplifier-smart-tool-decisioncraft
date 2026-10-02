@@ -19,11 +19,14 @@ when the tool changes. Each command has its own: `decisioncraft <command> --help
 today against a plan, or you want meeting notes and documents turned into a map people
 can review. **Don't use it for** a quick yes or no, task tracking, or live co-editing.
 
-Four things worth knowing before you start:
+Five things worth knowing before you start:
 
 - Add `--json` to any command: one JSON result on stdout, errors included, and `ok` is
   true exactly when the exit code is 0 (1 input, 2 command line, 3 set up first, 4 model
   call failed). It never prompts when stdin is not a terminal.
+- To show today against a plan, mark steps or items `when: today` or `when: planned`, and
+  give a planned box `replaces: <id>` when it replaces a today-only box. The canvas then
+  offers Today, Planned, What changes and Side by side; the text version lists the changes.
 - Only `draft` and `perspectives` use a model. If you can't call your own model from a
   command, write the model yourself: `decisioncraft new --question "..." --dir NAME --yes`,
   fill in `NAME/model.json` from the material, and run `decisioncraft validate` until it is

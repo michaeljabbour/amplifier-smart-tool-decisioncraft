@@ -12,6 +12,7 @@ use_cases:
   - Run a review where designers, analysts, engineers, owners, security, customers and finance each leave notes that end in a question
   - Merge reviewers' answers to see where people agree and disagree, and rank gaps by impact and effort
   - Compare two versions of a decision to see what changed since the last review
+  - Show how something works today against a plan, read as Today, Planned, What changes (each box marked New, Changed or Goes away) or Side by side
 platforms:
   - macos
   - linux
