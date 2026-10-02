@@ -48,7 +48,7 @@ packages = ["src/decisioncraft"]
 "examples/bike-hire-map/material" = "decisioncraft/examples/bike-hire-map/material"
 
 [dependency-groups]
-dev = ["pytest>=8,<10"]
+dev = ["pytest>=8,<10", "pyyaml>=6"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

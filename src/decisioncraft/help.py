@@ -402,31 +402,31 @@ CAPABILITIES: dict[str, dict] = {
 
 DESCRIPTION = (
     'Point it at anything (a codebase, a folder of notes, a page or a topic) and get '
-    "a map of how it works today, how it could work, the gaps as user stories with 'd"
-    "one when' checks, and notes from every role. It also helps someone weigh a choic"
-    'e at the right depth, from a quick side-by-side in the chat to a full team revie'
-    'w. Use for "map this codebase", "show me how X works", "as-is and to-be", "where'
-    ' are the gaps", "turn these notes into a process map", "review this process", an'
-    'd whenever someone is weighing options, even without saying \'decision\': "should '
-    'I...", "torn between", "pros and cons", "which is better", "renew or buy", "keep'
-    ' or replace", "help me think this through", comparing offers, quotes or vendors.'
-    ' Not for factual questions or trivial picks.'
+    'a map of how it works today, how it could work, the gaps as user stories with '
+    "'done when' checks, and a note from every role. It also helps someone weigh a "
+    'choice at the right depth, from a quick side-by-side in the chat to a full team '
+    "review. Use for 'map this codebase', 'show me how X works', 'as-is and to-be', "
+    "'where are the gaps', 'turn these notes into a process map', 'review this "
+    "process', and whenever someone is weighing options without saying decision, such"
+    " as 'should I', 'torn between', 'pros and cons', 'which is better', 'renew or "
+    "buy', 'keep or replace', 'help me think this through', or comparing offers, "
+    'quotes or vendors. Not for factual questions or trivial picks.'
 )
 
 REQUIRES = [
     {
         "name": "ANTHROPIC_API_KEY",
-        "purpose": "`draft` and `perspectives` with --provider "
-        "anthropic. Without it, those two capabilities fail with a clear message; every other "
-        "capability is unaffected.",
+        "purpose": "The model-backed steps (map, draft, perspectives and Ask the experts) with "
+        "--provider anthropic. Without it those steps fail with a clear message; every other "
+        "capability, and --complete-cmd or --starter, is unaffected.",
         "install": "https://docs.anthropic.com/en/api/getting-started",
         "optional": True,
     },
     {
         "name": "OPENAI_API_KEY",
-        "purpose": "`draft` and `perspectives` with --provider "
-        "openai. Without it, those two capabilities fail with a clear message; every other "
-        "capability is unaffected.",
+        "purpose": "The model-backed steps (map, draft, perspectives and Ask the experts) with "
+        "--provider openai. Without it those steps fail with a clear message; every other "
+        "capability, and --complete-cmd or --starter, is unaffected.",
         "install": "https://platform.openai.com/docs/quickstart",
         "optional": True,
     },
