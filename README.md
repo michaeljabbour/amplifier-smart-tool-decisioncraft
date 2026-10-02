@@ -1,6 +1,6 @@
 # Decisioncraft
 
-**Point it at anything and see how it works, what is missing, and what every role thinks.**
+Point Decisioncraft at anything (a codebase, meeting notes, a process or a personal choice) and you get a map of as-is against to-be, the gaps written as user stories, and a sticky note from every role. It's rigorous decision analysis in plain language, from a quick side-by-side to a full team review.
 
 ```sh
 decisioncraft map ./your-repo --open

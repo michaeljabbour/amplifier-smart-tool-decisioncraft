@@ -5,7 +5,7 @@
   "accent": "#7a5a2f",
   "title": "Decisioncraft | Amplifier Smart Tools",
   "promise": "Point it at anything. See how it works, what is missing, and what every role thinks.",
-  "description": "Point Decisioncraft at a codebase, a folder of notes, a page or a topic. It maps how things work today and how they could work, turns the gaps into user stories with done-when checks, and puts a sticky note from every role beside the boxes. For a choice, it helps at the right depth: a quick table, a guided interview, or a full team review.",
+  "description": "Point Decisioncraft at anything (a codebase, meeting notes, a process or a personal choice) and you get a map of as-is against to-be, the gaps written as user stories, and a sticky note from every role. It's rigorous decision analysis in plain language, from a quick side-by-side to a full team review.",
   "image": "docs/images/hero-notes.png",
   "video": "docs/images/bike-hire-map-demo.mp4",
   "alt": "A footbridge decision in Planned view: the chain from source to outcome, each box marked, and tilted role-coloured sticky notes beside the boxes they question.",
