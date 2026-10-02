@@ -159,5 +159,88 @@
       ],
       "conflict": []
     }
-  }
+  },
+  "notes": [
+    {
+      "id": "R-m1",
+      "anchor": "ci5",
+      "text": "Collection only might lose the two villages we deliver bread to on Fridays.",
+      "author": "Manager",
+      "at": "2026-04-02T17:40:00Z",
+      "ask": {
+        "roles": [
+          "voice",
+          "finance",
+          "owner"
+        ],
+        "requested_at": "2026-04-02T17:41:00Z"
+      },
+      "replies": [
+        {
+          "id": "R-m1-voice",
+          "role": "voice",
+          "view": "The Friday village round is how some older regulars get bread at all. A box they cannot collect will feel like it is not for them.",
+          "question": "Could the Friday van carry boxes for the two villages, so they are not left out?",
+          "urgency": "should",
+          "author": "AI assistant",
+          "at": "2026-04-02T17:42:00Z"
+        },
+        {
+          "id": "R-m1-finance",
+          "role": "finance",
+          "view": "The van already runs on Fridays, so a few boxes add little cost. A full delivery option would not pay.",
+          "question": "How many village boxes would make the van stop worth it?",
+          "urgency": "info",
+          "author": "AI assistant",
+          "at": "2026-04-02T17:42:00Z"
+        },
+        {
+          "id": "R-m1-owner",
+          "role": "owner",
+          "view": "Keeping the pilot simple matters more than covering everyone in the first eight weeks.",
+          "question": "Do we add the villages in the pilot, or say clearly they come later?",
+          "urgency": "must",
+          "author": "AI assistant",
+          "at": "2026-04-02T17:42:00Z"
+        }
+      ],
+      "who": "Mill Lane manager"
+    },
+    {
+      "id": "R-o1",
+      "anchor": null,
+      "map": "m-chain",
+      "text": "December is our busiest month. Starting a box in November could swamp the Thursday bake.",
+      "author": "Owner",
+      "at": "2026-04-02T18:05:00Z",
+      "ask": {
+        "roles": [
+          "engineer",
+          "analyst"
+        ],
+        "requested_at": "2026-04-02T18:06:00Z"
+      },
+      "replies": [
+        {
+          "id": "R-o1-engineer",
+          "role": "engineer",
+          "view": "Thursday ovens are free most of the year, but December runs them for Christmas orders too.",
+          "question": "Should the pilot end before December, or pause boxes for the Christmas weeks?",
+          "urgency": "must",
+          "author": "AI assistant",
+          "at": "2026-04-02T18:07:00Z"
+        },
+        {
+          "id": "R-o1-analyst",
+          "role": "analyst",
+          "view": "An eight-week pilot started in October would end in the busiest weeks and mix two effects in the numbers.",
+          "question": "Which start date gives eight clean weeks before the Christmas rush?",
+          "urgency": "should",
+          "author": "AI assistant",
+          "at": "2026-04-02T18:07:00Z"
+        }
+      ],
+      "who": "Owner"
+    }
+  ]
 }

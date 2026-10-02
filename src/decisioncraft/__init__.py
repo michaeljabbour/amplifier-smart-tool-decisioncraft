@@ -15,6 +15,8 @@ from .lib import (  # noqa: F401
     merge,
     new,
     perspectives,
+    review_notes,
+    notes_to_ask,
     questions,
     render,
     roles,

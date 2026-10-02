@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from .model import DECISION_STATUS, FEELINGS, STATUSES, TEMPLATES, URGENCY, iter_boxes, plan_changes, roles_of
-from .review import questions
+from .review import _note_target, note_threads, questions
 
 
 def words(model: dict, merged: dict | None = None) -> str:
@@ -190,6 +190,23 @@ def words(model: dict, merged: dict | None = None) -> str:
                 for d in ([sd] if isinstance(sd, str) else sd or []):
                     w(f"  - Technical check: {d}")
             notes_for(g["id"])
+
+    threads = note_threads(merged)
+    if threads:
+        w("")
+        w("## Reviewer notes and expert replies")
+        for n in threads:
+            on = _note_target(model, n.get("anchor"))["title"]
+            who = n.get("who") or n.get("author") or "A reviewer"
+            w("")
+            w(f"- **{who} on {on}:** {n.get('text', '')}")
+            if n.get("ask") and not n.get("replies"):
+                w("  Waiting for experts: " + ", ".join(roles.get(r, {}).get("label", r) for r in n["ask"].get("roles", [])) + ".")
+            for r in n.get("replies", []):
+                label = roles.get(r.get("role"), {}).get("label", r.get("role"))
+                w(f"  - {label} ({URGENCY[r.get('urgency', 'info')]}): {r.get('view', '')}")
+                if r.get("question"):
+                    w(f"    Question: {r['question']}")
 
     qs = questions(model, merged)
     if qs:

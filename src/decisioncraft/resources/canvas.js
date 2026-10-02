@@ -50,10 +50,10 @@ const sinceChanged = Object.fromEntries((SINCE && SINCE.changed || []).map(x => 
 let saved = {}, storageOK = true;
 try { saved = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { saved = {}; storageOK = false; }
 const seed = SESSION ? {answers:SESSION.review.answers || {}, votes:SESSION.review.dots || {},
-  decisions:SESSION.review.decisions || {}, reviewer:SESSION.review.reviewer || ""} : {};
+  decisions:SESSION.review.decisions || {}, reviewer:SESSION.review.reviewer || "", myNotes:SESSION.review.notes || []} : {};
 const S = Object.assign({map:0, mode:"changes", sbs:false, sbsJourney:null, sbsAll:false, journey:-1, tech:false, notesOnMap:false, lines:false, dots:true, story:true,
   hintSeen:false, roles:Object.fromEntries(ROLES.map(r => [r.id, true])),
-  answers:{}, votes:{}, decisions:{}, reviewer:""}, seed, saved);
+  answers:{}, votes:{}, decisions:{}, reviewer:"", myNotes:[]}, seed, saved);
 if (SESSION && saved.syncedVersion !== SESSION.version) Object.assign(S, seed);
 if (SESSION) { S.syncedVersion = SESSION.version; S.sessionFinished = SESSION.state === "finished"; }
 ROLES.forEach(r => { if (!(r.id in S.roles)) S.roles[r.id] = true; });
@@ -62,8 +62,8 @@ if (S.mode === "compare" || S.mode === "both") S.mode = "changes";
 let completedHandoff = SESSION && SESSION.handoff || null;
 let syncVersion = SESSION ? SESSION.version : 0, syncPromise = null, syncTimer = null;
 let syncState = SESSION ? "saved" : "", syncError = "", finishing = false;
-const snapshot = () => JSON.stringify([S.answers, S.votes, S.decisions, S.reviewer]);
-let lastWritten = SESSION ? JSON.stringify([seed.answers, seed.votes, seed.decisions, seed.reviewer]) : "";
+const snapshot = () => JSON.stringify([S.answers, S.votes, S.decisions, S.reviewer, S.myNotes]);
+let lastWritten = SESSION ? JSON.stringify([seed.answers, seed.votes, seed.decisions, seed.reviewer, seed.myNotes]) : "";
 function queueSync() {
   if (!SESSION || finishing || snapshot() === lastWritten) return;
   S.sessionFinished = false;
@@ -222,6 +222,83 @@ function slotHtml(s, inner) {
 }
 const slotLabel = (s, text) => (s.change && s.change !== "same" ? CHANGE_WORD[s.change] + ": " : "") + text;
 
+/* ---------- reviewers' rough notes and the experts' replies ---------- */
+const EXPERTS = !!(SESSION && SESSION.experts);
+const MERGED_NOTES = (MERGED && MERGED.notes) || [];
+const cleanNote = n => { const c = Object.assign({}, n); delete c._waiting; delete c._error; return c; };
+const sameAnchor = (a, b) => (a || null) === (b || null);
+const roughOn = id => S.myNotes.filter(n => sameAnchor(n.anchor, id)).length + MERGED_NOTES.filter(n => sameAnchor(n.anchor, id)).length;
+const newNoteId = () => "R" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+function whereTitle(anchor) {
+  if (!anchor) return "the whole map";
+  const [gid, k] = String(anchor).split("#story-");
+  const g = GAPS.find(x => x.id === gid);
+  if (k != null && g && (g.stories || [])[+k]) return `a story in ${g.id}: ${g.stories[+k].as}`;
+  return BOX[anchor] ? titleOf(BOX[anchor].box) : anchor;
+}
+/* Every expert reply with a question becomes a question to decide, marked as coming from a reviewer note. */
+function replyQuestions() {
+  return [...S.myNotes.map(n => ({n, who:"you"})), ...MERGED_NOTES.map(n => ({n, who:n.who || n.author || "a reviewer"}))]
+    .flatMap(({n, who}) => (n.replies || []).filter(r => String(r.question || "").trim()).map(r => ({
+      id:r.id, role:r.role, anchor:n.anchor, title:"On a reviewer note", body:r.view, question:r.question,
+      urgency:r.urgency || "info", author:r.author || "AI assistant", fromNote:{text:n.text, who}})));
+}
+function noteState(n) {
+  if (n._waiting) return `<span class="rn-state waiting">Waiting for experts…</span>`;
+  const k = (n.replies || []).length;
+  if (k) return `<span class="rn-state">${plural(k, "reply")}</span>`.replace("replys", "replies");
+  if (n.ask) return `<span class="rn-state waiting">Waiting for experts</span>`;
+  return "";
+}
+function replyHtml(r, answerable) {
+  const role = ROLE[r.role] || {label:r.role, color:"#888"};
+  const q = {id:r.id, role:r.role, question:r.question, urgency:r.urgency || "info"};
+  return `<div class="reply ${r.urgency || "info"}" style="background:${tint(role.color)};--role:${role.color}">
+    <div class="small"><span class="swatch" style="background:${role.color}"></span><b>${esc(role.label)}</b> · ${URG[r.urgency || "info"]} · ${esc(r.author || "AI assistant")}</div>
+    <p>${gl(r.view || "", true)}</p>${r.question ? `<p><b>${gl(r.question, true)}</b></p>` : ""}
+    ${answerable && r.question ? answerHtml(q) : ""}</div>`;
+}
+function roughNoteHtml(n, mine) {
+  const by = mine ? (n.author || S.reviewer || "You") : (n.who || n.author || "A reviewer");
+  return `<div class="rough-note" data-rnote="${esc(n.id)}">
+    <div class="rn-head"><b>${mine ? "Your note" : `${esc(by)}’s note`}</b>${mine && (n.author || S.reviewer) ? ` · ${esc(by)}` : ""} ${noteState(n)}</div>
+    <p class="rn-text">${esc(n.text)}</p>
+    ${mine ? `<div class="rn-actions"><button class="mini" data-editnote="${esc(n.id)}">Edit</button>
+      <button class="mini" data-delnote="${esc(n.id)}">Delete</button>
+      <button class="mini ask" data-asknote="${esc(n.id)}">Ask the experts</button></div>
+      <div class="askbox" data-askbox="${esc(n.id)}" hidden><p class="small">Who should reply? Each gives a short view and one question.</p>
+        <div class="askroles">${ROLES.map(r => `<label><input type="checkbox" data-askrole="${esc(r.id)}" checked><span class="swatch" style="background:${r.color}"></span>${esc(r.label)}</label>`).join("")}</div>
+        <button class="save-primary" data-askgo="${esc(n.id)}">Ask</button> <button class="mini" data-askcancel="${esc(n.id)}">Cancel</button></div>` : ""}
+    ${(n.replies || []).length ? `<div class="replies">${n.replies.map(r => replyHtml(r, true)).join("")}</div>` : ""}
+    ${mine && n.ask && !(n.replies || []).length && !n._waiting ? `<button class="mini" data-getreplies="${esc(n.id)}">How to get the replies</button>` : ""}
+  </div>`;
+}
+function roughHtml(anchor, heading) {
+  const mine = S.myNotes.filter(n => sameAnchor(n.anchor, anchor)), others = MERGED_NOTES.filter(n => sameAnchor(n.anchor, anchor));
+  return `<section class="rough">${heading !== false ? `<h3>${heading || "Reviewer notes"}</h3>` : ""}
+    ${others.map(n => roughNoteHtml(n, false)).join("")}${mine.map(n => roughNoteHtml(n, true)).join("")}
+    <button class="mini addnote" data-addnote="${esc(anchor || "")}">+ Add a sticky note</button>
+    <div class="noteeditor" data-editor="${esc(anchor || "")}" hidden>
+      <label class="answer-label" for="ne-${esc(anchor || "map")}">Your note</label>
+      <textarea id="ne-${esc(anchor || "map")}" data-notetext placeholder="A rough thought is fine. You can ask the experts about it afterwards."></textarea>
+      ${S.reviewer ? "" : `<label class="small" for="nn-${esc(anchor || "map")}">Your name or role (optional)</label><input type="text" id="nn-${esc(anchor || "map")}" data-notename>`}
+      <div class="row"><button class="save-primary" data-savenote="${esc(anchor || "")}">Save note</button><button class="mini" data-cancelnote>Cancel</button></div>
+    </div></section>`;
+}
+/* Everything an AI agent needs to write the replies itself, for people without a live session. */
+function expertPrompt(notes) {
+  const asked = notes.map(n => ({id:n.id, text:n.text, on:whereTitle(n.anchor), roles:(n.ask && n.ask.roles) || ROLES.map(r => r.id)}));
+  return `You are a panel of experts reviewing a decision. Each expert speaks for one role.\n\n` +
+    `The decision: ${MODEL.question}\n${MODEL.summary ? "Summary: " + MODEL.summary + "\n" : ""}\n` +
+    `Roles:\n${ROLES.map(r => `- ${r.id}: ${r.label}${r.asks ? " (always asks: " + r.asks + ")" : ""}`).join("\n")}\n\n` +
+    `A reviewer left these rough notes. For each note and each role listed for it, write one reply: a short view in that role's voice ` +
+    `(one or two plain sentences reacting to the note) and one question whose answer could change the choice.\n\n` +
+    `Notes:\n${JSON.stringify(asked, null, 2)}\n\n` +
+    `Add the replies to the matching notes in the reviewer's answers file, as "replies": [{"id": "<note id>-<role id>", "role": "<role id>", ` +
+    `"view": "...", "question": "...", "urgency": "must|should|info", "author": "AI assistant"}]. Keep everything else in the file as it is. ` +
+    `Or run: decisioncraft perspectives MODEL.json --notes ANSWERS.json --out replies.json`;
+}
+
 /* Word-level differences between two short texts, for the Before and After view. */
 function wordDiff(a, b) {
   const A = String(a || "").split(/(\s+)/).filter(Boolean), B = String(b || "").split(/(\s+)/).filter(Boolean);
@@ -253,6 +330,8 @@ function badges(b) {
   if (b.feeling) out.push(`<span class="chip"><i class="feel ${b.feeling}"></i>${FEEL[b.feeling]}</span>`);
   const ev = (b.evidence || []).length;
   if (ev) out.push(`<span class="chip">Evidence: ${ev}</span>`);
+  const rough = roughOn(b.id);
+  if (rough) out.push(`<span class="chip rough">✎ ${plural(rough, "reviewer note")}</span>`);
   const notes = notesOn(b.id);
   if (notes.length) {
     const colours = [...new Set(notes.map(n => (ROLE[n.role] || {}).color || "#888"))].slice(0, 3);
@@ -745,6 +824,23 @@ function applyConnections() {
 
 /* ---------- render ---------- */
 let bounds = {x:0, y:0, w:1000, h:800};
+/* Free notes (about the whole map) sit in their own column to the right of everything. */
+function drawFreeNotes(m) {
+  const mid = m.id || String(S.map);
+  const free = [...S.myNotes.filter(n => !n.anchor && (!n.map || n.map === mid)).map(n => [n, true]),
+    ...MERGED_NOTES.filter(n => !n.anchor && (!n.map || n.map === mid)).map(n => [n, false])];
+  if (!free.length) return;
+  const x = bounds.w + 70;
+  let y = 120;
+  place("label", x, y - 30, 0, "Notes on the whole map");
+  free.forEach(([n, mine], i) => {
+    const el = place("roughcard", x, y, 260, `<div class="rn-head"><b>${mine ? "Your note" : esc(n.who || n.author || "A reviewer") + "’s note"}</b> ${noteState(n)}</div><p>${esc(n.text)}</p>`,
+      {type:"mapnotes"}, `${mine ? "Your note" : "Reviewer note"} on the whole map: ${n.text}`);
+    el.style.setProperty("--note-tilt", [-1, 0.8, -0.4][i % 3] + "deg");
+    y += el.offsetHeight + 16;
+  });
+  bounds.w = x + 260 + 40; bounds.h = Math.max(bounds.h, y + 40);
+}
 /* Dashed lines join each note on the map to the box it is about. */
 function drawNoteLinks() {
   world.querySelectorAll(".notecard").forEach(note => {
@@ -773,6 +869,7 @@ function layout() {
   document.body.classList.toggle("sbs-j", sbsJourneys());
   bounds = sbsJourneys() ? renderJourneySbs(m) : m.template === "customer-journey" ? renderCustomerJourney(m) : kind === "journeys" ? renderJourneys(m) : kind === "chain" ? renderChain(m) : renderTree(m);
   drawNoteLinks();
+  drawFreeNotes(m);
   drawConnections();
   applyFocus();
   if (current && current.kind === "box" && nodes[current.arg]) nodes[current.arg].classList.add("sel");
@@ -988,6 +1085,7 @@ function topBar() {
   $("#tsave").addEventListener("click", () => SESSION && S.sessionFinished ? open("reviewsummary") : saveReview());
   $("#tshare").addEventListener("click", e => menu(e.currentTarget, [
     ["walk", "Walk me through it", ""],
+    ["mapnotes", "Add a free note to the map", ""],
     ...(hasChanges(MODEL.maps[S.map]) ? [["walkchanges", "Walk through the changes", ""]] : []),
     [SESSION ? "backup" : "save", SESSION ? "Download a backup copy" : "Save my answers as a file", ""],
     ["copy", "Copy the questions as a list", ""], ["paper", "Print the questions", ""],
@@ -1028,6 +1126,7 @@ document.addEventListener("click", e => { if (!e.target.closest("#menu,#tshare,#
 function act(a) {
   if (a === "walk") walk(0);
   if (a === "walkchanges") walkChanges(0);
+  if (a === "mapnotes") open("mapnotes");
   if (a === "tech" && !Object.values(BOX).some(info => info.mi === S.map && info.box.detail)) return toast("This map has no extra box details.");
   if (a === "lines") { S.lines = !S.lines; persist(); topBar(); applyConnections(); }
   if (a === "glossary") open("glossary");
@@ -1224,7 +1323,7 @@ function hideHint() { $("#hint").classList.remove("open"); if (!S.hintSeen) { S.
 
 /* ---------- right panel ---------- */
 let current = null;
-function open(kind, arg) {
+function open(kind, arg, keep) {
   current = {kind, arg};
   applyConnections();
   story();
@@ -1236,8 +1335,8 @@ function open(kind, arg) {
   p.setAttribute("aria-labelledby", "ptitle");
   $("#pclose").addEventListener("click", close);
   wirePanel(p);
-  fit();
-  $("#ptitle").setAttribute("tabindex", "-1"); $("#ptitle").focus();
+  if (!keep) fit();
+  $("#ptitle").setAttribute("tabindex", "-1"); if (!keep) $("#ptitle").focus();
 }
 function close() {
   $("#panel").classList.remove("open"); document.body.classList.remove("panel-open");
@@ -1283,8 +1382,9 @@ function noteHtml(n, withJump) {
   return `<div class="card ${n.urgency || "info"}">
     <div class="small"><span class="swatch" style="background:${r.color}"></span><b>${esc(r.label)}</b> · ${esc(n.author || (SESSION && SESSION.prepared_by) || "Author not recorded")} · ${URG[n.urgency || "info"]}</div>
     <h3 style="margin:4px 0">${gl(n.title, true)}</h3>
+    ${n.fromNote ? `<p class="small from-note">From a reviewer note (${esc(n.fromNote.who)}): “${esc(n.fromNote.text)}”</p>` : ""}
     ${n.body ? `<p>${gl(n.body, true)}</p>` : ""}
-    ${(n.evidence || []).length ? `<button class="mini" data-evidence="${esc(n.evidence.join(","))}">See supporting sources</button>` : `<p class="small">We have not attached a source for this yet.</p>`}
+    ${n.fromNote ? "" : (n.evidence || []).length ? `<button class="mini" data-evidence="${esc(n.evidence.join(","))}">See supporting sources</button>` : `<p class="small">We have not attached a source for this yet.</p>`}
     ${n.question ? `<p><b>Question:</b> ${gl(n.question, true)}</p>${answerHtml(n)}` : ""}
     ${dec.length ? `<p class="small">Part of ${dec.map(d => `<button class="mini" data-open-decision="${esc(d.id)}">decision ${esc(d.id)}</button>`).join(" ")}</p>` : ""}
     ${withJump && BOX[n.anchor] ? `<button class="mini" data-jump-to="${esc(n.anchor)}">Show where this note sits</button>` : ""}
@@ -1308,7 +1408,7 @@ function answerHtml(n) {
     ${a.comment ? `<label class="small" for="c-${esc(n.id)}">Earlier comment</label><textarea id="c-${esc(n.id)}" data-comment="${esc(n.id)}">${esc(a.comment)}</textarea>` : ""}`;
 }
 function questionList() {
-  return NOTES.filter(n => (n.question || "").trim()).map(n => {
+  return [...NOTES.filter(n => (n.question || "").trim()), ...replyQuestions()].map(n => {
     const mv = MERGED && MERGED.questions && MERGED.questions[n.id] || {};
     const g = GAPS.find(g => g.id === n.anchor);
     return {id:n.id, n, urgency:n.urgency || "info", dots:(mv.dots || 0) + (S.votes[n.id] || 0), impact:g ? g.impact || 0 : 0};
@@ -1365,9 +1465,24 @@ const PANELS = {
       ${(b.evidence || []).length ? `<h3>Evidence</h3>${evidenceHtml(b.evidence)}` : ""}
       ${gaps.length ? `<h3>Gaps here</h3>${gaps.map(g => `<button class="mini" data-open-gap="${esc(g.id)}">${esc(g.id)}: ${esc(g.title)}</button>`).join(" ")}` : ""}
       <h3>${notes.length ? `Notes from ${plural(notes.length, "role")}` : "Notes"}</h3>
-      ${notes.length ? notes.map(n => noteHtml(n)).join("") : `<p class="small">No notes here from the roles you are showing.</p>`}`];
+      ${notes.length ? notes.map(n => noteHtml(n)).join("") : `<p class="small">No notes here from the roles you are showing.</p>`}
+      ${roughHtml(id)}`];
   },
   note(n) { return [`${esc((ROLE[n.role] || {}).label || n.role)} note`, noteHtml(n, true)]; },
+  mapnotes() {
+    return ["Notes on the whole map", `<p class="small">A free note is about the map or the decision as a whole, not one box.</p>${roughHtml(null, false)}
+      ${S.myNotes.filter(n => n.anchor).length ? `<h3>Your notes on boxes</h3>${S.myNotes.filter(n => n.anchor).map(n => `<button class="mini" data-jump-note="${esc(n.id)}">${esc(whereTitle(n.anchor))}: ${esc(n.text.slice(0, 60))}</button>`).join(" ")}` : ""}`];
+  },
+  getreplies(id) {
+    const waiting = S.myNotes.filter(n => n.ask && !(n.replies || []).length);
+    return ["Get the experts’ replies", `<p>${EXPERTS ? "The experts could not reply here." : "This page is a file, so it cannot ask a model itself."} Two ways to get the replies:</p>
+      <h3>1. Run the command</h3><ol><li>Press <b>Save my answers</b>. Your notes and what you asked travel in that file.</li>
+      <li>Run, from the folder with the model this map was drawn from:<pre class="cmd">decisioncraft perspectives model.json --notes ${esc(`review-${(S.reviewer || "reviewer").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.json`)} --out replies.json</pre></li>
+      <li>Then see the threads:<pre class="cmd">decisioncraft render model.json --reviews replies.json --open</pre></li></ol>
+      <button class="save-primary" data-save-review>Save my answers</button>
+      <h3>2. Ask your AI agent</h3><p>Copy everything it needs: the decision, the roles, your ${plural(waiting.length || 1, "note")} and the reply format.</p>
+      <button class="save-primary" data-copyprompt>Copy prompt for your AI agent</button>`];
+  },
   lane(d) {
     const m = MODEL.maps[d.mi] || {}, l = (m.lanes || [])[d.i] || {};
     const steps = (m.journeys || []).flatMap(j => (j.steps || []).filter(st => st.lane === l.id));
@@ -1457,8 +1572,9 @@ const PANELS = {
     qs.forEach(q => {
       if (q.urgency !== cur) { cur = q.urgency; html += `<h3>${URG[cur]}</h3>`; }
       const r = ROLE[q.n.role] || {label:q.n.role, color:"#888"};
-      const where = BOX[q.n.anchor] ? titleOf(BOX[q.n.anchor].box) : q.n.anchor;
+      const where = whereTitle(q.n.anchor);
       html += `<div class="card ${cur}"><div class="small"><span class="swatch" style="background:${r.color}"></span>${esc(r.label)} · about <button class="mini" data-jump-to="${esc(q.n.anchor)}">${esc(where)}</button></div>
+        ${q.n.fromNote ? `<p class="small from-note">From a reviewer note (${esc(q.n.fromNote.who)}): “${esc(q.n.fromNote.text)}”</p>` : ""}
         <p><b>${gl(q.n.question, true)}</b></p><p class="small">${gl(q.n.body || "", true)}</p>
         ${(q.n.evidence || []).length ? `<button class="mini" data-evidence="${esc(q.n.evidence.join(","))}">See supporting sources</button>` : ""}
         ${answerHtml(q.n)}</div>`;
@@ -1506,6 +1622,8 @@ const PANELS = {
           return `<p><b>${gl(s.as, true)}</b></p><ul>${(s.done_when || []).map(d => `<li>Done when ${gl(d, true)}</li>`).join("")}
           ${S.tech ? sd.map(d => `<li class="techcheck">Technical check: ${esc(d)}</li>`).join("") : ""}</ul>`; }).join("")}
         ${(g.anchors || []).filter(a => BOX[a]).map(a => `<button class="mini" data-jump-to="${esc(a)}">Show: ${esc(titleOf(BOX[a].box))}</button>`).join(" ")}
+        ${(g.stories || []).map((st, k) => `<details class="storynotes"><summary>Notes on story ${k + 1}</summary>${roughHtml(g.id + "#story-" + k, false)}</details>`).join("")}
+        ${roughHtml(g.id, "Reviewer notes on this gap")}
         ${notesOn(g.id).map(n => noteHtml(n)).join("")}</div>`).join("")}`];
   },
   evidence(voiceOnly) {
@@ -1618,8 +1736,74 @@ function wirePanel(p) {
     ROLES.forEach(r => S.roles[r.id] = b.dataset.roles === "all"); persist(); render(); open("roles");
   }));
   const gs = $("#gsort", p); if (gs) gs.addEventListener("change", () => open("gaps", gs.value));
+  wireRough(p);
   const vo = $("#voiceonly", p); if (vo) vo.addEventListener("change", () => open("evidence", vo.checked));
   wireTerms(p);
+}
+function refreshPanel() {
+  const body = $("#panel .body"), top = body ? body.scrollTop : 0;
+  render();
+  if (current) open(current.kind, current.arg, true);
+  const nb = $("#panel .body"); if (nb) nb.scrollTop = top;
+}
+function wireRough(p) {
+  p.querySelectorAll("[data-addnote]").forEach(b => b.addEventListener("click", () => {
+    const ed = b.parentElement.querySelector(".noteeditor"); ed.hidden = false; b.hidden = true; ed.querySelector("textarea").focus();
+  }));
+  p.querySelectorAll("[data-cancelnote]").forEach(b => b.addEventListener("click", () => {
+    const ed = b.closest(".noteeditor"); ed.hidden = true; delete ed.dataset.editing; const add = ed.parentElement.querySelector("[data-addnote]"); if (add) add.hidden = false;
+  }));
+  p.querySelectorAll("[data-savenote]").forEach(b => b.addEventListener("click", () => {
+    const ed = b.closest(".noteeditor"), text = ed.querySelector("[data-notetext]").value.trim();
+    if (!text) return toast("Write something first. A rough note is fine.");
+    const name = ed.querySelector("[data-notename]"); if (name && name.value.trim()) S.reviewer = name.value.trim();
+    if (ed.dataset.editing) { const n = S.myNotes.find(x => x.id === ed.dataset.editing); if (n) { n.text = text; n.edited_at = new Date().toISOString(); } }
+    else S.myNotes.push({id:newNoteId(), anchor:b.dataset.savenote || null, text, author:S.reviewer || "", at:new Date().toISOString(),
+      ...(b.dataset.savenote ? {} : {map:MODEL.maps[S.map].id || String(S.map)})});
+    persist(); refreshPanel(); toast("Note saved with your answers");
+  }));
+  p.querySelectorAll("[data-editnote]").forEach(b => b.addEventListener("click", () => {
+    const n = S.myNotes.find(x => x.id === b.dataset.editnote); const sec = b.closest(".rough"); const ed = sec.querySelector(".noteeditor");
+    ed.hidden = false; ed.dataset.editing = n.id; ed.querySelector("textarea").value = n.text; ed.querySelector("textarea").focus();
+  }));
+  p.querySelectorAll("[data-delnote]").forEach(b => b.addEventListener("click", () => {
+    if (!confirm("Delete this note and any replies to it?")) return;
+    S.myNotes = S.myNotes.filter(x => x.id !== b.dataset.delnote); persist(); refreshPanel();
+  }));
+  p.querySelectorAll("[data-asknote]").forEach(b => b.addEventListener("click", () => {
+    const box = p.querySelector(`[data-askbox="${CSS.escape(b.dataset.asknote)}"]`); box.hidden = !box.hidden; if (!box.hidden) box.querySelector("input").focus();
+  }));
+  p.querySelectorAll("[data-askcancel]").forEach(b => b.addEventListener("click", () => { p.querySelector(`[data-askbox="${CSS.escape(b.dataset.askcancel)}"]`).hidden = true; }));
+  p.querySelectorAll("[data-askgo]").forEach(b => b.addEventListener("click", () => {
+    const n = S.myNotes.find(x => x.id === b.dataset.askgo); if (!n) return;
+    const roles = [...p.querySelectorAll(`[data-askbox="${CSS.escape(n.id)}"] [data-askrole]:checked`)].map(c => c.dataset.askrole);
+    if (!roles.length) return toast("Pick at least one role to ask.");
+    n.ask = {roles, requested_at:new Date().toISOString()};
+    persist();
+    if (EXPERTS) askLive(n, roles); else { refreshPanel(); open("getreplies", n.id); }
+  }));
+  p.querySelectorAll("[data-getreplies]").forEach(b => b.addEventListener("click", () => open("getreplies", b.dataset.getreplies)));
+  p.querySelectorAll("[data-copyprompt]").forEach(b => b.addEventListener("click", () => {
+    const waiting = S.myNotes.filter(n => n.ask && !(n.replies || []).length);
+    const text = expertPrompt(waiting.length ? waiting : S.myNotes);
+    const done = () => toast("Copied. Paste it into your AI agent with your answers file.");
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, () => fallbackCopy(text, done)); else fallbackCopy(text, done);
+  }));
+  p.querySelectorAll("[data-jump-note]").forEach(b => b.addEventListener("click", () => { const n = S.myNotes.find(x => x.id === b.dataset.jumpNote); if (n) { jumpTo(n.anchor); open("box", n.anchor); } }));
+}
+/* In a live session the page asks the experts through the local tool and shows the replies. */
+async function askLive(n, roles) {
+  n._waiting = true; refreshPanel();
+  try {
+    const response = await fetch(SESSION.base + "/experts", {method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({note:cleanNote(n), roles})});
+    const value = await response.json();
+    if (!response.ok) throw new Error(value.error || "The experts could not reply.");
+    n.replies = value.replies || [];
+    n._waiting = false; persist(); refreshPanel(); toast(`${plural(n.replies.length, "reply")} arrived`.replace("replys", "replies"));
+  } catch (error) {
+    n._waiting = false; refreshPanel(); toast(error.message); open("getreplies", n.id);
+  }
 }
 function jumpTo(id) {
   const info = BOX[id];
@@ -1647,6 +1831,7 @@ function activate(el) {
   else if (d.type === "outcome") open("outcome", d.o);
   else if (d.type === "expand") { S.sbsAll = true; persist(); render(); fit(); }
   else if (d.type === "lane") open("lane", d);
+  else if (d.type === "mapnotes") open("mapnotes");
 }
 const startFrom = e => { const sj = e.target.closest("[data-startj]"); if (!sj) return false; e.stopPropagation(); const [mi, ji] = sj.dataset.startj.split(":").map(Number); walkJourney(mi, ji, 0); return true; };
 world.addEventListener("click", e => { if (startFrom(e)) return; const term = e.target.closest(".term"); if (term) { showTerm(term); return; } const el = e.target.closest("[role=button]"); if (el && el._data) activate(el); });
@@ -1690,7 +1875,8 @@ world.addEventListener("focusout", e => { if (e.target.closest(".term")) hideTer
 /* ---------- share ---------- */
 function reviewData() {
   return {format:"decisioncraft-review/1", model:MODEL.title, model_fingerprint:META.fingerprint || "",
-    reviewer:S.reviewer || "", saved_at:new Date().toISOString(), answers:S.answers, dots:S.votes, decisions:S.decisions};
+    reviewer:S.reviewer || "", saved_at:new Date().toISOString(), answers:S.answers, dots:S.votes, decisions:S.decisions,
+    ...(S.myNotes.length ? {notes:S.myNotes.map(cleanNote)} : {})};
 }
 function saveReview() { if (SESSION) finishReview(); else downloadReview(); }
 function downloadReview() {

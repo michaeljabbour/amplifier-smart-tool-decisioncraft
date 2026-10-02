@@ -39,6 +39,9 @@ Five things worth knowing before you start:
 - To chain steps, import the library (`import decisioncraft as dc`) instead of parsing
   command output.
 
-The recipes in `--help` cover: meeting notes to a canvas, a live review, comparing two
-versions, merging reviews, and exporting questions to a task list. See `docs/HOSTS.md`
+The recipes in `--help` cover: meeting notes to a canvas, a live review, getting expert
+replies on reviewers' rough notes, comparing two versions, merging reviews, and exporting
+questions to a task list. For expert replies: `decisioncraft perspectives MODEL --notes
+ANSWERS --dry-run` shows what would be asked; add `--complete-cmd` (or use the MCP tool
+`decisioncraft_review_notes`) to write the replies, then `render --reviews` to show them. See `docs/HOSTS.md`
 in the repository for MCP setup.

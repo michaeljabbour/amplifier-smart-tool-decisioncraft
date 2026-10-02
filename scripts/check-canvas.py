@@ -35,7 +35,7 @@ OVERLAP_JS = """
   let hits = 0;
   for (const w of ['#world', '#world2']) {
     const boxes = [...document.querySelectorAll(w + ' .box')].map(r);
-    const notes = [...document.querySelectorAll(w + ' .notecard, ' + w + ' .morenotes')].map(r);
+    const notes = [...document.querySelectorAll(w + ' .notecard, ' + w + ' .morenotes, ' + w + ' .roughcard')].map(r);
     const words = [...document.querySelectorAll(w + ' .label, ' + w + ' .lanehead, ' + w + ' .steplabel, ' + w + ' .modebar, ' + w + ' .maptitle, ' + w + ' .mapintro')].map(r);
     for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) if (hit(boxes[i], boxes[j])) hits++;
     for (const n of notes) for (const b of boxes) if (hit(n, b)) hits++;
@@ -260,6 +260,49 @@ def check(page, path: Path, shots: Path | None) -> tuple[list[str], list[str]]:
                 shot(f"9-view{i + 1}-chain-extras")
     except Exception as e:  # noqa: BLE001
         problems.append(f"journey walk and lanes: {e}")
+
+    # a reviewer's rough note, by keyboard, then Ask the experts (file mode shows the way)
+    try:
+        page.get_by_role("button", name="Fit to screen").click()
+        boxes = page.locator("#world .box[role=button]")
+        target = None
+        for i in range(boxes.count()):
+            bb = boxes.nth(i).bounding_box()
+            if bb and bb["y"] > 80 and bb["y"] + 30 < 860 and 330 < bb["x"] < 1250:
+                target = boxes.nth(i)
+                break
+        target.click(position={"x": 6, "y": 6})
+        page.wait_for_timeout(200)
+        add = page.locator("#panel").get_by_role("button", name="+ Add a sticky note").first
+        assert add.evaluate("e => e.tagName === 'BUTTON' && e.tabIndex >= 0"), "Add a sticky note is not a keyboard button"
+        add.focus(); page.keyboard.press("Enter"); page.wait_for_timeout(150)
+        page.locator("#panel [data-notetext]").first.fill("A rough thought to check with the experts.")
+        page.locator("#panel").get_by_role("button", name="Save note").first.click(); page.wait_for_timeout(250)
+        assert page.locator("#panel .rough-note").count() >= 1, "the note was not saved"
+        ask = page.locator("#panel").get_by_role("button", name="Ask the experts").first
+        assert ask.inner_text().strip() == "Ask the experts"
+        ask.focus(); page.keyboard.press("Enter"); page.wait_for_timeout(150)
+        assert page.locator("#panel [data-askrole]").count() >= 1, "no roles to pick"
+        page.locator("#panel").get_by_role("button", name="Ask", exact=True).first.click(); page.wait_for_timeout(250)
+        assert "experts" in page.inner_text("#ptitle").lower(), "no way to get the replies was shown"
+        assert "decisioncraft perspectives" in page.inner_text("#panel")
+        page.locator("#panel").get_by_role("button", name="Copy prompt for your AI agent").click(); page.wait_for_timeout(250)
+        assert "Copied" in page.inner_text("#toast")
+        shot("10-ask-the-experts")
+        click_text("Close", "#panel")
+        page.locator("#top").get_by_role("button", name="Tools").click()
+        page.get_by_role("menuitem", name="Add a free note to the map").click(); page.wait_for_timeout(200)
+        page.locator("#panel").get_by_role("button", name="+ Add a sticky note").click()
+        page.locator("#panel [data-notetext]").fill("A note about the whole map.")
+        page.locator("#panel").get_by_role("button", name="Save note").click(); page.wait_for_timeout(250)
+        click_text("Close", "#panel")
+        assert page.locator("#world .roughcard").count() >= 1, "the free note is not on the map"
+        hits = page.evaluate(OVERLAP_JS)
+        if hits:
+            problems.append(f"with reviewer notes: {hits} overlaps")
+        done.append("added a rough note by keyboard, asked the experts, and added a free note")
+    except Exception as e:  # noqa: BLE001
+        problems.append(f"reviewer notes: {e}")
 
     # maps with a plan: the switch, What changes, Side by side, zoom levels
     try:

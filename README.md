@@ -196,7 +196,10 @@ alternatives branch. Where a map holds a plan, one switch reads it as Today, Pla
 What changes: a single map where each box is marked New, Changed or Goes away, with
 counts, a list of every change, a walk through the changes, and before and after for each
 changed box. Side by side puts today and the plan in two panes that pan and zoom together.
-Optional named connections highlight when a box is selected and remain readable in the
+Reviewers can add rough sticky notes to any box, gap or story, or to the whole map, and
+press Ask the experts: each chosen role replies with a short view and a question, in the
+page during a live session, or afterwards with `decisioncraft perspectives MODEL --notes
+ANSWERS`. Optional named connections highlight when a box is selected and remain readable in the
 text version. Every control is a labelled button; display options sit in one View menu.
 
 Start with `decisioncraft discover`, then use the answers to shape the draft. See

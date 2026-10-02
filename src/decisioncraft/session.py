@@ -37,9 +37,10 @@ class ReviewSession:
     """A running local review. Read status(), wait for finish, then close()."""
 
     def __init__(
-        self, model: dict, directory, *, review=None, source_root=None, prepared_by=""
+        self, model: dict, directory, *, review=None, source_root=None, prepared_by="", complete=None
     ):
         require_valid(model)
+        self._complete = complete  # a model routing for Ask the experts; None = file handoff instead
         self.model = copy.deepcopy(model)
         if not isinstance(prepared_by, str):
             raise ValueError("Prepared by must be text.")
@@ -120,6 +121,7 @@ class ReviewSession:
                             handoff=session._handoff,
                             version=session._version,
                             prepared_by=session.prepared_by,
+                            experts=session._complete is not None,
                             close_on_finish=session.close_on_finish,
                             sources={
                                 k: session.base + "/source/" + k
@@ -167,6 +169,29 @@ class ReviewSession:
                         return self.reply(200, data, "text/plain; charset=utf-8")
                 return self.reply(404, {"error": "This page was not found."})
 
+            def experts(self):
+                """Ask the experts about one reviewer note; replies come back, nothing is saved."""
+                if session._complete is None:
+                    return self.reply(501, {"error": "This review was started without a model, so experts cannot reply here. Save your answers and use the command shown."})
+                try:
+                    length = int(self.headers.get("Content-Length", "0"))
+                    if not 0 < length <= 200_000:
+                        return self.reply(413, {"error": "The note is too large or empty."})
+                    value = json.loads(self.rfile.read(length))
+                    note = value.get("note") if isinstance(value, dict) else None
+                    roles = value.get("roles") if isinstance(value, dict) else None
+                    if not isinstance(note, dict) or not isinstance(roles, list) or not roles:
+                        raise ValueError("Send a note and the roles to ask.")
+                    note = {**note, "ask": {"roles": roles}, "replies": [r for r in note.get("replies", []) if isinstance(r, dict)]}
+                    mini = {**blank_review(session.model), "notes": [note]}
+                    from .intelligence import review_notes
+                    out = review_notes(session.model, mini, roles=roles, complete=session._complete)
+                    return self.reply(200, {"replies": out["notes"][0].get("replies", [])})
+                except (ValueError, TypeError, UnicodeError) as error:
+                    return self.reply(400, {"error": str(error)})
+                except Exception as error:  # the model call failed; say so plainly
+                    return self.reply(502, {"error": f"The experts could not reply: {error}"})
+
             def do_POST(self):
                 path = urlsplit(self.path).path
                 if (
@@ -176,6 +201,8 @@ class ReviewSession:
                     != "application/json"
                 ):
                     return self.reply(403, {"error": "This request is not allowed."})
+                if path == session.base + "/experts":
+                    return self.experts()
                 if path not in (session.base + "/answers", session.base + "/finish"):
                     return self.reply(404, {"error": "This page was not found."})
                 try:
@@ -301,13 +328,18 @@ class ReviewSession:
 
 
 def session(
-    model: dict, directory, *, review=None, source_root=None, prepared_by=""
+    model: dict, directory, *, review=None, source_root=None, prepared_by="", complete=None
 ) -> ReviewSession:
-    """Open a local review that saves responses for its host without file handoff."""
+    """Open a local review that saves responses for its host without file handoff.
+
+    complete: optional model routing (`complete(system, prompt)`); with it, reviewers can
+    press Ask the experts on their rough notes and get replies in the page.
+    """
     return ReviewSession(
         model,
         directory,
         review=review,
         source_root=source_root,
         prepared_by=prepared_by,
+        complete=complete,
     )

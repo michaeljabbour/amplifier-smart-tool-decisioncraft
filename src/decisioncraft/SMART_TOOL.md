@@ -162,6 +162,26 @@ decisioncraft render sundays/model.json --open
 Read the draft before sharing it. To add more notes from each role later:
 `decisioncraft perspectives sundays/model.json sundays/material/*.md --complete-cmd 'python3 my_adapter.py' --out sundays/model.json`.
 
+**Get expert replies on reviewers' rough notes.**
+
+Reviewers add sticky notes in the canvas and press Ask the experts. In a live session
+started with a model, replies appear in the page:
+
+```
+decisioncraft session model.json --dir .work/review-2 --complete-cmd 'python3 my_adapter.py' --open
+```
+
+From a saved answers file instead:
+
+```
+decisioncraft perspectives model.json --notes review-sam.json --dry-run
+decisioncraft perspectives model.json --notes review-sam.json --complete-cmd 'python3 my_adapter.py' --out replies.json
+decisioncraft render model.json --reviews replies.json --open
+```
+
+Each chosen role replies with a short view and one question; the questions join the
+questions to decide. Over MCP, use `decisioncraft_review_notes` (host sampling).
+
 **Run the review with the person on this computer.**
 
 ```

@@ -110,6 +110,7 @@ On failure:
 | `diff` | `{added, removed, changed}` |
 | `handoff` | the handoff (see workflow.v1.md) |
 | `draft`, `perspectives` | the model |
+| `perspectives --notes` | `{dry_run, asked: [{note, text, on, roles}], replies_added, review}`; `review` is the answers file with replies added (absent with `--dry-run`) |
 | `manifest`, `templates`, `roles`, `discover` | the same data the library returns |
 
 `summary` is `{maps, journeys, steps, stages, items, notes, questions, gaps, sources,

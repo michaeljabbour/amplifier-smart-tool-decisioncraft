@@ -91,3 +91,22 @@ def test_draft_through_the_hosts_model():
 
     asyncio.run(_with_client(check, sampling_callback=sampling))
     assert seen["system"]
+
+
+def test_review_notes_tool_dry_run_and_sampling():
+    model = dc.example("business")["model"]
+    review = dc.example("business")["reviews"][0]
+    review = {**review, "notes": [{"id": "R9", "anchor": "ci5", "text": "What about the villages?", "ask": {"roles": ["owner"]}}]}
+
+    async def sample(context, params):
+        return types.CreateMessageResult(role="assistant", model="stand-in", content=types.TextContent(type="text", text=json.dumps(
+            {"replies": [{"note": "R9", "role": "owner", "view": "Keep the pilot small.", "question": "Villages later?", "urgency": "must"}]})))
+
+    async def go(client):
+        dry = await client.call_tool("decisioncraft_review_notes", {"model": model, "review": review, "dry_run": True})
+        real = await client.call_tool("decisioncraft_review_notes", {"model": model, "review": review})
+        return dry.structuredContent, real.structuredContent
+
+    dry, real = asyncio.run(_with_client(go, sampling_callback=sample))
+    assert dry["asked"][0]["roles"] == ["owner"] and dry["replies_added"] == 0
+    assert real["replies_added"] == 1 and real["review"]["notes"][0]["replies"][0]["id"] == "R9-owner"

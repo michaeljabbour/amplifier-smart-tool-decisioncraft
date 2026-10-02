@@ -279,10 +279,14 @@ CAPABILITIES: dict[str, dict] = {
                 ),
             ),
             ("--out", "Output path (default: print)."),
+            ("--notes", "Instead: a saved answers file; each reviewer note gets replies from the roles asked."),
+            ("--roles", "With --notes: comma-separated role ids to ask (default: what each note asked)."),
+            ("--dry-run", "With --notes: show what would be asked, with no model call."),
         ],
         "example": "decisioncraft perspectives model.json --provider anthropic "
         "--model-name <model-name> --out model.json",
-        "result": "The model with new notes added; existing notes are kept.",
+        "result": "The model with new notes added; existing notes are kept. With --notes: the answers "
+        "file with each role's reply (a short view and one question) under each reviewer note.",
         "fails": "Neither --provider nor --complete-cmd (exit 2); a provider with no key, "
         "model name or SDK (exit 3); a failed call or an invalid reply after one repair (exit 4).",
     },

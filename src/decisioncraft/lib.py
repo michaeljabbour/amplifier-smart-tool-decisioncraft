@@ -13,7 +13,7 @@ from __future__ import annotations
 from . import intelligence
 from .model import default_roles, new_model, templates, validate
 from .render import render
-from .review import diff, merge, questions
+from .review import diff, merge, notes_to_ask, questions
 from .words import words
 from .session import session
 from .workflow import discover, handoff
@@ -24,7 +24,7 @@ from .stats import summary
 
 __all__ = [
     "manifest", "templates", "roles", "new", "validate", "render", "words", "questions",
-    "merge", "diff", "draft", "perspectives", "session", "discover", "handoff",
+    "merge", "diff", "draft", "perspectives", "review_notes", "notes_to_ask", "session", "discover", "handoff",
     "starter", "example", "example_names", "doctor", "summary",
 ]
 
@@ -47,6 +47,7 @@ def new(template: str, title: str, question: str, date: str = "") -> dict:
 
 draft = intelligence.draft
 perspectives = intelligence.perspectives
+review_notes = intelligence.review_notes
 
 # re-exported deterministic capabilities
 templates = templates

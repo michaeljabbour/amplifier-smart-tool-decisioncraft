@@ -64,10 +64,75 @@ def questions(model: dict, merged: dict | None = None) -> list[dict]:
                 "answers": list(v.get("answers", [])),
             }
         )
+    for n in note_threads(merged):
+        target = _note_target(model, n.get("anchor"))
+        for r in n.get("replies", []):
+            q = str(r.get("question", "")).strip()
+            if not q:
+                continue
+            v = votes.get(r["id"], {})
+            out.append({
+                "id": r["id"], "question": q, "answer_type": "text", "role": r.get("role"),
+                "role_label": roles.get(r.get("role"), r.get("role")),
+                "urgency": r.get("urgency", "info"), "urgency_label": URGENCY[r.get("urgency", "info")],
+                "where": target["title"], "anchor": n.get("anchor"), "evidence": [],
+                "dots": v.get("dots", 0), "impact": 0, "agree": v.get("agree", 0),
+                "change": v.get("change", 0), "unsure": v.get("unsure", 0), "answers": list(v.get("answers", [])),
+                "from_note": n.get("id"), "note_text": n.get("text", ""), "note_by": n.get("who") or n.get("author", ""),
+            })
     out.sort(
         key=lambda q: (URGENCY_ORDER[q["urgency"]], -q["dots"], -q["impact"], q["id"])
     )
     return out
+
+
+def _note_target(model: dict, anchor) -> dict:
+    """What a reviewer's note sits on: a box, a gap, a gap's story ("G1#story-0"), or the map."""
+    if not anchor:
+        return {"kind": "map", "title": "The whole map", "text": ""}
+    boxes = {b.get("id"): b for _, b in iter_boxes(model)}
+    gaps = {g.get("id"): g for g in model.get("gaps", [])}
+    if "#story-" in str(anchor):
+        gid, _, k = str(anchor).partition("#story-")
+        stories = (gaps.get(gid) or {}).get("stories", [])
+        if k.isdigit() and int(k) < len(stories):
+            return {"kind": "story", "title": stories[int(k)].get("as", ""), "text": "; ".join(stories[int(k)].get("done_when", []))}
+    target = boxes.get(anchor) or gaps.get(anchor)
+    if target is None:
+        return {"kind": "unknown", "title": str(anchor), "text": ""}
+    return {"kind": "gap" if anchor in gaps else "box",
+            "title": target.get("title") or target.get("label") or target.get("text") or str(anchor),
+            "text": target.get("text", "") if target.get("title") else target.get("summary", "") or target.get("why", "")}
+
+
+def note_threads(merged_or_review: dict | None) -> list[dict]:
+    """Reviewer notes with their expert replies, from one review or a merged set."""
+    notes = (merged_or_review or {}).get("notes") or []
+    return [n for n in notes if isinstance(n, dict)]
+
+
+def notes_to_ask(model: dict, review: dict, roles: list[str] | None = None) -> list[dict]:
+    """Deterministic: which reviewer notes would be sent to the experts, and to whom.
+
+    A note is asked when it carries an `ask` and some of its roles have not replied yet.
+    If no note carries an `ask`, every note without replies is asked. `roles` replaces the
+    roles each note asked for. Returns [{note, target, roles}] in the review's order.
+    """
+    known = [r["id"] for r in roles_of(model)]
+    notes = note_threads(review)
+    any_ask = any(n.get("ask") for n in notes)
+    plan = []
+    for n in notes:
+        if any_ask and not n.get("ask"):
+            continue
+        wanted = roles or (n.get("ask") or {}).get("roles") or known
+        wanted = [r for r in wanted if r in known]
+        done = {r.get("role") for r in n.get("replies", []) if isinstance(r, dict)}
+        todo = [r for r in wanted if r not in done]
+        if not todo or (not any_ask and done):
+            continue
+        plan.append({"note": n, "target": _note_target(model, n.get("anchor")), "roles": todo})
+    return plan
 
 
 def blank_review(model: dict, reviewer: str = "") -> dict:
@@ -125,6 +190,41 @@ def check_review(review: dict) -> list[str]:
             problems.append(f"Decision {did} must be an object.")
         elif any(not isinstance(value, str) for value in fields.values()):
             problems.append(f"Fields for decision {did} must be text.")
+    notes = review.get("notes")
+    if notes is not None and not isinstance(notes, list):
+        problems.append("Notes must be a list.")
+    seen = set()
+    for i, n in enumerate(notes if isinstance(notes, list) else []):
+        where = f"Note {i + 1}"
+        if not isinstance(n, dict):
+            problems.append(f"{where} must be an object.")
+            continue
+        if not isinstance(n.get("id"), str) or not n["id"]:
+            problems.append(f"{where} needs an id.")
+        elif n["id"] in seen:
+            problems.append(f"{where} repeats id {n['id']}.")
+        seen.add(n.get("id"))
+        if not isinstance(n.get("text", ""), str) or not str(n.get("text", "")).strip():
+            problems.append(f"{where} needs some text.")
+        for field in ("anchor", "author", "at", "map"):
+            if n.get(field) is not None and not isinstance(n[field], str):
+                problems.append(f"{where}: {field} must be text.")
+        ask = n.get("ask")
+        if ask is not None and (not isinstance(ask, dict) or not isinstance(ask.get("roles", []), list)):
+            problems.append(f"{where}: ask must be {{roles: [...]}}.")
+        replies = n.get("replies", [])
+        if not isinstance(replies, list):
+            problems.append(f"{where}: replies must be a list.")
+            continue
+        for j, r in enumerate(replies):
+            if not isinstance(r, dict) or not all(isinstance(r.get(k), str) and r.get(k) for k in ("id", "role", "view")):
+                problems.append(f"{where}, reply {j + 1}: needs an id, a role and a view.")
+            elif r.get("urgency", "info") not in URGENCY:
+                problems.append(f"{where}, reply {j + 1}: urgency must be must, should or info.")
+            else:
+                if r["id"] in seen:
+                    problems.append(f"{where}, reply {j + 1} repeats id {r['id']}.")
+                seen.add(r["id"])
     return problems
 
 
@@ -147,6 +247,7 @@ def merge(reviews: list[dict], model: dict | None = None) -> dict:
         "stale_reviews": [],
         "questions": {},
         "decisions": {},
+        "notes": [],
     }
     for i, r in enumerate(reviews):
         who = (r.get("reviewer") or "").strip() or f"Reviewer {i + 1}"
@@ -174,6 +275,8 @@ def merge(reviews: list[dict], model: dict | None = None) -> dict:
                 qid, {"agree": 0, "change": 0, "unsure": 0, "dots": 0, "comments": [], "answers": []}
             )
             q["dots"] += d
+        for n in note_threads(r):
+            merged["notes"].append({**n, "who": who})
         for did, fields in (r.get("decisions") or {}).items():
             d = merged["decisions"].setdefault(did, {})
             for k, v in fields.items():

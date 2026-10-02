@@ -71,7 +71,9 @@ def handoff(model: dict, review: dict) -> dict:
         "model_fingerprint"
     ) != fingerprint(model):
         raise ValueError("The review must belong to this model.")
-    known_notes = {n["id"] for n in model.get("notes", [])}
+    known_notes = {n["id"] for n in model.get("notes", [])} | {
+        r.get("id") for n in (review.get("notes") or []) if isinstance(n, dict)
+        for r in (n.get("replies") or []) if isinstance(r, dict)}
     known_decisions = {d["id"] for d in model.get("decisions", [])}
     if (
         set(review.get("answers", {})) - known_notes

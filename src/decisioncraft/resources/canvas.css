@@ -466,3 +466,29 @@ svg.links path.bandlink{stroke:#a493e6;stroke-width:1.6;stroke-dasharray:4 5}
 .techcheck{color:#3b4a63;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px}
 ul.design{margin:4px 0 8px;padding-left:18px}
 body.z-far .beforecell p{font-size:calc(13px * var(--inv))}
+
+/* reviewers' rough notes: plain paper, and the experts' replies threaded under them */
+.chip.rough{background:#fff3c4;color:#5c4a00;font-weight:700}
+.rough{margin-top:14px;border-top:1px dashed var(--line);padding-top:8px}
+.rough-note{background:#fffbe6;border:1px solid #f0e2a4;border-radius:3px 3px 12px 3px;padding:9px 11px;margin:8px 0;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.rn-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;color:var(--ink2)}
+.rn-text{margin:6px 0;white-space:pre-wrap}
+.rn-state{font-size:11.5px;font-weight:700;color:var(--new);background:var(--new-soft);border-radius:999px;padding:1px 8px}
+.rn-state.waiting{color:#7a5a00;background:#fff0c2}
+.rn-actions{display:flex;gap:6px;flex-wrap:wrap}
+.rn-actions .ask{font-weight:650;color:var(--accent);border-color:#bccbf2}
+.askbox{margin-top:8px;background:#fff;border:1px solid var(--line);border-radius:9px;padding:8px 10px}
+.askroles{display:flex;flex-wrap:wrap;gap:4px 12px;margin:6px 0 8px}
+.askroles label{display:flex;align-items:center;gap:5px;font-size:13px}
+.replies{margin:8px 0 0 12px;border-left:2px dashed #e6d48a;padding-left:10px}
+.reply{border-radius:3px 3px 10px 3px;border:1px solid rgba(0,0,0,.06);border-left:5px solid var(--role,#888);padding:8px 10px;margin:6px 0}
+.reply p{margin:4px 0}
+.noteeditor{margin-top:8px}
+.addnote{font-weight:650}
+.from-note{font-style:italic}
+pre.cmd{background:#1d1d1b;color:#f4f3ef;border-radius:8px;padding:8px 10px;white-space:pre-wrap;word-break:break-all;font-size:12.5px}
+details.storynotes{margin:4px 0}
+details.storynotes summary{cursor:pointer;font-size:12.5px;color:var(--accent)}
+.roughcard{position:absolute;z-index:2;background:#fff7cf;border:1px solid #efdc8f;border-radius:3px 3px 14px 3px;padding:11px 13px;cursor:pointer;
+  box-shadow:0 2px 2px rgba(0,0,0,.05),2px 8px 14px rgba(0,0,0,.1);transform:rotate(var(--note-tilt,0deg))}
+.roughcard p{margin:6px 0 0;font-size:13.5px}

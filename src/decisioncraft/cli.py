@@ -243,6 +243,7 @@ def build() -> SkillParser:
     g.add_argument("--dir", required=True, help="New, empty folder for answers.")
     g.add_argument("--open", action="store_true", help="Open the review in your browser.")
     g.add_argument("--until-finished", action="store_true", help="Return when the person presses Finish review.")
+    _model_flags(c, name_flag="--model-name", optional=True)
 
     for name in ("questions", "words"):
         c = cmd(name)
@@ -289,11 +290,18 @@ def build() -> SkillParser:
     _model_flags(c, name_flag="--model")
     c.add_argument_group("Output").add_argument("--out", metavar="FILE", help="Write the model here (default: print).")
 
-    c = cmd("perspectives")
+    c = cmd("perspectives", (
+        "decisioncraft perspectives model.json --notes answers.json --complete-cmd 'my-host complete' --out replies.json",
+        "decisioncraft perspectives model.json --notes answers.json --dry-run",
+    ))
     g = c.add_argument_group("Input")
-    g.add_argument("model", help="The model JSON file.")
+    g.add_argument("model", nargs="?", help="The model JSON file (needed with --notes for context).")
     g.add_argument("material", nargs="*", help="Optional files the roles may read.")
     g.add_argument("--per-role", type=int, default=3, help="Most notes to add per role (default 3).")
+    g = c.add_argument_group("Reply to reviewers' rough notes instead")
+    g.add_argument("--notes", metavar="FILE", help="A saved answers file whose notes should get expert replies.")
+    g.add_argument("--roles", help="Comma-separated role ids to ask (default: what each note asked, else all).")
+    g.add_argument("--dry-run", action="store_true", help="Show what would be asked; no model call.")
     _model_flags(c, name_flag="--model-name")
     c.add_argument_group("Output").add_argument("--out", metavar="FILE", help="Write the model here (default: print).")
 
@@ -315,8 +323,8 @@ def build() -> SkillParser:
     return p
 
 
-def _model_flags(c, *, name_flag: str) -> None:
-    g = c.add_argument_group("Which model answers (pick one)")
+def _model_flags(c, *, name_flag: str, optional: bool = False) -> None:
+    g = c.add_argument_group("Which model answers Ask the experts (optional)" if optional else "Which model answers (pick one)")
     g.add_argument("--provider", choices=["anthropic", "openai"], help="Use this vendor's SDK and API key.")
     if name_flag == "--model":
         g.add_argument("--model", metavar="NAME", help="Model name for --provider.")
@@ -698,7 +706,16 @@ def do_session(run: Run) -> None:
     model = run.load(a.model)
     review = run.load(a.review) if a.review else None
     run.file = a.model
-    active = lib.session(model, a.dir, review=review, source_root=a.source_root, prepared_by=a.prepared_by)
+    complete = None
+    if a.complete_cmd or a.provider:
+        kwargs, _who = _complete_kwargs(run, name_attr="model_name")
+        if "complete" in kwargs:
+            complete = kwargs["complete"]
+        else:
+            from .intelligence import provider_complete
+            complete = provider_complete(kwargs["provider"], kwargs.get("model_name"))
+    active = lib.session(model, a.dir, review=review, source_root=a.source_root, prepared_by=a.prepared_by,
+                         complete=complete)
     active.close_on_finish = a.until_finished
 
     def emit(event, value):
@@ -865,8 +882,52 @@ def do_draft(run: Run) -> Out:
     return _model_result(run, model, verb="Drafted")
 
 
+def do_review_notes(run: Run) -> Out:
+    a = run.args
+    if not a.model:
+        raise ToolError("missing_argument", "Give the model the answers were made on, before --notes.",
+                        hint="decisioncraft perspectives model.json --notes answers.json --dry-run",
+                        exit_code=E.USAGE, field="model")
+    model = run.load(a.model)
+    review = run.load(a.notes)
+    run.file = a.notes
+    from .review import check_review, notes_to_ask
+    problems = check_review(review)
+    if problems:
+        raise ToolError("invalid_review", " ".join(problems), file=a.notes, exit_code=E.INPUT)
+    roles = [r.strip() for r in a.roles.split(",") if r.strip()] if a.roles else None
+    plan = notes_to_ask(model, review, roles)
+    asked = [{"note": p["note"]["id"], "text": p["note"]["text"], "on": p["target"]["title"], "roles": p["roles"]} for p in plan]
+    if a.dry_run:
+        lines = [f"Would ask about {len(plan)} note(s):"] + [
+            f"  {x['note']} on {x['on']}: {', '.join(x['roles'])}" for x in asked]
+        return Out(data={"dry_run": True, "asked": asked, "replies_added": 0}, text="\n".join(lines) + "\n")
+    if not plan:
+        run.term.say("No notes are waiting for experts.")
+        return Out(data={"dry_run": False, "asked": [], "replies_added": 0, "review": review})
+    run.file = None
+    kwargs, who = _complete_kwargs(run, name_attr="model_name")
+    before = sum(len(n.get("replies", [])) for n in review.get("notes", []))
+    run.term.say(f"Asking {who} for expert replies on {len(plan)} note(s) ...")
+    out = lib.review_notes(model, review, roles=roles, **kwargs)
+    added = sum(len(n.get("replies", [])) for n in out.get("notes", [])) - before
+    run.term.say(f"Added {added} repl{'y' if added == 1 else 'ies'}.")
+    data = {"dry_run": False, "asked": asked, "replies_added": added, "review": out}
+    if a.out:
+        f = run.write(Path(a.out), json.dumps(out, indent=2, ensure_ascii=False), "review")
+        nxt = f"decisioncraft render {_q(a.model)} --reviews {_q(a.out)} --open"
+        run.term.say(f"Wrote {a.out}. See the threads: {nxt}")
+        return Out(data=data, files=[f], next=[nxt], text="")
+    return Out(data=data)
+
+
 def do_perspectives(run: Run) -> Out:
     a = run.args
+    if a.notes:
+        return do_review_notes(run)
+    if not a.model:
+        raise ToolError("missing_argument", "Give the model JSON file.", exit_code=E.USAGE, field="model",
+                        hint="decisioncraft perspectives model.json --complete-cmd 'my-host complete'")
     model = run.load(a.model)
     material = run.material(a.material)
     run.file = None

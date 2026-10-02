@@ -5,12 +5,85 @@
   "reviewer": "Mill Lane manager",
   "saved_at": "2026-04-03T09:30:00Z",
   "answers": {
-    "N1": {"choice": "change", "comment": "Cap at two pauses a year or packing gets unpredictable."},
-    "N3": {"choice": "agree", "comment": "Saturday works for the counter team."},
-    "N4": {"choice": "agree", "comment": ""},
-    "N10": {"choice": "agree", "comment": "Hold unpaid boxes. We cannot chase payments."},
-    "N11": {"choice": "agree", "comment": "Customers ask about gluten-free every week."}
+    "N1": {
+      "choice": "change",
+      "comment": "Cap at two pauses a year or packing gets unpredictable."
+    },
+    "N3": {
+      "choice": "agree",
+      "comment": "Saturday works for the counter team."
+    },
+    "N4": {
+      "choice": "agree",
+      "comment": ""
+    },
+    "N10": {
+      "choice": "agree",
+      "comment": "Hold unpaid boxes. We cannot chase payments."
+    },
+    "N11": {
+      "choice": "agree",
+      "comment": "Customers ask about gluten-free every week."
+    }
   },
-  "dots": {"N10": 2, "N11": 2, "N1": 1},
-  "decisions": {"D1": {"owner": "Mill Lane manager"}, "D3": {"owner": "Mill Lane manager", "due": "2026-04-17"}}
+  "dots": {
+    "N10": 2,
+    "N11": 2,
+    "N1": 1
+  },
+  "decisions": {
+    "D1": {
+      "owner": "Mill Lane manager"
+    },
+    "D3": {
+      "owner": "Mill Lane manager",
+      "due": "2026-04-17"
+    }
+  },
+  "notes": [
+    {
+      "id": "R-m1",
+      "anchor": "ci5",
+      "text": "Collection only might lose the two villages we deliver bread to on Fridays.",
+      "author": "Manager",
+      "at": "2026-04-02T17:40:00Z",
+      "ask": {
+        "roles": [
+          "voice",
+          "finance",
+          "owner"
+        ],
+        "requested_at": "2026-04-02T17:41:00Z"
+      },
+      "replies": [
+        {
+          "id": "R-m1-voice",
+          "role": "voice",
+          "view": "The Friday village round is how some older regulars get bread at all. A box they cannot collect will feel like it is not for them.",
+          "question": "Could the Friday van carry boxes for the two villages, so they are not left out?",
+          "urgency": "should",
+          "author": "AI assistant",
+          "at": "2026-04-02T17:42:00Z"
+        },
+        {
+          "id": "R-m1-finance",
+          "role": "finance",
+          "view": "The van already runs on Fridays, so a few boxes add little cost. A full delivery option would not pay.",
+          "question": "How many village boxes would make the van stop worth it?",
+          "urgency": "info",
+          "author": "AI assistant",
+          "at": "2026-04-02T17:42:00Z"
+        },
+        {
+          "id": "R-m1-owner",
+          "role": "owner",
+          "view": "Keeping the pilot simple matters more than covering everyone in the first eight weeks.",
+          "question": "Do we add the villages in the pilot, or say clearly they come later?",
+          "urgency": "must",
+          "author": "AI assistant",
+          "at": "2026-04-02T17:42:00Z"
+        }
+      ]
+    }
+  ]
 }

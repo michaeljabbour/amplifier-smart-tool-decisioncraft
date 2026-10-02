@@ -337,3 +337,78 @@ def perspectives(
     for note in result.get("notes", []):
         note.setdefault("author", "AI assistant")
     return combine(result)
+
+
+def review_notes(
+    model: dict,
+    review: dict,
+    *,
+    roles: list[str] | None = None,
+    provider: str | None = None,
+    model_name: str | None = None,
+    complete: Complete | None = None,
+) -> dict:
+    """Model-backed. Ask the experts about reviewers' rough notes; returns the review with replies.
+
+    Each chosen role answers each note it was asked about with a short view and one question
+    that could change the choice. Notes and earlier replies are kept; nothing else changes.
+    Which notes and roles are asked is `review.notes_to_ask` (deterministic, used by --dry-run).
+    """
+    import copy
+    from datetime import datetime, timezone
+
+    from .review import check_review, notes_to_ask
+
+    problems = check_review(review)
+    if problems:
+        raise ValueError(" ".join(problems))
+    plan = notes_to_ask(model, review, roles)
+    out = copy.deepcopy(review)
+    if not plan:
+        return out
+    complete = complete or provider_complete(provider or "", model_name)
+    role_info = {r["id"]: r for r in (model.get("roles") or default_roles())}
+    asked = [{"note": p["note"]["id"], "text": p["note"]["text"], "on": p["target"]["title"],
+              "context": p["target"]["text"], "roles": p["roles"]} for p in plan]
+    system = ("You are a panel of experts, each speaking for one role, replying to a reviewer's "
+              "rough notes on a decision. " + _guide())
+    prompt = (
+        f"The decision: {model.get('question', '')}\n"
+        f"Summary: {model.get('summary', '')}\n\n"
+        f"The roles:\n{json.dumps([role_info[r] for p in plan for r in p['roles'] if r in role_info], indent=1)}\n\n"
+        f"The reviewer notes, what each sits on, and who should reply:\n{json.dumps(asked, indent=1)}\n\n"
+        "For every note and every role listed for it, write one reply: a short view in that role's "
+        "voice (one or two plain sentences that react to the note) and one question whose answer "
+        "could change the choice. Do not repeat the note back. Reply with "
+        '{"replies": [{"note": note id, "role": role id, "view": "...", "question": "...", '
+        '"urgency": "must|should|info"}]} only.'
+    )
+    wanted = {(p["note"]["id"], r) for p in plan for r in p["roles"]}
+
+    def check(v):
+        if not isinstance(v, dict) or not isinstance(v.get("replies"), list):
+            return ['Reply must be {"replies": [...]}.']
+        errs = []
+        for k, r in enumerate(v["replies"]):
+            if not isinstance(r, dict) or (r.get("note"), r.get("role")) not in wanted:
+                errs.append(f"Reply {k + 1} is not for a note and role that was asked.")
+            elif not str(r.get("view", "")).strip() or not str(r.get("question", "")).strip():
+                errs.append(f"Reply {k + 1} needs a view and a question.")
+            elif r.get("urgency", "info") not in ("must", "should", "info"):
+                errs.append(f"Reply {k + 1}: urgency must be must, should or info.")
+        return errs
+
+    result = _ask(complete, system, prompt, check)
+    by_id = {n["id"]: n for n in out.get("notes", [])}
+    used = {r["id"] for n in out.get("notes", []) for r in n.get("replies", [])}
+    stamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    for r in result["replies"]:
+        n = by_id[r["note"]]
+        rid, k = f"{n['id']}-{r['role']}", 2
+        while rid in used:
+            rid, k = f"{n['id']}-{r['role']}-{k}", k + 1
+        used.add(rid)
+        n.setdefault("replies", []).append({"id": rid, "role": r["role"], "view": r["view"].strip(),
+                                            "question": r["question"].strip(), "urgency": r.get("urgency", "info"),
+                                            "author": "AI assistant", "at": stamp})
+    return out

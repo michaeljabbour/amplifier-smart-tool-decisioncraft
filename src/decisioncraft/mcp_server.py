@@ -223,6 +223,36 @@ def build_server():
         return {"model": out, "summary": summary(out)}
 
     @server.tool(structured_output=True)
+    async def decisioncraft_review_notes(
+        model: dict,
+        review: dict,
+        ctx: Context,
+        roles: list[str] | None = None,
+        dry_run: bool = False,
+    ) -> dict[str, Any]:
+        """Get expert replies on reviewers' rough notes (a saved answers file) using this host's model.
+
+        Each chosen role replies to each note with a short view and one question. dry_run shows
+        what would be asked without a model call. Returns {asked, replies_added, review}.
+        """
+        from .review import check_review, notes_to_ask
+
+        problems = check_review(review)
+        if problems:
+            raise ValueError(" ".join(problems))
+        plan = notes_to_ask(model, review, roles)
+        asked = [{"note": p["note"]["id"], "text": p["note"]["text"], "on": p["target"]["title"], "roles": p["roles"]} for p in plan]
+        if dry_run or not plan:
+            return {"asked": asked, "replies_added": 0, "review": review}
+        if not _can_sample(ctx):
+            raise ValueError(NO_SAMPLING.replace("write the model JSON, then call decisioncraft_validate",
+                                                 "write each reply into the review's notes yourself"))
+        loop = asyncio.get_running_loop()
+        out = await asyncio.to_thread(lib.review_notes, model, review, roles=roles, complete=_sampling_complete(ctx, loop))
+        added = sum(len(n.get("replies", [])) for n in out.get("notes", [])) - sum(len(n.get("replies", [])) for n in review.get("notes", []))
+        return {"asked": asked, "replies_added": added, "review": out}
+
+    @server.tool(structured_output=True)
     def decisioncraft_handoff(model: dict, review: dict) -> dict[str, Any]:
         """Read a completed review as answers, proposed stories, checks and a proposed map."""
         return lib.handoff(model, review)

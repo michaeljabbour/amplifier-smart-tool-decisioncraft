@@ -5,12 +5,77 @@
   "reviewer": "Owner",
   "saved_at": "2026-04-02T18:10:00Z",
   "answers": {
-    "N1": {"choice": "agree", "comment": "Unlimited pauses. Simpler to explain."},
-    "N3": {"choice": "agree", "comment": ""},
-    "N4": {"choice": "agree", "comment": "£25 is fine for the pilot."},
-    "N5": {"choice": "change", "comment": "25 subscribers is too high for eight weeks. Say 20."},
-    "N11": {"choice": "unsure", "comment": "Need to ask the head baker about cross-contamination."}
+    "N1": {
+      "choice": "agree",
+      "comment": "Unlimited pauses. Simpler to explain."
+    },
+    "N3": {
+      "choice": "agree",
+      "comment": ""
+    },
+    "N4": {
+      "choice": "agree",
+      "comment": "£25 is fine for the pilot."
+    },
+    "N5": {
+      "choice": "change",
+      "comment": "25 subscribers is too high for eight weeks. Say 20."
+    },
+    "N11": {
+      "choice": "unsure",
+      "comment": "Need to ask the head baker about cross-contamination."
+    }
   },
-  "dots": {"N1": 2, "N5": 2, "N11": 1},
-  "decisions": {"D1": {"owner": "Owner", "status": "open", "due": "2026-04-10"}, "D2": {"decision": "£25 collection only"}}
+  "dots": {
+    "N1": 2,
+    "N5": 2,
+    "N11": 1
+  },
+  "decisions": {
+    "D1": {
+      "owner": "Owner",
+      "status": "open",
+      "due": "2026-04-10"
+    },
+    "D2": {
+      "decision": "£25 collection only"
+    }
+  },
+  "notes": [
+    {
+      "id": "R-o1",
+      "anchor": null,
+      "map": "m-chain",
+      "text": "December is our busiest month. Starting a box in November could swamp the Thursday bake.",
+      "author": "Owner",
+      "at": "2026-04-02T18:05:00Z",
+      "ask": {
+        "roles": [
+          "engineer",
+          "analyst"
+        ],
+        "requested_at": "2026-04-02T18:06:00Z"
+      },
+      "replies": [
+        {
+          "id": "R-o1-engineer",
+          "role": "engineer",
+          "view": "Thursday ovens are free most of the year, but December runs them for Christmas orders too.",
+          "question": "Should the pilot end before December, or pause boxes for the Christmas weeks?",
+          "urgency": "must",
+          "author": "AI assistant",
+          "at": "2026-04-02T18:07:00Z"
+        },
+        {
+          "id": "R-o1-analyst",
+          "role": "analyst",
+          "view": "An eight-week pilot started in October would end in the busiest weeks and mix two effects in the numbers.",
+          "question": "Which start date gives eight clean weeks before the Christmas rush?",
+          "urgency": "should",
+          "author": "AI assistant",
+          "at": "2026-04-02T18:07:00Z"
+        }
+      ]
+    }
+  ]
 }
