@@ -688,6 +688,13 @@ def do_doctor(run: Run) -> Out:
 
 def do_session(run: Run) -> None:
     a = run.args
+    folder = Path(a.dir).expanduser()
+    if folder.exists() and (not folder.is_dir() or any(folder.iterdir())):
+        raise ToolError(
+            "folder_not_empty", f"{_q(folder)} is not a new, empty folder.", file=str(folder), field="--dir",
+            hint="Pick a new folder with --dir. To continue earlier answers, add "
+            f"--review {_q(folder)}/review.json with a new --dir.",
+        )
     model = run.load(a.model)
     review = run.load(a.review) if a.review else None
     run.file = a.model

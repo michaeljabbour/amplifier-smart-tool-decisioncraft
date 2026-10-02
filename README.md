@@ -63,6 +63,7 @@ decisioncraft validate pickups/model.json
 decisioncraft render pickups/model.json --out pickups/canvas.html
 
 # or draft it from your material with a model (costs tokens; read the result)
+cp notes/*.md pickups/material/
 decisioncraft draft pickups/material/*.md --question "How do we cut missed pickups by half?" \
   --complete-cmd 'python3 my_adapter.py' --out pickups/model.json
 #   ...or --provider anthropic --model <model-name>, with ANTHROPIC_API_KEY set

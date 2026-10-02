@@ -24,10 +24,12 @@ Four things worth knowing before you start:
 - Add `--json` to any command: one JSON result on stdout, errors included, and `ok` is
   true exactly when the exit code is 0 (1 input, 2 command line, 3 set up first, 4 model
   call failed). It never prompts when stdin is not a terminal.
-- Only `draft` and `perspectives` use a model. Route them through your own model with
-  `--complete-cmd 'your-command'` (it reads `{"system", "prompt"}` JSON on stdin and
-  prints the reply), or use `decisioncraft mcp`, whose draft tools ask your model
-  through MCP sampling. Never invent evidence the material does not contain.
+- Only `draft` and `perspectives` use a model. If you can't call your own model from a
+  command, write the model yourself: `decisioncraft new --question "..." --dir NAME --yes`,
+  fill in `NAME/model.json` from the material, and run `decisioncraft validate` until it is
+  clean. Otherwise route through your model with `--complete-cmd 'your-command'` (it reads
+  `{"system", "prompt"}` JSON on stdin and prints the reply), or use `decisioncraft mcp`,
+  whose draft tools ask your model through MCP sampling. Never invent evidence.
 - To review with the person on this computer, use `decisioncraft session MODEL --dir
   NEW_FOLDER --open --until-finished --json` and read their answers and the `handoff`
   when it finishes. A vote or a finished review is not a decision; the owner decides.

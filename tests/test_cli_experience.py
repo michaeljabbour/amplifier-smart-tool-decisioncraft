@@ -231,3 +231,12 @@ def test_library_functions_match_the_cli(tmp_path):
     with pytest.raises(ValueError):
         dc.example("cooking")
     assert "checks" in dc.doctor(directory=str(tmp_path))
+
+
+def test_session_refuses_a_used_folder(tmp_path):
+    used = tmp_path / "review"
+    used.mkdir()
+    (used / "review.json").write_text("{}")
+    doc = envelope(run("session", str(ROOT / "examples" / "medical" / "model.json"), "--dir", str(used), "--json"))
+    assert doc["error"]["code"] == "folder_not_empty" and doc["error"]["field"] == "--dir"
+    assert "--review" in doc["error"]["hint"]

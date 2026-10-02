@@ -95,15 +95,23 @@ Everything runs with no model and no credentials except `draft` and `perspective
   each role). They cost tokens, differ run to run, check the reply and repair it once,
   and still need a person to read the result.
 
-## Which model answers: four ways
+## Which model answers
 
-Pick exactly one for `draft` and `perspectives`. Decisioncraft never picks a model for
-you and never falls back to a lesser answer.
+`draft` and `perspectives` need a model. Decisioncraft never picks one for you and never
+falls back to a lesser answer. If you are an agent, choose the first that fits:
 
-1. **Your host's own model, by command** (`--complete-cmd`). Decisioncraft runs the
-   command once per model call, writes `{"system": "...", "prompt": "..."}` as JSON on
-   its stdin, and reads the reply text from its stdout. Exit non-zero to fail; your
-   stderr is shown and the exit code is 4. No vendor SDK or key is needed.
+1. **Write the model yourself** when you can't call your own model from a command (for
+   example a coding agent with no MCP sampling). Run `decisioncraft new --question "..."
+   --dir NAME --yes`, read `decisioncraft templates` and the writing guide
+   (`resources/writing-guide.md` in the skill directory), fill in `NAME/model.json` from
+   the material, quoting it as evidence, then run `decisioncraft validate NAME/model.json`
+   until it reports no errors. No model call happens inside Decisioncraft.
+2. **Your host's own model, by command** (`--complete-cmd`). Decisioncraft runs the
+   command once per model call: once for the draft, and once more only if the reply needs
+   a repair. Each run gets `{"system": "...", "prompt": "..."}` as JSON on stdin. Print
+   the model's reply as it is; Decisioncraft finds the JSON in it and checks it. Exit
+   non-zero to fail; your stderr is shown and the exit code is 4. No vendor SDK or key is
+   needed. A draft can take a few minutes; allow for that in any timeout.
 
    ```python
    #!/usr/bin/env python3
@@ -115,14 +123,13 @@ you and never falls back to a lesser answer.
 
    `decisioncraft doctor --complete-cmd 'python3 my_adapter.py'` checks the program can
    be found without running it.
-2. **Your host's own model, in code.** Pass a function to the library:
+3. **Your host's own model, in code.** Pass a function to the library:
    `dc.draft(material, question="...", complete=lambda system, prompt: host.ask(system, prompt))`.
-3. **Your host's own model, over MCP.** `decisioncraft mcp` serves `decisioncraft_draft`
+4. **Your host's own model, over MCP.** `decisioncraft mcp` serves `decisioncraft_draft`
    and `decisioncraft_perspectives`, which ask the host's model through MCP sampling. A
-   host without sampling gets a clear error; it then writes the model itself, using
-   `decisioncraft_templates` for the shapes and writing guide, and checks it with
-   `decisioncraft_validate`.
-4. **A vendor SDK** (`--provider anthropic` or `--provider openai`, with `--model NAME`
+   host without sampling gets a clear error and goes back to option 1, using
+   `decisioncraft_templates` and `decisioncraft_validate`.
+5. **A vendor SDK** (`--provider anthropic` or `--provider openai`, with `--model NAME`
    for draft or `--model-name NAME` for perspectives, the matching API key, and the
    `[smart]` extra).
 
@@ -224,5 +231,7 @@ before assessing options. The owner makes and records the choice and its reason.
 - Answers in a standalone canvas stay in that browser until saved as a file.
 - `render` prints HTML to stdout when piped without `--out`; in a terminal it writes
   `canvas.html` beside the model.
-- `session` binds only to this computer; a remote host cannot open it.
+- `session` binds only to this computer; a remote host cannot open it. Use `--json` so
+  each event is one line on stdout; without it the two results are printed as indented
+  JSON one after the other.
 - Examples are fictional. The medical example is about how a ward organises its work.
