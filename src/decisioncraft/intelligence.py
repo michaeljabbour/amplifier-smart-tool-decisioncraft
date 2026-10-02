@@ -340,6 +340,61 @@ _IMPORTANCE = {"critical": "must", "required": "must", "high": "must", "essentia
                "medium": "important", "should": "important", "low": "nice", "optional": "nice", "could": "nice"}
 
 
+def _box_ids(model: dict) -> set:
+    ids = set()
+
+    def walk(obj):
+        if isinstance(obj, dict):
+            if isinstance(obj.get("id"), str):
+                ids.add(obj["id"])
+            for v in obj.values():
+                walk(v)
+        elif isinstance(obj, list):
+            for v in obj:
+                walk(v)
+
+    walk(model.get("maps"))
+    walk(model.get("gaps"))
+    walk(model.get("options"))
+    walk(model.get("criteria"))
+    return ids
+
+
+def _tidy_note_anchors(model: dict, warnings: list[str]) -> None:
+    """Notes need an anchor on a box or gap. Accept the field names models use instead, match
+    ids case-insensitively, and drop notes that still point nowhere (role notes are asked for
+    again afterwards)."""
+    notes = model.get("notes")
+    if not isinstance(notes, list):
+        return
+    ids = _box_ids(model)
+    lower = {i.lower(): i for i in ids}
+    kept, dropped = [], 0
+    for n in notes:
+        if not isinstance(n, dict):
+            continue
+        a = n.get("anchor")
+        if not a:
+            for alt in ("box", "on", "target", "item", "step", "gap", "anchor_id"):
+                if isinstance(n.get(alt), str) and n[alt].strip():
+                    a = n.pop(alt)
+                    break
+        if isinstance(a, str) and a not in ids and a.lower() in lower:
+            a = lower[a.lower()]
+        if isinstance(a, str) and a in ids:
+            n["anchor"] = a
+            kept.append(n)
+        else:
+            dropped += 1
+    if dropped:
+        warnings.append(f"Left out {dropped} note(s) that pointed at no box.")
+        gone = {n.get("id") for n in notes if isinstance(n, dict)} - {n.get("id") for n in kept}
+        for d in model.get("decisions") or []:
+            if isinstance(d, dict) and isinstance(d.get("notes"), list):
+                d["notes"] = [x for x in d["notes"] if x not in gone]
+    model["notes"] = kept
+
+
 def _tidy_comparison(model: dict, warnings: list[str]) -> None:
     c = model.get("comparison")
     if not isinstance(c, dict):
@@ -515,7 +570,21 @@ def tidy(model: dict, material: list[dict] | None = None) -> list[str]:
             if moved:
                 m[group_key] = [g for g in m.get(group_key) or [] if not isinstance(g, dict) or g.get(box_key)]
                 warnings.append(f"Moved {moved} planned box(es) next to the ones they replace.")
+            # "today" means only today: the plan removes it. Models mark every current box that
+            # way, so a today box nothing replaces, and that is not marked as going away, stays.
+            replaced = {b.get("replaces") for g in groups for b in g.get(box_key) or []
+                        if isinstance(b, dict) and b.get("replaces")}
+            kept = 0
+            for g in groups:
+                for b in g.get(box_key) or []:
+                    if (isinstance(b, dict) and b.get("when") == "today" and b.get("id") not in replaced
+                            and not b.get("goes_away")):
+                        b.pop("when")
+                        kept += 1
+            if kept:
+                warnings.append(f"Kept {kept} box(es) marked today that nothing replaces; they stay in the plan.")
     _tidy_comparison(model, warnings)
+    _tidy_note_anchors(model, warnings)
 
     def text_fields(obj):
         if isinstance(obj, dict):
@@ -748,7 +817,9 @@ def draft(
         "Say 'not sure' rather than invent facts. "
         + ("Leave notes as an empty list: notes from each role are added in a separate step. "
            if defer_notes else "")
-        + "Evidence items are {id, source, kind, text}, kind one of quote, data, file, observation: "
+        + "Leave `when` out for a box that stays in the plan. Use when: today only for a box the plan "
+        "replaces (and give the planned box `replaces`) or removes (also set goes_away: true). "
+        "Evidence items are {id, source, kind, text}, kind one of quote, data, file, observation: "
         "put the exact words in text, without the line numbers shown in the material. Each gap's "
         "stories are objects {id, as, done_when: [checks in text]}. Reply with the JSON only.\n\n"
         + _material_block(material, max_material_chars)

@@ -211,3 +211,15 @@ def test_tidy_comparison_slips():
     assert ev["judgment"] == "mixed" and ev["reason"] == "cheap; but slow"
     assert c["recommendation"]["risks"] == "slow; untested"
     assert [p for p in validate(m) if p["level"] == "error"] == []
+
+
+def test_tidy_keeps_today_boxes_that_nothing_replaces():
+    m = bike_model()
+    steps = m["maps"][0]["journeys"][0]["steps"]
+    for s in steps:
+        if not s.get("when"):
+            s["when"] = "today"
+    steps.append({"id": "gone", "lane": "people", "text": "Paper sign-up sheet", "when": "today", "goes_away": True})
+    I.tidy(m)
+    whens = {s["id"]: s.get("when") for s in steps}
+    assert whens["s1"] is None and whens["s3"] == "today" and whens["gone"] == "today"

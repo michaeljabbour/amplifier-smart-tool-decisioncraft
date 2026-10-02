@@ -981,7 +981,8 @@ _PRICES = {"claude-sonnet-5-5": (2.0, 10.0), "claude-opus-5-5": (4.0, 20.0), "cl
 def _estimate(model_name: str, chars: int, roles: int) -> str:
     """A rough time and cost for map: one draft (sometimes a repair), then a small call per role
     that rereads the drafted model."""
-    tokens_in = (chars // 4 + 15000) * 1.3 + roles * (chars // 4 + 16000)
+    material = min(chars, 60000) // 4  # each role rereads up to 60,000 characters of material
+    tokens_in = (chars // 4 + 15000) * 2 + roles * (material + 16000) * 1.4
     tokens_out = 18000 + roles * 2500
     low, high = max(2, round(tokens_out / 12000)), max(4, round(tokens_out / 6000))
     price = _PRICES.get(model_name)

@@ -77,9 +77,9 @@ def classify(error: BaseException, *, file: str | None = None, model_backed: boo
             return ToolError(
                 "reply_invalid",
                 "The model's reply still had problems after a repair (and the stronger model, if one was available).",
-                hint="Try the other provider, for example: decisioncraft map TARGET --provider openai "
-                "(or --provider anthropic --model claude-opus-5-5). Or draw it yourself with "
-                "decisioncraft map TARGET --starter. The problems are listed below.",
+                hint="Run the same command again with the other provider (add --provider openai, or "
+                "--provider anthropic --model claude-opus-5-5). For map, --starter lets you or your agent "
+                "fill it in instead. The problems are listed below.",
                 exit_code=MODEL_CALL,
                 problems=problems,
             )
