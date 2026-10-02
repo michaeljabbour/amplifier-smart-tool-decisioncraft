@@ -1,0 +1,157 @@
+{
+  "format": "decisioncraft-merged/1",
+  "reviewers": [
+    "Mill Lane manager",
+    "Owner"
+  ],
+  "stale_reviews": [],
+  "questions": {
+    "N1": {
+      "agree": 1,
+      "change": 1,
+      "unsure": 0,
+      "dots": 3,
+      "comments": [
+        {
+          "who": "Mill Lane manager",
+          "text": "Cap at two pauses a year or packing gets unpredictable.",
+          "choice": "change"
+        },
+        {
+          "who": "Owner",
+          "text": "Unlimited pauses. Simpler to explain.",
+          "choice": "agree"
+        }
+      ],
+      "split": true
+    },
+    "N3": {
+      "agree": 2,
+      "change": 0,
+      "unsure": 0,
+      "dots": 0,
+      "comments": [
+        {
+          "who": "Mill Lane manager",
+          "text": "Saturday works for the counter team.",
+          "choice": "agree"
+        }
+      ],
+      "split": false
+    },
+    "N4": {
+      "agree": 2,
+      "change": 0,
+      "unsure": 0,
+      "dots": 0,
+      "comments": [
+        {
+          "who": "Owner",
+          "text": "£25 is fine for the pilot.",
+          "choice": "agree"
+        }
+      ],
+      "split": false
+    },
+    "N10": {
+      "agree": 1,
+      "change": 0,
+      "unsure": 0,
+      "dots": 2,
+      "comments": [
+        {
+          "who": "Mill Lane manager",
+          "text": "Hold unpaid boxes. We cannot chase payments.",
+          "choice": "agree"
+        }
+      ],
+      "split": false
+    },
+    "N11": {
+      "agree": 1,
+      "change": 0,
+      "unsure": 1,
+      "dots": 3,
+      "comments": [
+        {
+          "who": "Mill Lane manager",
+          "text": "Customers ask about gluten-free every week.",
+          "choice": "agree"
+        },
+        {
+          "who": "Owner",
+          "text": "Need to ask the head baker about cross-contamination.",
+          "choice": "unsure"
+        }
+      ],
+      "split": true
+    },
+    "N5": {
+      "agree": 0,
+      "change": 1,
+      "unsure": 0,
+      "dots": 2,
+      "comments": [
+        {
+          "who": "Owner",
+          "text": "25 subscribers is too high for eight weeks. Say 20.",
+          "choice": "change"
+        }
+      ],
+      "split": false
+    }
+  },
+  "decisions": {
+    "D1": {
+      "owner": [
+        {
+          "who": "Mill Lane manager",
+          "value": "Mill Lane manager"
+        },
+        {
+          "who": "Owner",
+          "value": "Owner"
+        }
+      ],
+      "status": [
+        {
+          "who": "Owner",
+          "value": "open"
+        }
+      ],
+      "due": [
+        {
+          "who": "Owner",
+          "value": "2026-04-10"
+        }
+      ],
+      "conflict": [
+        "owner"
+      ]
+    },
+    "D3": {
+      "owner": [
+        {
+          "who": "Mill Lane manager",
+          "value": "Mill Lane manager"
+        }
+      ],
+      "due": [
+        {
+          "who": "Mill Lane manager",
+          "value": "2026-04-17"
+        }
+      ],
+      "conflict": []
+    },
+    "D2": {
+      "decision": [
+        {
+          "who": "Owner",
+          "value": "£25 collection only"
+        }
+      ],
+      "conflict": []
+    }
+  }
+}

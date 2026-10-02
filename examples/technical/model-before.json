@@ -1,0 +1,179 @@
+{
+  "format": "decisioncraft/1",
+  "title": "Moving file uploads",
+  "question": "Should we move customer file uploads to a new storage provider, change how uploads reach storage, or both?",
+  "summary": "A mid-size web team stores customers' files with one storage provider. Large uploads time out, and the transfer bill keeps growing. This map shows how an upload works today, what each option changes, and what the team still has to decide. All figures are made up.",
+  "checked": {
+    "date": "2026-05-06",
+    "note": "Checked against the incident review only."
+  },
+  "freshness_days": 30,
+  "glossary": {
+    "signed link": "A web address that lets one browser upload or download one file for a few minutes, without a password.",
+    "proxy": "When our servers pass every byte between the customer and storage, instead of the customer talking to storage directly.",
+    "resumable upload": "An upload sent in pieces, so a dropped connection only loses the last piece.",
+    "data out": "Files sent from storage to anyone outside it. Providers charge for this."
+  },
+  "sources": [
+    {
+      "id": "S1",
+      "title": "Incident review: slow uploads",
+      "kind": "document",
+      "date": "2026-05-04",
+      "ref": "material/incident-notes.md"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "E1",
+      "source": "S1",
+      "kind": "data",
+      "text": "Uploads over 200 MB timed out for about 40 minutes.",
+      "where": "Summary"
+    },
+    {
+      "id": "E2",
+      "source": "S1",
+      "kind": "quote",
+      "text": "Half our servers were just shovelling bytes. Nothing else could get through.",
+      "where": "On-call engineer"
+    },
+    {
+      "id": "E3",
+      "source": "S1",
+      "kind": "data",
+      "text": "Our storage bill grew 22% last quarter, mostly from data transfer out, not storage.",
+      "where": "Costs"
+    },
+    {
+      "id": "E4",
+      "source": "S1",
+      "kind": "data",
+      "text": "Support received 31 tickets. Most from customers uploading video.",
+      "where": "Support"
+    }
+  ],
+  "maps": [
+    {
+      "id": "m-how",
+      "template": "system-journeys",
+      "title": "How an upload works",
+      "intro": "Each journey is a numbered path. Each column is the part of the system that does that step.",
+      "lanes": [
+        {
+          "id": "people",
+          "label": "Customer",
+          "sub": "In their browser"
+        },
+        {
+          "id": "front",
+          "label": "Web app",
+          "sub": "Pages and buttons"
+        },
+        {
+          "id": "core",
+          "label": "Our servers",
+          "sub": "Checks and rules"
+        },
+        {
+          "id": "records",
+          "label": "Database",
+          "sub": "What we record"
+        },
+        {
+          "id": "background",
+          "label": "Background jobs",
+          "sub": "Work that runs later"
+        },
+        {
+          "id": "outside",
+          "label": "Storage provider",
+          "sub": "Where files live"
+        }
+      ],
+      "journeys": [
+        {
+          "id": "j-today",
+          "title": "Upload today",
+          "summary": "Every byte passes through our servers on its way to storage.",
+          "creates": [
+            "A file record",
+            "The file in storage",
+            "A scan result"
+          ],
+          "steps": [
+            {
+              "id": "t1",
+              "lane": "people",
+              "text": "Customer picks a file and presses Upload",
+              "status": "works",
+              "checked": "2026-05-18"
+            },
+            {
+              "id": "t2",
+              "lane": "front",
+              "text": "Browser sends the whole file to our servers",
+              "status": "works",
+              "evidence": [],
+              "checked": "2026-05-18"
+            },
+            {
+              "id": "t3",
+              "lane": "core",
+              "text": "Our servers pass the bytes on to storage",
+              "status": "works",
+              "pain": "Long uploads tie up servers.",
+              "evidence": [
+                "E1",
+                "E2"
+              ],
+              "detail": "Streaming proxy in the upload service; 60-second idle timeout at the load balancer.",
+              "moment": true,
+              "checked": "2026-04-02"
+            },
+            {
+              "id": "t4",
+              "lane": "background",
+              "text": "A job scans the file for viruses",
+              "status": "works",
+              "detail": "Scanner reads the file from storage after the upload finishes.",
+              "checked": "2026-05-18"
+            },
+            {
+              "id": "t5",
+              "lane": "records",
+              "text": "File is marked ready and shown to the customer",
+              "status": "works",
+              "checked": "2026-05-18"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "gaps": [],
+  "notes": [
+    {
+      "id": "N1",
+      "role": "engineer",
+      "anchor": "t3",
+      "title": "The proxy is the bottleneck",
+      "body": "Servers hold a connection for the whole upload. That is why everything slowed down.",
+      "recommend": "Do direct uploads first; it is independent of the provider choice.",
+      "question": "Is the proxy the cause of the slowdown?",
+      "urgency": "must",
+      "evidence": [
+        "E2"
+      ]
+    }
+  ],
+  "decisions": [],
+  "outcomes": [
+    {
+      "id": "O1",
+      "measure": "Failed large uploads",
+      "baseline": "About 6% during busy hours",
+      "target": "Below 1%"
+    }
+  ]
+}

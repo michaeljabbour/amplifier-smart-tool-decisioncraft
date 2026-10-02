@@ -1,0 +1,16 @@
+{
+  "format": "decisioncraft-review/1",
+  "model": "Three Oaks Bakery: a monthly box?",
+  "model_fingerprint": "",
+  "reviewer": "Owner",
+  "saved_at": "2026-04-02T18:10:00Z",
+  "answers": {
+    "N1": {"choice": "agree", "comment": "Unlimited pauses. Simpler to explain."},
+    "N3": {"choice": "agree", "comment": ""},
+    "N4": {"choice": "agree", "comment": "£25 is fine for the pilot."},
+    "N5": {"choice": "change", "comment": "25 subscribers is too high for eight weeks. Say 20."},
+    "N11": {"choice": "unsure", "comment": "Need to ask the head baker about cross-contamination."}
+  },
+  "dots": {"N1": 2, "N5": 2, "N11": 1},
+  "decisions": {"D1": {"owner": "Owner", "status": "open", "due": "2026-04-10"}, "D2": {"decision": "£25 collection only"}}
+}

@@ -1,0 +1,16 @@
+{
+  "format": "decisioncraft-review/1",
+  "model": "Three Oaks Bakery: a monthly box?",
+  "model_fingerprint": "",
+  "reviewer": "Mill Lane manager",
+  "saved_at": "2026-04-03T09:30:00Z",
+  "answers": {
+    "N1": {"choice": "change", "comment": "Cap at two pauses a year or packing gets unpredictable."},
+    "N3": {"choice": "agree", "comment": "Saturday works for the counter team."},
+    "N4": {"choice": "agree", "comment": ""},
+    "N10": {"choice": "agree", "comment": "Hold unpaid boxes. We cannot chase payments."},
+    "N11": {"choice": "agree", "comment": "Customers ask about gluten-free every week."}
+  },
+  "dots": {"N10": 2, "N11": 2, "N1": 1},
+  "decisions": {"D1": {"owner": "Mill Lane manager"}, "D3": {"owner": "Mill Lane manager", "due": "2026-04-17"}}
+}

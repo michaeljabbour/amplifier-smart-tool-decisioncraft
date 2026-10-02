@@ -1,0 +1,133 @@
+{
+  "format": "decisioncraft/1",
+  "title": "Three Oaks Bakery: a monthly box?",
+  "question": "Should our three bakeries offer a monthly subscription box, and if so, what shape should it take?",
+  "summary": "Three Oaks is a small chain of three bakeries. Regulars have asked for a box they can collect or have delivered each month. This map shows what a subscriber would go through, where the idea comes from, and what is still open. All names and numbers are made up.",
+  "checked": {"date": "2026-03-28", "note": "Checked against six customer chats, a year of sales and cost figures, and one staff meeting."},
+  "dots": 5,
+  "glossary": {
+    "churn": "The share of subscribers who cancel in a given month.",
+    "margin": "What is left from the price after ingredients, packaging, fees and staff time.",
+    "pause": "Skipping a month without cancelling."
+  },
+  "roles": [
+    {"id": "designer", "label": "Designer", "color": "#e86a92", "asks": "Will people understand this and find their way without help?", "jobs": ["Make signing up take under two minutes at the counter or online"]},
+    {"id": "analyst", "label": "Analyst", "color": "#4f7fd8", "asks": "Is it clear what must be true, for whom, and how we will measure it?"},
+    {"id": "engineer", "label": "Head baker", "color": "#2f9e6a", "asks": "Can we bake and pack this without breaking the weekend?", "jobs": ["Keep the Friday and weekend bake on time"]},
+    {"id": "owner", "label": "Owner", "color": "#8a5cd6", "asks": "What is in the first version, what do we cut, and what does success look like?", "jobs": ["Grow steady weekday income", "Cut waste"]},
+    {"id": "security", "label": "Privacy", "color": "#d1543f", "asks": "What customer details do we keep, who sees them, and for how long?"},
+    {"id": "voice", "label": "Customer voice", "color": "#d99a1e", "asks": "Would our regulars choose this, and would they need it explained?", "jobs": ["Get good bread without thinking about it", "Treat the office on Fridays"]},
+    {"id": "agent", "label": "AI agent teammate", "color": "#1f9aa6", "asks": "What could an assistant do on its own, and what needs a person's OK?"},
+    {"id": "finance", "label": "Finance", "color": "#7a7a72", "asks": "What does it cost to run, and when does it pay back?"}
+  ],
+  "sources": [
+    {"id": "S1", "title": "Customer chats, March", "kind": "interview", "date": "2026-03-14", "ref": "material/customer-chats.md"},
+    {"id": "S2", "title": "Sales and costs, last 12 months", "kind": "data", "date": "2026-03-20", "ref": "material/sales-and-costs.md"},
+    {"id": "S3", "title": "Staff meeting, Station Road", "kind": "meeting", "date": "2026-03-24", "ref": "material/staff-meeting.md"}
+  ],
+  "evidence": [
+    {"id": "E1", "source": "S1", "kind": "quote", "voice": true, "text": "I'd pay for a box if I could skip a month when we're away. I hate being locked in.", "where": "Regular, Mill Lane"},
+    {"id": "E2", "source": "S1", "kind": "quote", "voice": true, "text": "Friday treats for the team would be great, but I need an invoice, not a card charge.", "where": "Office buyer, Station Road"},
+    {"id": "E3", "source": "S1", "kind": "quote", "voice": true, "text": "What's in it each month? I don't want six things I won't eat.", "where": "New customer, Mill Lane"},
+    {"id": "E4", "source": "S1", "kind": "quote", "voice": true, "text": "If there's nothing for me, I'm out.", "where": "Gluten-free regular, Mill Lane"},
+    {"id": "E5", "source": "S1", "kind": "quote", "voice": true, "text": "£25 a month feels right. £35 feels like a treat I'd cancel.", "where": "Regular, Mill Lane"},
+    {"id": "E6", "source": "S2", "kind": "data", "text": "A trial box costs £11.40 in ingredients and packaging, plus about 14 minutes of staff time to pack.", "where": "Costs section"},
+    {"id": "E7", "source": "S2", "kind": "data", "text": "9% of baked goods are thrown away or given away at closing.", "where": "Waste"},
+    {"id": "E8", "source": "S2", "kind": "data", "text": "Local courier: £4.20 per drop within 3 miles, Tuesday or Friday only.", "where": "Quotes"},
+    {"id": "E9", "source": "S3", "kind": "quote", "text": "Friday afternoon is already our tightest time.", "where": "Head baker"},
+    {"id": "E10", "source": "S3", "kind": "observation", "text": "The counter team can take sign-ups but not chase failed payments.", "where": "Mill Lane manager"},
+    {"id": "E11", "source": "S2", "kind": "data", "text": "Roughly 380 customers visit at least once a week.", "where": "Loyalty card data"},
+    {"id": "E12", "source": "S3", "kind": "observation", "text": "Nobody owns the customer list today. Loyalty data lives in the till system.", "where": "Meeting notes"}
+  ],
+  "maps": [
+    {
+      "id": "m-journey", "template": "customer-journey", "title": "A subscriber's month",
+      "intro": "What a regular would go through, from hearing about the box to staying or leaving. Each column is a phase.",
+      "lanes": [
+        {"id": "notice", "label": "Notice", "sub": "They find out"},
+        {"id": "start", "label": "Start", "sub": "Sign up"},
+        {"id": "use", "label": "Use", "sub": "Each month"},
+        {"id": "help", "label": "Get help", "sub": "When something is wrong"},
+        {"id": "stay", "label": "Stay or leave", "sub": "What happens next"}
+      ],
+      "journeys": [
+        {"id": "j-signup", "title": "A regular signs up", "summary": "From seeing the sign at the counter to their first box.", "creates": ["A subscriber record", "A monthly card charge or invoice"],
+          "steps": [
+            {"id": "su1", "lane": "notice", "text": "Sees a card by the till: 'Our bread, every month'", "status": "planned", "feeling": "good"},
+            {"id": "su2", "lane": "start", "text": "Asks what is in it and how much", "status": "missing", "pain": "No fixed answer yet; staff guess.", "evidence": ["E3"], "moment": true},
+            {"id": "su3", "lane": "start", "text": "Picks collect or delivery, and a size", "status": "planned", "evidence": ["E8"]},
+            {"id": "su4", "lane": "start", "text": "Pays by card at the counter, or asks for an invoice", "status": "partial", "detail": "Till can store a card for repeat charges; invoices are written by hand today.", "evidence": ["E2"]},
+            {"id": "su5", "lane": "use", "text": "Gets a text the day before: 'Your box is ready Saturday'", "status": "missing"}
+          ]},
+        {"id": "j-month", "title": "Each month after that", "summary": "Collecting, pausing, and deciding whether to stay.",
+          "steps": [
+            {"id": "mo1", "lane": "use", "text": "Collects on Saturday, or the courier drops it Friday", "status": "planned", "evidence": ["E9"]},
+            {"id": "mo2", "lane": "use", "text": "Opens the box and finds something they cannot eat", "status": "missing", "feeling": "bad", "pain": "No way to set dietary needs.", "evidence": ["E4"], "moment": true},
+            {"id": "mo3", "lane": "help", "text": "Wants to skip next month while away", "status": "missing", "evidence": ["E1"], "moment": true},
+            {"id": "mo4", "lane": "help", "text": "Card payment fails; someone has to follow up", "status": "missing", "pain": "Counter staff cannot chase payments.", "evidence": ["E10"]},
+            {"id": "mo5", "lane": "stay", "text": "Stays, upgrades, or cancels", "status": "planned", "evidence": ["E5"]}
+          ]}
+      ]
+    },
+    {
+      "id": "m-chain", "template": "decision-chain", "title": "From what we heard to what we would launch",
+      "intro": "Each stage is one step from a customer's words to a box on the shelf, and whether it worked.",
+      "stages": [
+        {"id": "c-source", "label": "Source", "verb": "backs up", "sub": "Where it was said or measured", "items": [
+          {"id": "ci1", "title": "Counter chats", "text": "Six regulars, two shops, written up the same day.", "status": "works", "when": "both", "evidence": ["E1", "E5"]},
+          {"id": "ci2", "title": "Till and loyalty data", "text": "A year of sales and weekly visits.", "status": "works", "when": "both", "evidence": ["E11"]}]},
+        {"id": "c-evidence", "label": "Evidence", "verb": "informs", "sub": "The exact words or numbers", "items": [
+          {"id": "ci3", "title": "Price people would pay", "text": "One regular named £25 as right and £35 as too much.", "status": "partial", "when": "both", "evidence": ["E5"]},
+          {"id": "ci4", "title": "Pausing matters", "text": "Being able to skip a month came up first.", "status": "works", "when": "both", "evidence": ["E1"]}]},
+        {"id": "c-decision", "label": "Decision", "verb": "shapes", "sub": "What we chose, and why", "items": [
+          {"id": "ci5", "title": "Start with collection only", "text": "Saturday pickup first; delivery once 40 subscribers sign up.", "status": "planned", "when": "planned", "evidence": ["E8", "E9"]}]},
+        {"id": "c-intent", "label": "Intent", "verb": "spells out", "sub": "The result we want", "items": [
+          {"id": "ci6", "title": "Steady weekday income, less waste", "text": "Bake box items Thursday, when ovens have room.", "status": "planned", "when": "planned", "evidence": ["E7"]}]},
+        {"id": "c-spec", "label": "Spec", "verb": "plans", "sub": "What it must do", "items": [
+          {"id": "ci7", "title": "One box, two sizes, a gluten-free swap", "text": "Pause any month by text. Office buyers get an invoice.", "status": "planned", "when": "planned", "evidence": ["E2", "E4"]}]},
+        {"id": "c-plan", "label": "Plan", "verb": "produces", "sub": "Pieces of work", "items": [
+          {"id": "ci8", "title": "Pilot at Mill Lane for 8 weeks", "text": "Cap at 30 boxes. Weekly check-in with the counter team.", "status": "planned", "when": "planned"}]},
+        {"id": "c-work", "label": "Work", "verb": "creates", "sub": "What was actually done", "items": [
+          {"id": "ci9", "title": "Trial box costed", "text": "Packed and priced three times.", "status": "works", "when": "today", "evidence": ["E6"]}]},
+        {"id": "c-outcome", "label": "Outcome", "verb": "", "sub": "Did it work?", "items": [
+          {"id": "ci10", "title": "Measures agreed, not yet measured", "text": "Subscribers, cancellations, waste.", "status": "missing", "when": "both"}]}
+      ]
+    }
+  ],
+  "gaps": [
+    {"id": "G1", "title": "Let people pause a month", "why": "The first thing a regular asked for. Without it, people avoid signing up.", "anchors": ["mo3"], "impact": 5, "effort": 2,
+      "stories": [{"as": "As a subscriber going on holiday, I want to skip next month by replying to a text, so I am not charged for bread I cannot collect.", "done_when": ["a reply of SKIP before Wednesday stops that month's charge", "the shop's packing list for Saturday leaves that person out", "the subscriber gets a text confirming the skip"]}]},
+    {"id": "G2", "title": "Say what is in the box, and offer a gluten-free swap", "why": "People will not buy a surprise they might not eat.", "anchors": ["su2", "mo2"], "impact": 4, "effort": 2,
+      "stories": [{"as": "As a gluten-free regular, I want to choose a swap when I sign up, so every box has something I can eat.", "done_when": ["the sign-up asks about dietary needs", "the packing list shows each box's swaps", "the counter card shows a sample box with prices"]}]},
+    {"id": "G3", "title": "Someone owns failed payments", "why": "Counter staff will not chase money, and nobody else is named.", "anchors": ["mo4"], "impact": 3, "effort": 3,
+      "stories": [{"as": "As the owner, I want failed payments sent to one named person each week, so boxes are not packed for people who have not paid.", "done_when": ["a weekly list of failed payments goes to the named person", "the box is held, not packed, until paid"]}]},
+    {"id": "G4", "title": "Invoices for office buyers", "why": "Office buyers cannot pay by personal card.", "anchors": ["su4"], "impact": 3, "effort": 4,
+      "stories": [{"as": "As an office buyer, I want a monthly invoice, so I can claim it back.", "done_when": ["an invoice is sent on the 1st with the company's name", "unpaid invoices after 30 days pause the box"]}]}
+  ],
+  "notes": [
+    {"id": "N1", "role": "voice", "anchor": "mo3", "title": "Pausing decides whether people sign up", "body": "The regular who asked for this said being locked in is the reason they would say no.", "recommend": "Make pausing a one-word text reply, and say so on the counter card.", "question": "Do we let people pause as often as they like, or cap it at two months a year?", "urgency": "must", "evidence": ["E1"]},
+    {"id": "N2", "role": "designer", "anchor": "su2", "title": "Show a real box at the counter", "body": "People asked what is inside before they asked the price.", "recommend": "Put a packed sample box by the till with a card listing this month's items.", "question": "Who packs and refreshes the sample box each month?", "urgency": "should", "evidence": ["E3"]},
+    {"id": "N3", "role": "engineer", "anchor": "mo1", "title": "Friday packing clashes with the weekend bake", "body": "The head baker named Friday afternoon as the tightest time of the week.", "recommend": "Pack Thursday evening for Saturday pickup; no Friday deliveries in the pilot.", "question": "Can we commit to Saturday-only pickup for the first eight weeks?", "urgency": "must", "evidence": ["E9"]},
+    {"id": "N4", "role": "finance", "anchor": "c-spec", "title": "The box makes money at £25, but not with delivery", "body": "Ingredients, packaging and packing time come to about £14. Card fees take another 43p. Delivery at £4.20 leaves little.", "recommend": "Price at £25 for collection and £29 with delivery once delivery starts.", "question": "Are we happy with roughly £10 a box before rent and power?", "urgency": "must", "evidence": ["E6", "E8"]},
+    {"id": "N5", "role": "owner", "anchor": "c-decision", "title": "Pilot in one shop first", "body": "Mill Lane has the most regulars asking. A cap keeps the bake manageable.", "recommend": "Pilot at Mill Lane, cap at 30 boxes, review after eight weeks.", "question": "What number of subscribers after eight weeks would make us roll it out to all three shops?", "urgency": "must", "evidence": ["E11"]},
+    {"id": "N6", "role": "analyst", "anchor": "c-outcome", "title": "Agree the measures before we start", "body": "Without a starting number for waste, we cannot say the box reduced it.", "recommend": "Record this month's waste at Mill Lane as the starting point.", "question": "Which three numbers do we review at week eight?", "urgency": "should", "evidence": ["E7"]},
+    {"id": "N7", "role": "security", "anchor": "su4", "title": "Keep as little customer data as we can", "body": "We would hold names, phone numbers and cards. Nobody owns the customer list today.", "recommend": "Keep cards in the payment provider only, and name one person responsible for the list.", "question": "Who owns the subscriber list, and how long do we keep details after someone cancels?", "urgency": "should", "evidence": ["E12"]},
+    {"id": "N8", "role": "agent", "anchor": "su5", "title": "An assistant could send the reminders and handle skips", "body": "Reminder texts, skip replies and the packing list follow simple rules.", "recommend": "Let an assistant send reminders and record skips; a person approves the weekly packing list.", "question": "Are we comfortable with an assistant replying to customers' texts about skips?", "urgency": "info", "evidence": ["E1"]},
+    {"id": "N9", "role": "voice", "anchor": "su4", "title": "Office buyers are a different customer", "body": "They want Friday treats and an invoice, not a personal card charge.", "recommend": "Leave office boxes out of the pilot; talk to three office buyers first.", "question": "Do we treat office boxes as a separate product later?", "urgency": "info", "evidence": ["E2"]},
+    {"id": "N10", "role": "finance", "anchor": "G3", "title": "Failed payments cost more than the fee", "body": "A packed box nobody paid for is £14 lost.", "recommend": "Hold the box until the payment goes through.", "question": "Do we pack boxes for people whose payment failed, or hold them?", "urgency": "should", "evidence": ["E6", "E10"]},
+    {"id": "N11", "role": "designer", "anchor": "mo2", "title": "Ask about dietary needs once, at sign-up", "body": "A box with nothing someone can eat is the fastest way to lose them.", "recommend": "One question at sign-up with three choices: none, gluten-free, no nuts.", "question": "Can the bakery reliably make a gluten-free swap every month?", "urgency": "must", "evidence": ["E4"]},
+    {"id": "N12", "role": "engineer", "anchor": "ci6", "title": "Thursday baking uses spare oven time", "body": "Weekday sales are well below weekends, so Thursday has room.", "recommend": "Bake box items Thursday afternoon; freeze dough on Wednesday if needed.", "question": "Does a Thursday bake keep the bread good enough for Saturday?", "urgency": "should", "evidence": ["E7"]},
+    {"id": "N13", "role": "analyst", "anchor": "G1", "title": "Define the skip deadline", "body": "Packing happens Thursday, so a skip on Friday is too late.", "recommend": "Skips close at the end of Wednesday.", "question": "Is Wednesday a fair deadline for skipping?", "urgency": "should", "evidence": ["E1"]},
+    {"id": "N14", "role": "owner", "anchor": "G4", "title": "Invoices can wait", "body": "Only one buyer asked, and invoices need more admin than the pilot can carry.", "recommend": "Do invoices after the pilot if office demand is real.", "question": "Do we say no to office buyers during the pilot?", "urgency": "info", "evidence": ["E2"]}
+  ],
+  "decisions": [
+    {"id": "D1", "question": "Do we run an eight-week pilot at Mill Lane, collection only, capped at 30 boxes?", "notes": ["N3", "N5"], "options": ["Yes, as described", "Yes, but include delivery", "Not yet"], "owner": "Owner", "status": "open", "due": "2026-04-10"},
+    {"id": "D2", "question": "What price do we start at?", "notes": ["N4"], "options": ["£22", "£25", "£29"], "owner": "Owner", "status": "open", "due": "2026-04-10"},
+    {"id": "D3", "question": "How do pausing and failed payments work?", "notes": ["N1", "N10", "N13"], "options": ["Unlimited pauses, hold unpaid boxes", "Two pauses a year, hold unpaid boxes"], "owner": "Mill Lane manager", "status": "open", "due": "2026-04-17"}
+  ],
+  "outcomes": [
+    {"id": "O1", "measure": "Subscribers at week eight", "baseline": "0", "target": "25 or more"},
+    {"id": "O2", "measure": "Waste at Mill Lane", "baseline": "9% of baked goods", "target": "Below 7%"},
+    {"id": "O3", "measure": "Cancellations in the first two months", "target": "Fewer than 1 in 5"}
+  ]
+}

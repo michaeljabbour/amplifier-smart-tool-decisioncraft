@@ -1,3 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data: blob:">
+<meta name="generator" content="decisioncraft">
+<title>Riverside footbridge: repair or replace?</title>
+<style>
+:root{
+  --bg:#f5f4f0; --dot:#d6d3cb; --ink:#1d1d1b; --ink2:#46453f; --muted:#6a6862; --line:#d9d6ce;
+  --panel:#ffffff; --soft:#efede7; --accent:#2f5bd3; --accent-ink:#ffffff;
+  --works:#1f7a4a; --partial:#9a5b00; --missing:#b3261e; --planned:#0d6e74;
+  --must:#b3261e; --should:#9a5b00; --info:#4a5a72;
+  --z:1; --inv:1;
+  font-synthesis:none;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);
+  font:14px/1.42 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+button,select,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+/* canvas */
+#viewport{position:fixed;inset:0;cursor:grab;touch-action:none}
+body.dots #viewport{background-image:radial-gradient(var(--dot) 1.1px,transparent 1.1px);background-size:22px 22px}
+#viewport.dragging{cursor:grabbing}
+#world{position:absolute;left:0;top:0;transform-origin:0 0}
+svg.links{position:absolute;left:0;top:0;overflow:visible;pointer-events:none;z-index:1}
+svg.links path{fill:none;stroke:#9a978f;stroke-width:2}
+svg.links path.hot{stroke:var(--accent);stroke-width:3}
+svg.links text{font-size:15px;font-weight:600;fill:#5d5b55;paint-order:stroke;stroke:var(--bg);stroke-width:4px}
+
+.box{position:absolute;border-radius:10px;background:var(--panel);border:1px solid var(--line);padding:10px 12px;
+  box-shadow:0 1px 2px rgba(0,0,0,.05);cursor:pointer;transition:opacity .15s,box-shadow .15s;overflow:hidden;z-index:2}
+.box:hover{box-shadow:0 4px 16px rgba(0,0,0,.12)}
+.box.sel{outline:3px solid var(--accent);outline-offset:2px}
+.box h3,.box h4{margin:0 0 4px;font-size:15px;line-height:1.25}
+.box p{margin:0;color:var(--ink2)}
+.box .t{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
+.box .meta{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+body.dim .box.inj:not(.hot){opacity:.28}
+body.dim .notecard.inj:not(.hot){opacity:.28}
+
+.lanehead{position:absolute;font-weight:700;font-size:15px;color:var(--ink)}
+.lanehead small{display:block;font-weight:400;color:var(--muted);font-size:12.5px}
+.lanebg{position:absolute;z-index:0;background:rgba(255,255,255,.45);border-radius:14px;border:1px dashed #e0ddd5}
+.label{position:absolute;white-space:nowrap;color:var(--muted);font-size:12px;letter-spacing:.06em;text-transform:uppercase;font-weight:600}
+.maptitle{position:absolute;font-size:34px;font-weight:800;letter-spacing:-.01em;line-height:1.1}
+.mapintro{position:absolute;color:var(--ink2);font-size:15px;max-width:760px}
+.stamp{position:absolute;white-space:nowrap;font-size:12px;font-weight:700;color:#fff;background:#3b4a63;border-radius:6px;padding:3px 8px}
+
+.jhead{background:#fbfaf6}
+.jhead .n,.step .n{display:inline-grid;place-items:center;min-width:24px;height:24px;border-radius:12px;
+  background:var(--ink);color:#fff;font-size:12px;font-weight:700;margin-right:6px;padding:0 6px}
+.step{display:flex;flex-direction:column}
+.step .row1{display:flex;align-items:flex-start;gap:6px}
+.stage{background:#f6d77b;border-color:#e2bf55;display:flex;flex-direction:column;justify-content:center}
+.stage h3{font-size:19px}
+.stage p{color:#3d3200}
+.item.planned-new{border:2px dashed var(--planned)}
+.tree-node{background:#fff}
+.tree-node.l0{background:#1d1d1b;color:#fff;border-color:#1d1d1b}
+.tree-node.l0 p{color:#ddd}
+
+.pill{display:inline-block;font-size:11.5px;font-weight:700;border-radius:999px;padding:1px 8px;color:#fff;white-space:nowrap}
+.pill.works{background:var(--works)} .pill.partial{background:var(--partial)}
+.pill.missing{background:var(--missing)} .pill.planned{background:var(--planned)}
+.chip{display:inline-block;font-size:11.5px;border-radius:6px;padding:1px 6px;background:var(--soft);color:var(--ink2);white-space:nowrap}
+.chip.new{background:#dff3e6;color:#145c36;font-weight:700}
+.chip.changed{background:#fff0c9;color:#6b4800;font-weight:700}
+.chip.stale{background:#f4e1df;color:#7d1d16}
+.chip.moment{background:#ece4fb;color:#4b2a8a;font-weight:700}
+.chip.pain{background:#fde6e3;color:#8a1f16}
+.feel{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:3px;vertical-align:middle}
+.feel.good{background:#2f9e6a}.feel.ok{background:#d9a21e}.feel.bad{background:#d1543f}
+
+/* notes: a column beside each row, sized so they never cover any box */
+.notecard{position:absolute;z-index:2;border-radius:8px;padding:8px 10px 9px 12px;cursor:pointer;
+  border:1px solid rgba(0,0,0,.08);box-shadow:0 1px 2px rgba(0,0,0,.05);overflow:hidden;transition:opacity .15s}
+.notecard:hover{box-shadow:0 4px 14px rgba(0,0,0,.12)}
+.notecard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--info)}
+.notecard.must::before{background:var(--must)} .notecard.should::before{background:var(--should)}
+.notecard .who{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ink2)}
+.notecard .urg{font-size:11px;font-weight:700;margin-left:6px}
+.notecard.must .urg{color:var(--must)} .notecard.should .urg{color:var(--should)} .notecard.info .urg{color:var(--info)}
+.notecard h5{margin:3px 0 3px;font-size:13.5px;line-height:1.25}
+.notecard .q{font-size:12.5px;color:var(--ink2);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
+.morenotes{position:absolute;z-index:2;border:1px dashed #b9b5aa;background:rgba(255,255,255,.7);border-radius:8px;
+  padding:6px 10px;font-size:12.5px;color:var(--ink2);cursor:pointer}
+
+/* far zoom: keep the main words readable, drop the small print */
+body.z-far .box .meta > :not(.notebadge),body.z-far .box p.sub,body.z-far .notecard .q,body.z-far .notecard .who{display:none}
+body.z-far .box .t,body.z-far .box h3,body.z-far .box h4,body.z-far .notecard h5{font-size:calc(14px * var(--inv));line-height:1.15}
+body.z-far .box .t{-webkit-line-clamp:2}
+
+.term{border-bottom:1px dotted currentColor;cursor:help}
+#gloss{position:fixed;z-index:60;max-width:300px;background:#1d1d1b;color:#fff;border-radius:8px;padding:8px 10px;
+  font-size:13px;display:none;pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.2)}
+#gloss b{display:block;margin-bottom:2px}
+
+/* side panel */
+#panel{position:fixed;top:64px;right:10px;bottom:10px;width:min(460px,calc(100vw - 20px));z-index:35;background:#fff;
+  border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 34px rgba(0,0,0,.14);display:none;flex-direction:column}
+#panel.open{display:flex}
+#panel header{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
+#panel header h2{margin:0;font-size:17px;flex:1}
+#panel header button{border:1px solid var(--line);background:#fff;border-radius:8px;min-width:32px;min-height:32px}
+#panel .body{overflow:auto;padding:12px 14px 20px}
+#panel h3{font-size:14px;margin:16px 0 6px}
+#panel h3:first-child{margin-top:0}
+#panel p{margin:4px 0}
+.card{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0;background:#fff}
+.card.must{border-left:5px solid var(--must)} .card.should{border-left:5px solid var(--should)} .card.info{border-left:5px solid var(--info)}
+.quote{border-left:3px solid #c9c4b6;padding:2px 0 2px 10px;margin:6px 0;color:var(--ink2);font-style:italic}
+.quote .src{display:block;font-style:normal;font-size:12px;color:var(--muted);margin-top:2px}
+.quote.voice{border-left-color:#d99a1e}
+.answer{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+.answer button,.mini{border:1px solid var(--line);background:#fff;border-radius:7px;padding:3px 9px;min-height:28px}
+.answer button[aria-pressed="true"]{background:#e6ecfb;border-color:#9fb4ee;font-weight:600}
+.dots{display:inline-flex;align-items:center;gap:4px;margin-left:auto}
+.dots .n{min-width:1.5em;text-align:center;font-weight:700}
+textarea,input[type=text],input[type=date],select.field{width:100%;border:1px solid var(--line);border-radius:7px;padding:6px 8px;margin-top:4px;background:#fff}
+textarea{min-height:52px;resize:vertical}
+.row{display:flex;gap:8px;align-items:center}
+.row > *{flex:1}
+.tally{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--soft);margin:6px 0 2px}
+.tally i{display:block;height:100%}
+.tally .a{background:#2f9e6a}.tally .c{background:#d1543f}.tally .u{background:#c9c4b6}
+.small{font-size:12.5px;color:var(--muted)}
+.badge{display:inline-block;font-size:11px;font-weight:700;border-radius:5px;padding:1px 6px;background:var(--soft)}
+.badge.split{background:#fde6e3;color:#8a1f16}
+.meter{display:inline-flex;gap:2px;vertical-align:middle}
+.meter i{width:8px;height:8px;border-radius:50%;background:#dcd8cf}
+.meter i.on{background:var(--ink2)}
+.rolerow{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--soft)}
+.rolerow input{margin-top:4px;width:18px;height:18px}
+.swatch{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.legend span{margin-right:10px;white-space:nowrap}
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#1d1d1b;color:#fff;border-radius:8px;
+  padding:8px 14px;z-index:70;display:none}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:12px;top:60px;z-index:80;background:#fff;padding:6px 10px;border-radius:6px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+@media print{
+  #bar,#panel,#more,#toast,#gloss{display:none !important}
+  html,body{overflow:visible;height:auto;background:#fff}
+  #viewport{position:static;background:none !important}
+  #world{position:relative}
+  .box,.notecard{box-shadow:none;break-inside:avoid}
+}
+
+.jindex{cursor:default;background:#fbfaf6}
+.jindex .meta{gap:6px}
+body.z-far .jindex .mini{font-size:calc(13px * var(--inv))}
+
+/* ---------- chrome: one quiet top bar ---------- */
+#top{position:fixed;left:0;right:0;top:0;height:52px;z-index:30;display:flex;align-items:center;gap:8px;
+  padding:0 12px;background:rgba(255,255,255,.97);border-bottom:1px solid var(--line);white-space:nowrap}
+#top .title{font-weight:700;font-size:15px;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto;min-width:0}
+#top button{flex:0 0 auto;border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 11px;min-height:34px}
+#top button:hover{background:var(--soft)}
+#top .primary{background:#fff6dc;border-color:#e9cf86;font-weight:600}
+#top .count{display:inline-block;min-width:1.6em;padding:0 6px;margin-left:5px;border-radius:9px;background:rgba(0,0,0,.07);font-size:12px}
+#menu{position:fixed;z-index:45;background:#fff;border:1px solid var(--line);border-radius:10px;padding:6px;
+  box-shadow:0 8px 28px rgba(0,0,0,.14);display:none;min-width:270px}
+#menu.open{display:block}
+#menu button{display:flex;justify-content:space-between;gap:12px;width:100%;text-align:left;border:0;background:none;padding:9px 10px;border-radius:6px}
+#menu button:hover{background:var(--soft)}
+#menu .state{color:var(--muted);font-size:12.5px}
+#menu hr{border:0;border-top:1px solid var(--soft);margin:4px 0}
+
+/* ---------- left story list ---------- */
+#story{position:fixed;left:0;top:52px;bottom:0;width:320px;z-index:25;background:#fbfaf7;border-right:1px solid var(--line);
+  overflow:auto;padding:14px 14px 30px}
+body.nostory #story{display:none}
+#storytab{position:fixed;left:10px;top:62px;z-index:26;display:none;border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 11px}
+body.nostory #storytab{display:block}
+#story .q{font-size:15px;font-weight:600;line-height:1.35;margin:2px 0 10px}
+#story .walkbtn{width:100%;background:#2f5bd3;color:#fff;border:0;border-radius:9px;padding:10px;font-weight:600;font-size:15px}
+#story .walkbtn:hover{background:#2a50bb}
+#story .hide{border:0;background:none;color:var(--muted);font-size:12.5px;padding:4px 0;float:right}
+#story h2{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
+#story ol{list-style:none;margin:0;padding:0}
+#story li{margin:0}
+#story .view{display:block;width:100%;text-align:left;border:1px solid transparent;background:none;border-radius:8px;padding:8px 9px;margin:2px 0}
+#story .view:hover{background:#fff;border-color:var(--line)}
+#story .view[aria-current="true"]{background:#fff;border-color:#9fb4ee}
+#story .view b{display:block;font-size:14.5px}
+#story .view span{display:block;font-size:12.5px;color:var(--muted);line-height:1.35}
+#story .sub{padding-left:14px;border-left:2px solid var(--line);margin:2px 0 8px 12px}
+#story .sub .view b{font-size:13.5px;font-weight:600}
+#story .num{display:inline-block;min-width:1.7em;color:var(--muted);font-weight:700}
+#story .seg{display:flex;margin:4px 0 6px 12px}
+#story .seg button{flex:1;border:1px solid var(--line);background:#fff;padding:6px;font-size:13px}
+#story .seg button:first-child{border-radius:8px 0 0 8px}
+#story .seg button:last-child{border-radius:0 8px 8px 0;border-left:0}
+#story .seg button[aria-pressed="true"]{background:#e6ecfb;border-color:#9fb4ee;font-weight:600}
+#story .more button{display:block;width:100%;text-align:left;border:1px solid transparent;background:none;border-radius:8px;padding:7px 9px}
+#story .more button:hover{background:#fff;border-color:var(--line)}
+
+/* ---------- zoom, walk-through, hint ---------- */
+#zoom{position:fixed;right:14px;bottom:14px;z-index:28;display:flex;flex-direction:column;gap:6px}
+body.panel-open #zoom{right:494px}
+#zoom button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 12px;min-width:128px;text-align:left;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+#zoom button:hover{background:var(--soft)}
+#walk{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:32;width:min(560px,calc(100vw - 40px));
+  background:#1d1d1b;color:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 10px 30px rgba(0,0,0,.25);display:none}
+body:not(.nostory) #walk{left:calc(50% + 160px)}
+body.panel-open #walk{left:calc(50% - 80px)}
+#walk.open{display:block}
+#walk .step{font-size:12px;color:#c9c6bd;letter-spacing:.04em;text-transform:uppercase}
+#walk h3{margin:4px 0 4px;font-size:17px}
+#walk p{margin:0 0 10px;color:#e8e6df}
+#walk .row{display:flex;gap:8px;align-items:center}
+#walk button{border:1px solid #55534d;background:#2c2b28;color:#fff;border-radius:8px;padding:7px 14px}
+#walk button.next{background:#fff;color:#1d1d1b;border-color:#fff;font-weight:600}
+#walk .grow{flex:1}
+#hint{position:fixed;left:340px;top:66px;z-index:31;max-width:420px;background:#fff8e1;border:1px solid #ecd48e;border-radius:10px;
+  padding:10px 12px;box-shadow:0 4px 16px rgba(0,0,0,.1);display:none}
+body.nostory #hint{left:110px}
+#hint.open{display:block}
+#hint button{margin-top:6px;border:1px solid #d9bf73;background:#fff;border-radius:7px;padding:4px 10px}
+
+/* the panel sits under the top bar */
+#panel{top:62px}
+body.panel-open #panel{display:flex}
+.techname{display:block;margin-top:4px;font:12px/1.3 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#3b4a63;
+  background:#eef1f7;border-radius:5px;padding:2px 6px;white-space:normal}
+body.z-far .techname{font-size:calc(12px * var(--inv))}
+.switch{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2)}
+.switch input{width:18px;height:18px}
+.notebadge{display:inline-block;font-size:11.5px;font-weight:700;border-radius:6px;padding:1px 7px;background:#1d1d1b;color:#fff}
+.notebadge.must{background:var(--must)}
+body.z-far .box .meta .notebadge{font-size:calc(11.5px * var(--inv))}
+
+</style>
+</head>
+<body class="dots">
+<a class="skip" href="#story">Skip to the list of views</a>
+<header id="top"></header>
+<div id="menu" role="menu"></div>
+<aside id="story" aria-label="What is in this decision"></aside>
+<button id="storytab" type="button">Show list</button>
+<main id="viewport" aria-label="Decision map. Use Tab to move between boxes and Enter to open one."><div id="world"></div></main>
+<aside id="panel" aria-live="polite"></aside>
+<div id="zoom" role="group" aria-label="Zoom">
+  <button id="zin" type="button">+ Zoom in</button>
+  <button id="zout" type="button">− Zoom out</button>
+  <button id="zfit" type="button">Fit to screen</button>
+</div>
+<section id="walk" aria-live="polite" aria-label="Walk-through"></section>
+<div id="hint" role="note"></div>
+<div id="gloss" role="tooltip"></div>
+<div id="toast" role="status"></div>
+<script type="application/json" id="dc-model">{"format":"decisioncraft/1","title":"Riverside footbridge: repair or replace?","question":"Should the council repair the Riverside footbridge, replace it, or replace it with a wider bridge for walking and cycling?","summary":"A 1974 steel footbridge is corroding. It is the only step-free crossing to a school and a row of shops. This map shows the options, what a closure would be like for the people who use the bridge, and what the council still has to decide. All names and figures are made up.","checked":{"date":"2026-06-30","note":"Checked against the principal inspection, early cost estimates and one public drop-in session."},"glossary":{"load rating":"The weight a bridge can safely carry, worked out by an engineer.","bearings":"The parts at each end that let the bridge move a little as it warms and cools.","section loss":"Steel lost to rust, as a share of the original thickness.","shared use":"A path for people walking and cycling together."},"roles":[{"id":"designer","label":"Access and design","color":"#e86a92","asks":"Can everyone use it, including people with prams, wheelchairs and bikes?"},{"id":"analyst","label":"Analyst","color":"#4f7fd8","asks":"Are the costs and lives compared on the same basis?"},{"id":"engineer","label":"Structural engineer","color":"#2f9e6a","asks":"Is it safe, how long will it last, and what could go wrong during the work?"},{"id":"owner","label":"Council lead","color":"#8a5cd6","asks":"What do we recommend to the committee, and what do we tell residents?"},{"id":"security","label":"Safety","color":"#d1543f","asks":"How do we keep people safe before, during and after the work?"},{"id":"voice","label":"Resident voice","color":"#d99a1e","asks":"What does this mean for the people who cross every day?"},{"id":"agent","label":"AI agent teammate","color":"#1f9aa6","asks":"What routine work could an assistant take on, with a person checking?"},{"id":"finance","label":"Finance","color":"#7a7a72","asks":"What does each option cost over its whole life, and who pays?"}],"sources":[{"id":"S1","title":"Principal inspection","kind":"document","date":"2026-05-11","ref":"material/inspection-report.md"},{"id":"S2","title":"Options and early costs","kind":"data","date":"2026-06-02","ref":"material/options-and-costs.md"},{"id":"S3","title":"Public drop-in session","kind":"meeting","date":"2026-06-20","ref":"material/public-drop-in.md"}],"evidence":[{"id":"E1","source":"S1","kind":"data","text":"Corrosion at 6 of 14 lower joints; two show section loss over 20%.","where":"Findings"},{"id":"E2","source":"S1","kind":"quote","text":"With repairs, another 25 years is realistic. Without them, we would recommend a weight limit within three years.","where":"Inspector's summary"},{"id":"E3","source":"S1","kind":"observation","text":"Bearings at the north end have seized; the bridge cannot expand freely in summer.","where":"Findings"},{"id":"E4","source":"S2","kind":"data","text":"Repair £1.1m, 10 weeks closed, 25 years. Replace £3.4m, 9 months closed, 100 years. Wider replacement £4.2m, 11 months, 100 years.","where":"Options table"},{"id":"E5","source":"S2","kind":"data","text":"A regional cycling fund could pay up to 40% of a widened bridge, if bid by November.","where":"Notes"},{"id":"E6","source":"S2","kind":"data","text":"The river authority needs 6 months' notice for any work in the water.","where":"Notes"},{"id":"E7","source":"S3","kind":"quote","voice":true,"text":"It's the only step-free way to the school. A long closure means a 20-minute walk round by the main road.","where":"Parent with a pram"},{"id":"E8","source":"S3","kind":"quote","voice":true,"text":"It's too narrow to pass anyone. If you're rebuilding, make it wider.","where":"Regular cyclist"},{"id":"E9","source":"S3","kind":"quote","voice":true,"text":"Last time it shut for a month, my takings dropped by a third.","where":"Shop owner, south side"},{"id":"E10","source":"S3","kind":"quote","voice":true,"text":"The ramps at the north end are too steep for me on my own.","where":"Wheelchair user"},{"id":"E11","source":"S2","kind":"data","text":"Estimates are ±30% at this stage.","where":"Notes"}],"maps":[{"id":"m-chain","template":"decision-chain","title":"From inspection to a working bridge","intro":"Each stage is one step from what the inspection found to a bridge people can use, and whether it worked.","stages":[{"id":"c-source","label":"Source","verb":"backs up","sub":"Where it was found or said","items":[{"id":"ci1","title":"Principal inspection","text":"Every joint, bearing and board checked.","status":"works","when":"both","evidence":["E1","E3"]},{"id":"ci2","title":"Public drop-in","text":"About 60 people, comment cards.","status":"works","when":"both","evidence":["E7","E8"]}]},{"id":"c-evidence","label":"Evidence","verb":"informs","sub":"The findings we rely on","items":[{"id":"ci3","title":"Rust at two joints is serious","text":"Over 20% of the steel lost.","status":"works","when":"both","evidence":["E1"]},{"id":"ci4","title":"Closures hurt the school run and shops","text":"20-minute detour; takings down by a third last time.","status":"works","when":"both","evidence":["E7","E9"]}]},{"id":"c-decision","label":"Decision","verb":"shapes","sub":"What we choose, and why","items":[{"id":"ci5","title":"Repair now, plan a wider bridge later","text":"One option on the table.","status":"planned","when":"planned","evidence":["E2","E4"]},{"id":"ci6","title":"Replace with a wider bridge now","text":"The other option on the table.","status":"planned","when":"planned","evidence":["E5","E8"]}]},{"id":"c-intent","label":"Intent","verb":"spells out","sub":"The result we want","items":[{"id":"ci7","title":"A safe, step-free crossing for decades","text":"With the shortest possible closure.","status":"planned","when":"planned"}]},{"id":"c-spec","label":"Spec","verb":"plans","sub":"What the bridge must do","items":[{"id":"ci8","title":"Ramps anyone can use alone","text":"Gentler slopes at the north end.","status":"missing","when":"planned","evidence":["E10"]},{"id":"ci9","title":"Room to pass","text":"4 m wide if replaced.","status":"planned","when":"planned","evidence":["E8"]}]},{"id":"c-plan","label":"Plan","verb":"produces","sub":"The work, in order","items":[{"id":"ci10","title":"Give the river authority notice","text":"Six months before any work in the water.","status":"missing","when":"planned","evidence":["E6"]}]},{"id":"c-work","label":"Work","verb":"creates","sub":"What was done","items":[{"id":"ci11","title":"Inspection and early costs","text":"Done. Nothing built yet.","status":"works","when":"today","evidence":["E4"]}]},{"id":"c-outcome","label":"Outcome","verb":"","sub":"Did it work?","items":[{"id":"ci12","title":"Measures to agree","text":"Crossings per day, complaints, upkeep cost.","status":"missing","when":"both"}]}]},{"id":"m-closure","template":"service-blueprint","title":"Closing the bridge for works","intro":"What a resident goes through when the bridge shuts, what the council does in front of them and out of sight, and what supports it.","lanes":[{"id":"person","label":"Resident","sub":"What they do"},{"id":"front","label":"In front of them","sub":"Signs, staff, website"},{"id":"back","label":"Out of sight","sub":"Council and contractor"},{"id":"support","label":"Support","sub":"Permits, suppliers, rules"},{"id":"proof","label":"What they keep","sub":"Letters and notices"}],"journeys":[{"id":"j-before","title":"Before the closure","summary":"Finding out, and planning another way.","steps":[{"id":"b1","lane":"proof","text":"Letter through the door: dates and the detour","status":"planned"},{"id":"b2","lane":"person","text":"Works out a new school run","status":"planned","feeling":"bad","pain":"20 minutes longer by the main road.","evidence":["E7"],"moment":true},{"id":"b3","lane":"back","text":"Council agrees a temporary crossing or shuttle","status":"missing","evidence":["E7","E9"]},{"id":"b4","lane":"support","text":"River authority notice and permits","status":"missing","evidence":["E6"]}]},{"id":"j-during","title":"During the works","summary":"Getting across, and getting news.","steps":[{"id":"w1","lane":"person","text":"Follows the signed detour","status":"planned","feeling":"bad"},{"id":"w2","lane":"front","text":"Signs at both ends show the detour and the end date","status":"planned"},{"id":"w3","lane":"front","text":"Website shows progress each week","status":"missing"},{"id":"w4","lane":"person","text":"Shops on the south side see fewer customers","status":"planned","feeling":"bad","evidence":["E9"],"moment":true}]}]}],"gaps":[{"id":"G1","title":"A way across during a long closure","why":"A nine-month closure without a crossing cuts off the school's only step-free route.","anchors":["b3","w1"],"impact":5,"effort":4,"stories":[{"as":"As a parent with a pram, I want a step-free way across while the bridge is shut, so the school run stays under ten minutes.","done_when":["a temporary crossing or shuttle runs at school times","the route is signed and lit","the detour is no more than 10 minutes longer"]}]},{"id":"G2","title":"Ramps people can use on their own","why":"The north ramps are too steep for some wheelchair users.","anchors":["ci8"],"impact":4,"effort":2,"stories":[{"as":"As a wheelchair user, I want ramps I can manage alone, so I do not need help to cross.","done_when":["ramp slopes meet the access standard","a wheelchair user tests the design before it is approved"]}]},{"id":"G3","title":"Bid to the cycling fund by November","why":"Up to 40% of a wider bridge could be paid for, but only with a bid in time.","anchors":["ci6"],"impact":4,"effort":3,"stories":[{"as":"As the council lead, I want the bid submitted by November, so the wider option is affordable.","done_when":["a bid is submitted before the deadline","the bid shows the drop-in feedback"]}]},{"id":"G4","title":"Weekly news during works","why":"People put up with closures better when they can see progress.","anchors":["w3"],"impact":2,"effort":1,"stories":[{"as":"As a resident, I want a weekly update, so I know the end date is real.","done_when":["a photo and a line of news go up every Friday"]}]}],"notes":[{"id":"N1","role":"engineer","anchor":"ci3","title":"Repairs buy 25 years, not 100","body":"Repair is sound engineering, but the bridge will need replacing in the 2050s anyway.","recommend":"Compare options over 50 years, not on build cost alone.","question":"Do we judge the options over 50 years of cost and closures?","urgency":"must","evidence":["E2","E4"]},{"id":"N2","role":"engineer","anchor":"b4","title":"The river notice sets the earliest start","body":"Any option needs six months' notice for work in the water.","recommend":"Send a notice for the larger option now; it can be narrowed later.","question":"Can we give notice before the committee decides?","urgency":"should","evidence":["E6"]},{"id":"N3","role":"security","anchor":"ci5","title":"Seized bearings are a summer risk","body":"A bridge that cannot expand is stressed on hot days.","recommend":"Free or replace the north bearings this year, whatever we decide.","question":"Do we fix the bearings now as urgent work?","urgency":"must","evidence":["E3"]},{"id":"N4","role":"voice","anchor":"b2","title":"The school run is the hardest hit","body":"Families with prams have no other step-free route.","recommend":"Plan the closure around school holidays where possible.","question":"Can the longest part of the works fall in the summer holidays?","urgency":"must","evidence":["E7"]},{"id":"N5","role":"voice","anchor":"w4","title":"Shops felt the last closure","body":"One owner lost a third of takings during a one-month closure.","recommend":"Talk to the south-side shops before setting dates; consider signs that say 'shops open'.","question":"Is there any support we can offer shops during a long closure?","urgency":"should","evidence":["E9"]},{"id":"N6","role":"designer","anchor":"ci8","title":"Fix the ramps in either option","body":"A repair could rebuild the north ramps too.","recommend":"Include gentler ramps in the repair option so the comparison is fair.","question":"Does the repair price include new ramps?","urgency":"should","evidence":["E10"]},{"id":"N7","role":"finance","anchor":"ci6","title":"The fund changes the sums","body":"With 40% from the fund, the wider bridge costs the council about £2.5m.","recommend":"Show the committee both prices: with and without the fund.","question":"Do we commit to the wider option if the bid fails?","urgency":"must","evidence":["E4","E5"]},{"id":"N8","role":"analyst","anchor":"c-decision","title":"The estimates are rough","body":"At ±30%, repair and replace overlap less than they seem, but the ranking could still shift.","recommend":"Show ranges, not single numbers.","question":"Do we wait for firmer prices before deciding?","urgency":"should","evidence":["E11"]},{"id":"N9","role":"owner","anchor":"c-intent","title":"Say what we are aiming for","body":"Residents care about the closure as much as the bridge.","recommend":"State the aim as a safe crossing with the shortest closure we can manage.","question":"Which matters more to the committee: lowest cost or shortest closure?","urgency":"must","evidence":["E7","E9"]},{"id":"N10","role":"agent","anchor":"w3","title":"An assistant can draft the weekly update","body":"Site photos and the contractor's diary hold most of the news.","recommend":"Let an assistant draft the Friday update from the diary; a council officer approves it.","question":"Who approves the weekly update before it goes out?","urgency":"info"},{"id":"N11","role":"designer","anchor":"ci9","title":"Wider means safer, not just nicer","body":"People cannot pass on the current width.","recommend":"Treat 4 m as the access option, not an extra.","question":"Is 4 m enough for the expected number of cycles?","urgency":"info","evidence":["E8"]}],"decisions":[{"id":"D1","question":"Repair, replace, or replace wider?","notes":["N1","N7","N8","N9"],"options":["Repair now","Replace","Replace wider (with fund bid)"],"owner":"Council lead","status":"open","due":"2026-09-15"},{"id":"D2","question":"Do we fix the seized bearings now?","notes":["N3"],"options":["Yes, urgent works","No, wait for the main decision"],"owner":"Structural engineer","status":"decided","decided_by":"Head of highways","decision":"Yes. Bearings freed in August as urgent works.","due":"2026-07-10"},{"id":"D3","question":"How do people cross during a long closure?","notes":["N4","N5"],"owner":"Council lead","status":"open","due":"2026-10-01"}],"outcomes":[{"id":"O1","measure":"Crossings per day after reopening","baseline":"About 1,900","target":"No fall"},{"id":"O2","measure":"Days closed","target":"As few as the chosen option allows"}]}</script>
+<script type="application/json" id="dc-merged"></script>
+<script type="application/json" id="dc-since"></script>
+<script type="application/json" id="dc-meta">{"fingerprint":"3552e3c9e804","generator":"decisioncraft"}</script>
+<script>
 /* Decisioncraft canvas engine. Reads a decision model from #dc-model and draws it.
    No outside requests. Plain DOM, no libraries.
    The page: one quiet top bar; a numbered story list on the left; the map in the middle;
@@ -928,3 +1190,7 @@ fit();
 hint();
 addEventListener("resize", () => apply());
 })();
+
+</script>
+</body>
+</html>

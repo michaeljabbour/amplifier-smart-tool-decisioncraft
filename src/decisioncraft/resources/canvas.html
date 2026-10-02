@@ -11,11 +11,20 @@ __CSS__
 </style>
 </head>
 <body class="dots">
-<a class="skip" href="#world">Skip to the map</a>
-<nav id="bar" aria-label="Canvas controls"></nav>
-<div id="more" role="menu" aria-label="More"></div>
+<a class="skip" href="#story">Skip to the list of views</a>
+<header id="top"></header>
+<div id="menu" role="menu"></div>
+<aside id="story" aria-label="What is in this decision"></aside>
+<button id="storytab" type="button">Show list</button>
 <main id="viewport" aria-label="Decision map. Use Tab to move between boxes and Enter to open one."><div id="world"></div></main>
 <aside id="panel" aria-live="polite"></aside>
+<div id="zoom" role="group" aria-label="Zoom">
+  <button id="zin" type="button">+ Zoom in</button>
+  <button id="zout" type="button">− Zoom out</button>
+  <button id="zfit" type="button">Fit to screen</button>
+</div>
+<section id="walk" aria-live="polite" aria-label="Walk-through"></section>
+<div id="hint" role="note"></div>
 <div id="gloss" role="tooltip"></div>
 <div id="toast" role="status"></div>
 <script type="application/json" id="dc-model">__MODEL__</script>
