@@ -15,6 +15,8 @@ STATUSES = {
     "partial": "Partly there",
     "missing": "Missing",
     "planned": "Planned",
+    "addon": "Add-on",
+    "unsure": "Not sure",
 }
 URGENCY = {"must": "Must decide", "should": "Should decide", "info": "For information"}
 URGENCY_ORDER = {"must": 0, "should": 1, "info": 2}
@@ -317,6 +319,10 @@ def iter_boxes(model: dict):
             for it in items if isinstance(items, list) else []:
                 if isinstance(it, dict):
                     yield m, it
+        bands = m.get("bands")
+        for band in bands if isinstance(bands, list) else []:
+            if isinstance(band, dict):
+                yield m, band
         root = m.get("root")
         stack = [root] if isinstance(root, dict) else []
         while stack:
@@ -446,6 +452,10 @@ def validate(model: dict) -> list[dict]:
     def check_status(box, path):
         if box.get("status") and box["status"] not in STATUSES:
             err(path, f"Status must be one of {sorted(STATUSES)}.")
+        if "status_reason" in box and not isinstance(box["status_reason"], str):
+            err(path.rsplit(".", 1)[0] + ".status_reason", "Give the reason in text.")
+        if "kind" in box and not isinstance(box["kind"], str):
+            err(path.rsplit(".", 1)[0] + ".kind", "A box's kind is a short label in text.")
 
 
     def check_replaces(boxes, where, noun):
@@ -478,6 +488,11 @@ def validate(model: dict) -> list[dict]:
             lane_ids = {ln.get("id") for ln in lanes if isinstance(ln, dict)}
             if not lanes:
                 err(f"{mp}.lanes", "A journey map needs lanes.")
+            for li, ln in enumerate(lanes):
+                if isinstance(ln, dict) and "color" in ln:
+                    problem = lane_colour_problem(ln["color"])
+                    if problem:
+                        (err if problem.startswith("Use") else warn)(f"{mp}.lanes[{li}].color", problem)
             for ji, j in enumerate(_as_list(m.get("journeys"))):
                 jp = f"{mp}.journeys[{ji}]"
                 if not isinstance(j, dict):
@@ -518,6 +533,9 @@ def validate(model: dict) -> list[dict]:
                     err(gp, "Each stage must be a JSON object.")
                     continue
                 claim(st.get("id"), gp)
+                check_status(st, f"{gp}.status")
+                if "before" in st and not isinstance(st["before"], str):
+                    err(f"{gp}.before", "Say in text how this was done before.")
                 for ii, it in enumerate(_as_list(st.get("items"))):
                     ip = f"{gp}.items[{ii}]"
                     if not isinstance(it, dict):
@@ -529,6 +547,20 @@ def validate(model: dict) -> list[dict]:
                         err(f"{ip}.when", "When must be today, planned or both.")
                     check_evidence(it.get("evidence"), f"{ip}.evidence")
                 check_replaces(_as_list(st.get("items")), f"{gp}.items", "item")
+            stage_ids = {st.get("id") for st in stages if isinstance(st, dict)}
+            for bi, band in enumerate(_as_list(m.get("bands"))):
+                bp = f"{mp}.bands[{bi}]"
+                if not isinstance(band, dict):
+                    err(bp, "Each band must be a JSON object.")
+                    continue
+                claim(band.get("id"), bp)
+                check_status(band, f"{bp}.status")
+                linked = _as_list(band.get("stages"))
+                if not linked:
+                    warn(bp, f"Band {band.get('id')} names no stages, so it is drawn beside the whole chain.")
+                for sid in linked:
+                    if sid not in stage_ids:
+                        err(f"{bp}.stages", f"Band {band.get('id')} names unknown stage {sid!r}.")
         else:
             root = m.get("root")
             if not isinstance(root, dict):
@@ -603,6 +635,14 @@ def validate(model: dict) -> list[dict]:
                 err(f"{gp}.stories[{si}].done_when", "Use a list of checks in text.")
             if not s.get("done_when"):
                 warn(f"{gp}.stories[{si}]", "Say how we will know it is done.")
+            sd = s.get("detail")
+            if sd is not None and not isinstance(sd, str) and (not isinstance(sd, list) or any(not isinstance(c, str) for c in sd)):
+                err(f"{gp}.stories[{si}].detail", "Technical checks are text or a list of text.")
+        design = g.get("design")
+        if design is not None and (not isinstance(design, list) or any(not isinstance(d, str) for d in design)):
+            err(f"{gp}.design", "Design principles are a list of plain sentences.")
+        if "detail" in g and not isinstance(g["detail"], str):
+            err(f"{gp}.detail", "Technical design is text.")
     gap_ids = {g.get("id") for g in gaps}
     anchors = box_ids | gap_ids
     raw_notes = model.get("notes")
@@ -725,3 +765,24 @@ def plan_changes(map_: dict) -> list[dict]:
             elif when == "today" and b.get("id") not in replaced:
                 out.append({"change": "gone", "box": b, "before": None})
     return out
+
+
+def _luminance(hex_colour: str) -> float:
+    rgb = [int(hex_colour[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+    lin = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in rgb]
+    return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2]
+
+
+def lane_colour_problem(colour) -> str | None:
+    """None when a lane colour is usable; otherwise why not.
+
+    A lane colour sits behind white step numbers and edges cards, so it needs at least
+    3:1 contrast with white (the minimum for large text and interface parts).
+    """
+    import re
+    if not isinstance(colour, str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", colour):
+        return "Use a colour like #2f6fb3."
+    ratio = 1.05 / (_luminance(colour) + 0.05)
+    if ratio < 3:
+        return f"This colour is too pale for white numbers ({ratio:.1f}:1; 3:1 is needed). The default colour is used instead."
+    return None

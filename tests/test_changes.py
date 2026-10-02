@@ -51,3 +51,38 @@ def test_words_list_what_changes():
     assert "### What changes" in text
     assert "1 new · 1 changed · 1 goes away." in text
     assert "**Changed:** Download a file → Answers reach the agent" in text
+
+
+def test_lane_colours_need_contrast_with_white():
+    from decisioncraft.model import lane_colour_problem
+    assert lane_colour_problem("#2f6fb3") is None
+    assert "too pale" in lane_colour_problem("#f7e9a0")
+    assert lane_colour_problem("blue").startswith("Use")
+    m = dc.new("system-journeys", "Lanes", "Q?")
+    m["maps"][0]["lanes"][0]["color"] = "#fff8c0"
+    assert any(e["level"] == "warning" and e["path"].endswith("lanes[0].color") for e in dc.validate(m))
+    m["maps"][0]["lanes"][0]["color"] = "pale"
+    assert any(e["level"] == "error" and e["path"].endswith("lanes[0].color") for e in dc.validate(m))
+
+
+def test_bands_stage_extras_new_statuses_and_gap_design():
+    m = chain_model()
+    st = m["maps"][0]["stages"][0]
+    st.update(status="planned", before="Done on paper.")
+    st["items"][4].update(status="unsure", status_reason="Nobody has asked the owner yet.", kind="Behind the scenes")
+    st["items"][1].update(status="addon")
+    m["maps"][0]["bands"] = [dict(id="b1", title="Budget year", stages=["s1"])]
+    m["gaps"] = [dict(id="G1", title="Faster answers", anchors=["new"], design=["Answers arrive without a file."],
+                      detail="Write answers through the session API.",
+                      stories=[dict(**{"as": "As an owner I see answers at once"}, done_when=["Answers show within a minute"],
+                                    detail=["The session file updates on every change."])])]
+    m["notes"] = [dict(id="N1", anchor="b1", role="owner", title="Check the dates", question="When does the budget close?")]
+    assert [e for e in dc.validate(m) if e["level"] == "error"] == []
+    text = dc.words(m)
+    for expected in ("Before: Done on paper.", "Across the chain: Budget year", "Not sure: Nobody has asked the owner yet.",
+                     "Behind the scenes: The owner decides", "Design principles:", "Technical design: Write answers",
+                     "Technical check: The session file updates"):
+        assert expected in text, expected
+    assert "dc-model" in dc.render(m)
+    m["maps"][0]["bands"][0]["stages"] = ["nowhere"]
+    assert any(e["path"].endswith("bands[0].stages") for e in dc.validate(m))

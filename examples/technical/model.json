@@ -292,12 +292,16 @@
         {
           "id": "core",
           "label": "Our servers",
-          "sub": "Checks and rules"
+          "sub": "Checks and rules",
+          "summary": "The part of our system that checks who may do what before anything happens.",
+          "detail": "Upload service behind the load balancer; 60-second idle timeout."
         },
         {
           "id": "records",
           "label": "Database",
-          "sub": "What we record"
+          "sub": "What we record",
+          "summary": "Where we keep a row for every file: who owns it, its size, and whether it is ready.",
+          "detail": "Files table with a state column: uploading, ready, rejected, deleted."
         },
         {
           "id": "background",
@@ -307,7 +311,9 @@
         {
           "id": "outside",
           "label": "Storage provider",
-          "sub": "Where files live"
+          "sub": "Where files live",
+          "summary": "The company that stores the files for us, today provider A and perhaps provider B.",
+          "detail": "Object storage with signed links; buckets per region."
         }
       ],
       "journeys": [
@@ -327,7 +333,8 @@
               "text": "Customer picks a file and presses Upload",
               "status": "works",
               "detail": "Upload button on the files page; no size limit shown.",
-              "feeling": "ok"
+              "feeling": "ok",
+              "kind": "Screen"
             },
             {
               "id": "t2",
@@ -340,7 +347,8 @@
                 "E8",
                 "E13"
               ],
-              "when": "today"
+              "when": "today",
+              "kind": "Comes in"
             },
             {
               "id": "d2",
@@ -353,7 +361,8 @@
                 "E9"
               ],
               "when": "planned",
-              "replaces": "t2"
+              "replaces": "t2",
+              "kind": "Behind the scenes"
             },
             {
               "id": "d2b",
@@ -390,7 +399,8 @@
                 "E13"
               ],
               "when": "planned",
-              "replaces": "t3"
+              "replaces": "t3",
+              "kind": "Comes in"
             },
             {
               "id": "t3b",
@@ -437,13 +447,14 @@
               "id": "d3c",
               "lane": "people",
               "text": "Some office firewalls may block the storage address",
-              "status": "missing",
+              "status": "unsure",
               "detail": "Fallback: the old proxy path for customers who cannot reach storage directly.",
               "pain": "Schools and offices with strict firewalls.",
               "evidence": [
                 "E14"
               ],
-              "when": "planned"
+              "when": "planned",
+              "status_reason": "Two of five large customers could not say yet whether their firewalls allow the storage address."
             },
             {
               "id": "d3d",
@@ -488,7 +499,8 @@
               "detail": "Scanner reads the file from storage after the upload finishes.",
               "evidence": [
                 "E24"
-              ]
+              ],
+              "kind": "Behind the scenes"
             },
             {
               "id": "t6",
@@ -520,7 +532,8 @@
               "text": "Customer sees 'Ready' or a plain message if it was rejected",
               "status": "planned",
               "detail": "Rejected files are deleted after 7 days; owner gets an email.",
-              "when": "planned"
+              "when": "planned",
+              "kind": "Screen"
             }
           ]
         },
@@ -958,6 +971,10 @@
             "a 2 GB upload survives a 30-second disconnect",
             "the progress bar matches the bytes received",
             "our servers handle no file bytes"
+          ],
+          "detail": [
+            "A dropped connection resumes from the last finished piece in a test with throttled network.",
+            "A link used after 15 minutes is refused."
           ]
         },
         {
@@ -974,7 +991,13 @@
             "support can see which customers used the fallback"
           ]
         }
-      ]
+      ],
+      "design": [
+        "The customer sees progress and can leave the page without losing the upload.",
+        "Nothing is shown as ready until the scan is clean.",
+        "If direct upload is blocked, the old way still works."
+      ],
+      "detail": "Signed upload link per file, valid 15 minutes; pieces of 8 MB; completion message from storage starts the scan job."
     },
     {
       "id": "G2",

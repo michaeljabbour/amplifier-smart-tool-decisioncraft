@@ -35,12 +35,38 @@ remain available in the detail panel even when both endpoints cannot be drawn to
 
 ## Map shapes
 
-- **Journeys** (`system-journeys`, `customer-journey`, `service-blueprint`): `lanes[{id, label, sub}]`
+- **Journeys** (`system-journeys`, `customer-journey`, `service-blueprint`): `lanes[{id, label, sub, summary, detail, color}]`
   and `journeys[{id, title, summary, creates[], steps[]}]`. A step:
   `{id, lane, text, status, when (today|planned|both), replaces, detail, pain, moment, feeling, checked, evidence[]}`.
-- **Chain** (`decision-chain`): `stages[{id, label, sub, verb, items[]}]`. An item:
+- **Chain** (`decision-chain`): `stages[{id, label, sub, verb, status, before, items[]}]`, an
+  optional `before_label`, and optional `bands[{id, title, text, status, kind, detail, stages[], evidence[]}]`. An item:
   `{id, title, text, status, when (today|planned|both), replaces, detail, checked, evidence[]}`.
 - **Tree** (`opportunity-tree`): `levels[]` and `root{id, title, text, status, children[]}`.
+
+### Optional detail on lanes, boxes, stages and gaps
+
+- `lanes[].summary` says in plain words what that part of the system or service does;
+  `lanes[].detail` holds the technical description. Both open from the lane header; the
+  detail shows only with Show technical names.
+- `lanes[].color` overrides a lane's colour (`#rrggbb`). It must keep 3:1 contrast with
+  white, because step numbers sit on it in white; a paler colour is reported and the default
+  is used.
+- Any step, item, tree node, stage or band may carry `kind`, a short free-text label such as
+  "Comes in", "Behind the scenes" or "Screen", shown above its words.
+- Status adds `addon` ("Add-on") and `unsure` ("Not sure"). `status_reason` explains a status
+  in a sentence; it shows when you hover the tag and in the detail panel.
+- `stages[].status` puts a status tag on a chain stage. `stages[].before` says how that stage
+  was done before; when any stage has one, a column on the left shows them under
+  `before_label` (default "Before").
+- `bands[]` are things that run across several stages, such as a budget cycle or a shared
+  system. Each is drawn beside the chain, as tall as the stages it names, with a dashed line
+  to each of them. Notes can point at a band.
+- `gaps[].design` is a list of plain design principles; `gaps[].detail` is the technical
+  design. `stories[].detail` holds technical "done when" checks (text or a list). Technical
+  parts show only with Show technical names; the text version includes them all.
+
+Journey headers and the left list have a Start button that walks through that journey one
+step at a time ("Step 6 of 14"). Walk me through it still tours the whole review.
 
 ### Today, the plan, and what changes
 
@@ -53,7 +79,7 @@ each box marked New, Changed or Goes away, with counts) and Side by side (today 
 plan in two panes with one pan and zoom, rows lined up). The text version lists the same
 changes, and the proposed-state model keeps the planned boxes only.
 
-Status: works, partial, missing, planned. Feeling: good, ok, bad. `detail` holds technical
+Status: works, partial, missing, planned, addon, unsure. Feeling: good, ok, bad. `detail` holds technical
 descriptions. Opening a box always shows them; a display switch also shows them on the map when available.
 
 Ids are unique across the whole model. `validate` reports every broken link.

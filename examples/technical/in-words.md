@@ -27,16 +27,21 @@ Five journeys from the customer's browser to the storage provider. Each column i
 - **Changed:** If the scan fails, downloads are blocked → File is marked ready only after a clean scan
 - **New:** Customer sees 'Ready' or a plain message if it was rejected
 
+Parts of the system:
+- **Our servers**: The part of our system that checks who may do what before anything happens. (Technical: Upload service behind the load balancer; 60-second idle timeout.)
+- **Database**: Where we keep a row for every file: who owns it, its size, and whether it is ready. (Technical: Files table with a state column: uploading, ready, rejected, deleted.)
+- **Storage provider**: The company that stores the files for us, today provider A and perhaps provider B. (Technical: Object storage with signed links; buckets per region.)
+
 ### Uploading a file
 How an upload works today, and with direct links to storage. Use Today, Planned and What changes to read it.
 
-1. [Customer] **Customer picks a file and presses Upload** (Works today)
+1. [Customer] **Screen: Customer picks a file and presses Upload** (Works today)
   How it feels: Mixed.
-2. [Web app] **Browser sends the whole file to our servers** (Works today) (today only)
+2. [Web app] **Comes in: Browser sends the whole file to our servers** (Works today) (today only)
   Pain: No progress bar; people cannot tell if it is stuck.
   > “Customers ask for a progress bar and the ability to resume after a dropped connection.” — Team discussion, Product manager, from support tickets [E8]
   > “Just show me how far along it is. I can't tell if it's stuck.” — Support tickets, sample of 31, Agency producer [E13]
-3. [Our servers] **Our servers check the customer may upload, and issue a signed link for one file** (Planned) (planned)
+3. [Our servers] **Behind the scenes: Our servers check the customer may upload, and issue a signed link for one file** (Planned) (planned)
   A moment that matters.
   > “Signed links must expire in minutes and only allow one file path.” — Team discussion, Security engineer [E9]
 4. [Database] **A file record is created in 'uploading' state** (Planned) (planned)
@@ -45,7 +50,7 @@ How an upload works today, and with direct links to storage. Use Today, Planned 
   > “Uploads over 200 MB timed out for about 40 minutes.” — Incident review: slow uploads, Summary [E1]
   > “Half our servers were just shovelling bytes. Nothing else could get through.” — Incident review: slow uploads, On-call engineer [E2]
   > “Upload servers spend about 55% of their time passing bytes to storage.” — Upload numbers, April, Server time [E17]
-6. [Storage provider] **Browser uploads straight to storage in pieces, with a progress bar** (Planned) (planned)
+6. [Storage provider] **Comes in: Browser uploads straight to storage in pieces, with a progress bar** (Planned) (planned)
   How it feels: Good.
   > “The real problem is the proxy, not the provider. Direct uploads fix the timeouts wherever the files live.” — Team discussion, Backend lead [E7]
   > “Customers ask for a progress bar and the ability to resume after a dropped connection.” — Team discussion, Product manager, from support tickets [E8]
@@ -62,7 +67,7 @@ How an upload works today, and with direct links to storage. Use Today, Planned 
   A moment that matters.
   > “I lost two hours re-uploading the same file three times.” — Support tickets, sample of 31, Wedding videographer [E12]
   > “19 of 31 tickets were video uploads over 200 MB; 8 said it got to 90% and then failed.” — Support tickets, sample of 31, Ticket tags [E11]
-10. [Customer] **Some office firewalls may block the storage address** (Missing) (planned)
+10. [Customer] **Some office firewalls may block the storage address** (Not sure: Two of five large customers could not say yet whether their firewalls allow the storage address.) (planned)
   Pain: Schools and offices with strict firewalls.
   > “Our firewall blocks some sites. Will the new way still work here?” — Support tickets, sample of 31, School office [E14]
 11. [Storage provider] **File lands in a holding area nobody else can read** (Planned) (planned)
@@ -74,14 +79,14 @@ How an upload works today, and with direct links to storage. Use Today, Planned 
   > “Nobody has tested how virus scanning works if files no longer pass through our servers.” — Team discussion, Open point [E10]
   > “Upload completion messages go to a web address we choose; they retry for 24 hours.” — Provider B call notes and draft terms, Notifications [E21]
   > “Scanning takes about 9 seconds under 100 MB and up to 4 minutes for 5 GB.” — Scanning and retention setup, Scanning [E24]
-14. [Background jobs] **A job scans the file for viruses** (Works today)
+14. [Background jobs] **Behind the scenes: A job scans the file for viruses** (Works today)
   > “Scanning takes about 9 seconds under 100 MB and up to 4 minutes for 5 GB.” — Scanning and retention setup, Scanning [E24]
 15. [Database] **If the scan fails, downloads are blocked** (Partly there) (today only)
   Pain: A bad file can be downloaded for up to 4 minutes.
   > “Files are shown to the customer before the scan finishes; downloads are blocked only if the scan fails.” — Scanning and retention setup, Scanning [E23]
 16. [Database] **File is marked ready only after a clean scan** (Planned) (planned)
   > “Files are shown to the customer before the scan finishes; downloads are blocked only if the scan fails.” — Scanning and retention setup, Scanning [E23]
-17. [Web app] **Customer sees 'Ready' or a plain message if it was rejected** (Planned) (planned)
+17. [Web app] **Screen: Customer sees 'Ready' or a plain message if it was rejected** (Planned) (planned)
 - **Designer note (For information): Tell people what is happening.** Today a big upload shows a spinner with no end.
   We suggest: Show bytes sent, time left, and a clear message if the connection drops.
   Question: Should a dropped upload resume by itself, or ask first?
@@ -314,10 +319,19 @@ The outcome at the top, then the problems that stand in its way, the ideas for e
 ### G1: Direct uploads with a progress bar and resume (impact 5/5, effort 3/5)
 Fixes the timeouts no matter which provider we use; uploads over 200 MB are 71% of all bytes.
 
+Design principles:
+- The customer sees progress and can leave the page without losing the upload.
+- Nothing is shown as ready until the scan is clean.
+- If direct upload is blocked, the old way still works.
+
+Technical design: Signed upload link per file, valid 15 minutes; pieces of 8 MB; completion message from storage starts the scan job.
+
 - As a customer uploading a large video on a weak connection, I want the upload to resume where it stopped, so I do not start again.
   - Done when: a 2 GB upload survives a 30-second disconnect
   - Done when: the progress bar matches the bytes received
   - Done when: our servers handle no file bytes
+  - Technical check: A dropped connection resumes from the last finished piece in a test with throttled network.
+  - Technical check: A link used after 15 minutes is refused.
 
 - As a producer uploading a 4 GB video, I want to see how far along it is, so I know it is not stuck.
   - Done when: a progress bar shows percent and time left

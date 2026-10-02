@@ -375,7 +375,8 @@
                 "E20"
               ]
             }
-          ]
+          ],
+          "before": "A visual check from the bank; no close look at the joints."
         },
         {
           "id": "c-evidence",
@@ -466,7 +467,9 @@
                 "E3"
               ]
             }
-          ]
+          ],
+          "before": "Chosen by the works team alone, without a public drop-in.",
+          "status": "planned"
         },
         {
           "id": "c-intent",
@@ -565,7 +568,8 @@
                 "E24"
               ]
             }
-          ]
+          ],
+          "before": "Booked as one long closure in term time."
         },
         {
           "id": "c-work",
@@ -625,7 +629,9 @@
                 "E20"
               ]
             }
-          ]
+          ],
+          "before": "Joints painted over; the rust came back within six years.",
+          "status": "partial"
         },
         {
           "id": "c-outcome",
@@ -643,6 +649,26 @@
                 "E12"
               ]
             }
+          ]
+        }
+      ],
+      "before_label": "Last time (the 2014 repairs)",
+      "bands": [
+        {
+          "id": "b-budget",
+          "title": "The council's budget cycle",
+          "text": "Money is agreed once a year; a bid to the cycling fund closes 28 November.",
+          "status": "works",
+          "kind": "Outside the project",
+          "stages": [
+            "c-decision",
+            "c-intent",
+            "c-spec",
+            "c-plan"
+          ],
+          "evidence": [
+            "E5",
+            "E24"
           ]
         }
       ]

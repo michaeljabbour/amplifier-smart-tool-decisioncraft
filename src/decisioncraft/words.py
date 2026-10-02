@@ -41,12 +41,12 @@ def words(model: dict, merged: dict | None = None) -> str:
                 w(indent + c)
 
     def box_line(b, indent="- "):
-        status = f" ({STATUSES[b['status']]})" if b.get("status") else ""
+        status = f" ({STATUSES[b['status']]}{': ' + b['status_reason'] if b.get('status_reason') else ''})" if b.get("status") else ""
         if b.get("when") == "today":
             status += " (today only)"
         elif b.get("when") == "planned":
             status += " (planned)"
-        title = b.get("title") or b.get("text", "")
+        title = (f"{b['kind']}: " if b.get("kind") else "") + (b.get("title") or b.get("text", ""))
         text = b.get("text", "") if b.get("title") else ""
         w(f"{indent}**{title}**{status}{': ' + text if text else ''}")
         extra = []
@@ -103,6 +103,13 @@ def words(model: dict, merged: dict | None = None) -> str:
                     w(f"- **{label[c['change']]}:** {name(c['box'])}")
         if kind == "journeys":
             lanes = {ln["id"]: ln["label"] for ln in m.get("lanes", [])}
+            described = [ln for ln in m.get("lanes", []) if ln.get("summary") or ln.get("detail")]
+            if described:
+                w("")
+                w("Parts of the system:")
+                for ln in described:
+                    w(f"- **{ln['label']}**{': ' + ln['summary'] if ln.get('summary') else ''}"
+                      f"{' (Technical: ' + ln['detail'] + ')' if ln.get('detail') else ''}")
             for j in m.get("journeys", []):
                 w("")
                 w(f"### {j['title']}")
@@ -117,9 +124,11 @@ def words(model: dict, merged: dict | None = None) -> str:
         elif kind == "chain":
             for st in m.get("stages", []):
                 w("")
-                w(f"### {st['label']}")
+                w(f"### {st['label']}{' (' + STATUSES[st['status']] + ')' if st.get('status') in STATUSES else ''}")
                 if st.get("sub"):
                     w(st["sub"])
+                if st.get("before"):
+                    w(f"{m.get('before_label') or 'Before'}: {st['before']}")
                 for when, label in (("today", "Today"), ("planned", "Planned")):
                     items = [i for i in st.get("items", []) if i.get("when", "both") in (when, "both")]
                     if items:
@@ -130,6 +139,14 @@ def words(model: dict, merged: dict | None = None) -> str:
                 notes_for(st["id"])
                 for it in st.get("items", []):
                     notes_for(it["id"])
+            stage_names = {st["id"]: st["label"] for st in m.get("stages", [])}
+            for band in m.get("bands", []):
+                w("")
+                w(f"### Across the chain: {band.get('title', band['id'])}")
+                box_line({k: v for k, v in band.items() if k != "title"} | {"title": band.get("title", band["id"])})
+                if band.get("stages"):
+                    w("  Touches: " + ", ".join(stage_names.get(s, s) for s in band["stages"]) + ".")
+                notes_for(band["id"])
         else:
             levels = m.get("levels") or TEMPLATES[m["template"]]["levels"]
 
@@ -156,11 +173,22 @@ def words(model: dict, merged: dict | None = None) -> str:
             w(f"### {g['id']}: {g['title']}{' (' + ', '.join(score) + ')' if score else ''}")
             if g.get("why"):
                 w(g["why"])
+            if g.get("design"):
+                w("")
+                w("Design principles:")
+                for d in g["design"]:
+                    w(f"- {d}")
+            if g.get("detail"):
+                w("")
+                w(f"Technical design: {g['detail']}")
             for s in g.get("stories", []):
                 w("")
                 w(f"- {s['as']}")
                 for d in s.get("done_when", []):
                     w(f"  - Done when: {d}")
+                sd = s.get("detail")
+                for d in ([sd] if isinstance(sd, str) else sd or []):
+                    w(f"  - Technical check: {d}")
             notes_for(g["id"])
 
     qs = questions(model, merged)

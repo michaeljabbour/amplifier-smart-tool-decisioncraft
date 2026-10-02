@@ -208,7 +208,7 @@ body.z-far .box .meta > :not(.notebadge):not(.pill),body.z-far .box p,body.z-far
 body.z-far .box .t,body.z-far .box h3,body.z-far .box h4,body.z-far .notecard h5{font-size:calc(14px * var(--inv));line-height:1.15}
 body.z-far .box .t{-webkit-line-clamp:2}
 body.z-far .box .meta .notebadge,body.z-far .box .meta .pill{font-size:calc(11.5px * var(--inv))}
-body.z-far .techname{font-size:calc(12px * var(--inv))}
+body.z-far #world .techname,body.z-far #world2 .techname{font-size:calc(12px * var(--inv))}
 body.z-far .box > .ribbon{font-size:calc(11px * var(--inv))}
 
 .term{border-bottom:1px dotted currentColor;cursor:help}
@@ -435,3 +435,29 @@ body.sbs-j .panelabel{top:108px}
   align-items:center;justify-content:flex-start;padding:0 10px;border:1.5px dashed #c9c4b8;border-radius:7px;
   color:var(--muted);font-size:12px;font-weight:650;background:rgba(255,255,255,.5)}
 .pane-planned .box.chg-gone .ghostlabel{border-color:#bdb9af;text-decoration:line-through;text-decoration-color:rgba(0,0,0,.25)}
+
+/* new tags, kind labels, journey walk buttons, lanes you can open */
+.pill.addon{background:#3b63c9}
+.pill.unsure{background:repeating-linear-gradient(135deg,#6f6d66 0 6px,#8a877f 6px 12px);color:#fff}
+.kind{font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:0 0 4px}
+.kind.inline{display:inline;margin:0 6px 0 0}
+.jhead h3 .tt,.timeline-title h3 .tt,.sbs-title .tt{min-width:0;display:block}
+.startj{margin-top:10px;font-weight:650;color:var(--accent);border-color:#bccbf2!important}
+.startj:hover{background:var(--accent-soft)}
+#story li.jrow{display:flex;align-items:flex-start;gap:6px}
+#story li.jrow .view{flex:1;min-width:0}
+#story li.jrow .startj{margin-top:8px;flex:0 0 auto;font-size:12px;padding:2px 7px;min-height:24px}
+.lanehead[role=button]{cursor:pointer;border-radius:8px;padding:2px 6px 4px;margin-left:-6px}
+.lanehead[role=button]:hover{background:rgba(255,255,255,.8)}
+body.z-far #world .startj,body.z-far #world2 .startj{display:none}
+/* chain: a column for how it was done before, and bands that run beside the stages */
+.beforecell{position:absolute;border-radius:12px;background:#eef2fa;border:1px dashed #b9c6e6;padding:12px 14px;color:#2c3a5a;font-size:13.5px;z-index:2}
+.beforecell p{margin:0}
+.box.band{background:linear-gradient(180deg,#fbf9ff,#f4f0ff);border:1px solid #d9cff7;border-left:6px solid var(--purple);overflow:visible}
+.box.band h4{font-size:15.5px}
+.bandchips{position:absolute;left:0;right:0;top:0;bottom:0;pointer-events:none}
+.bandchip{position:absolute;right:10px;font-size:11.5px;font-weight:700;color:#4c3a99;background:#fff;border:1px solid #d9cff7;border-radius:999px;padding:3px 9px;white-space:nowrap;max-width:60%;overflow:hidden;text-overflow:ellipsis}
+svg.links path.bandlink{stroke:#a493e6;stroke-width:1.6;stroke-dasharray:4 5}
+.techcheck{color:#3b4a63;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px}
+ul.design{margin:4px 0 8px;padding-left:18px}
+body.z-far .beforecell p{font-size:calc(13px * var(--inv))}

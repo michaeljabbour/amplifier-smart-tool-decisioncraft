@@ -31,6 +31,7 @@ Each stage is one step from what the inspection found to a bridge people can use
 
 ### Source
 Where it was found or said
+Last time (the 2014 repairs): A visual check from the bank; no close look at the joints.
 
 Today:
 - **Principal inspection** (Works today): Every joint, bearing and board checked.
@@ -88,8 +89,9 @@ Planned:
   > “With repairs, another 25 years is realistic. Without them, we would recommend a weight limit within three years.” — Principal inspection, Inspector's summary [E2]
   > “Repair £1.1m, 10 weeks closed, 25 years. Replace £3.4m, 9 months closed, 100 years. Wider replacement £4.2m, 11 months, 100 years.” — Options and early costs, Options table [E4]
 
-### Decision
+### Decision (Planned)
 What we choose, and why
+Last time (the 2014 repairs): Chosen by the works team alone, without a public drop-in.
 
 Today:
 - **Bearings freed now, whatever we choose** (Works today): Decided as urgent works in August.
@@ -172,6 +174,7 @@ Planned:
 
 ### Plan
 The work, in order
+Last time (the 2014 repairs): Booked as one long closure in term time.
 
 Planned:
 - **Give the river authority notice** (Missing) (planned): Six months before any work in the water.
@@ -182,8 +185,9 @@ Planned:
   > “A regional cycling fund could pay up to 40% of a widened bridge, if bid by November.” — Options and early costs, Notes [E5]
   > “Committee meets 15 September, then 10 November. Cycling fund bids close 28 November; decisions in March.” — Programme and suppliers, Dates [E24]
 
-### Work
+### Work (Partly there)
 What was done
+Last time (the 2014 repairs): Joints painted over; the rust came back within six years.
 
 Today:
 - **Inspection and early costs** (Works today) (today only): Done. Nothing built yet.
@@ -209,6 +213,12 @@ Today:
 Planned:
 - **Measures to agree** (Missing): Crossings per day, days closed, complaints, upkeep cost.
   > “Average 1,900 crossings a day on school days, 1,100 at weekends.” — Crossing counts, June, Daily counts [E12]
+
+### Across the chain: The council's budget cycle
+- **Outside the project: The council's budget cycle** (Works today): Money is agreed once a year; a bid to the cycling fund closes 28 November.
+  > “A regional cycling fund could pay up to 40% of a widened bridge, if bid by November.” — Options and early costs, Notes [E5]
+  > “Committee meets 15 September, then 10 November. Cycling fund bids close 28 November; decisions in March.” — Programme and suppliers, Dates [E24]
+  Touches: Decision, Intent, Spec, Plan.
 
 ## The works, option by option
 

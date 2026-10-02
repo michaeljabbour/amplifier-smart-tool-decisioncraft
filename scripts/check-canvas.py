@@ -222,6 +222,45 @@ def check(page, path: Path, shots: Path | None) -> tuple[list[str], list[str]]:
     except Exception as e:  # noqa: BLE001
         problems.append(f"extras: {e}")
 
+    # a journey's own walk-through, lane panels, and chain extras
+    try:
+        starts = page.locator("#story [data-startj]")
+        views = page.locator("#story ol.maps > li > .view")
+        for i in range(views.count()):
+            if starts.count():
+                break
+            views.nth(i).click(); page.wait_for_timeout(200)
+        if starts.count():
+            starts.first.click(); page.wait_for_timeout(250)
+            text = page.inner_text("#walk")
+            assert "step 1 of" in text.lower(), text[:80]
+            click_text("Next", "#walk")
+            assert "step 2 of" in page.inner_text("#walk").lower()
+            assert page.is_visible("#panel"), "the step did not open on the right"
+            shot("9-journey-walk")
+            click_text("End the walk-through", "#walk")
+            click_text("Close", "#panel")
+            lane = page.locator("#world .lanehead[role=button]")
+            if lane.count():
+                page.get_by_role("button", name="Fit to screen").click()
+                lane.first.click(); page.wait_for_timeout(200)
+                assert page.is_visible("#panel"), "a lane header did not open"
+                click_text("Close", "#panel")
+            done.append("walked a journey step by step and opened a lane")
+        for i in range(views.count()):
+            views.nth(i).click(); page.wait_for_timeout(200)
+            if page.locator("#world .band, #world .beforecell").count():
+                extra = page.evaluate("""() => { const r = e => e.getBoundingClientRect(); let hits = 0;
+                  const boxes = [...document.querySelectorAll('#world .box:not(.band)')].map(r);
+                  for (const e of document.querySelectorAll('#world .band, #world .beforecell')) { const a = r(e);
+                    for (const b of boxes) if (a.left < b.right - 1 && a.right > b.left + 1 && a.top < b.bottom - 1 && a.bottom > b.top + 1) hits++; }
+                  return hits; }""")
+                if extra:
+                    problems.append(f"view {i + 1}: bands or before notes overlap {extra} boxes")
+                shot(f"9-view{i + 1}-chain-extras")
+    except Exception as e:  # noqa: BLE001
+        problems.append(f"journey walk and lanes: {e}")
+
     # maps with a plan: the switch, What changes, Side by side, zoom levels
     try:
         views = page.locator("#story ol.maps > li > .view").count()
