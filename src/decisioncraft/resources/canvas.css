@@ -156,8 +156,8 @@ body.sbs .panelabel{display:block;position:absolute;left:12px;top:60px;z-index:5
   border-radius:999px;padding:4px 12px;font-size:12.5px;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,.06)}
 body.sbs #viewport .panelabel{border-color:#c9c4b8}
 body.sbs #viewport2 .panelabel{border-color:var(--new);color:var(--new)}
-.pane-today .ribbon{display:none}
-.pane-today .ribbon-today{display:inline-block}
+.pane-today .box > .ribbon{display:none}
+.pane-today .box > .ribbon-today{display:inline-block}
 .pane-today .chg-new > .ribbon{display:inline-block}
 .pane-today .chg-changed .v-now{visibility:hidden}
 .pane-today .chg-changed .v-before{visibility:visible}
@@ -412,3 +412,26 @@ body.panel-open #zoom{right:calc(clamp(320px,30vw,460px) + 24px)}
   #paper-review h2{font-size:17px}
   .paper-space{height:90px;border-bottom:1px solid #ccc}
 }
+
+/* side by side on journey maps: one journey as a column, a bar to pick it, slim markers */
+#sbsbar{position:fixed;top:52px;z-index:29;display:none;align-items:center;gap:10px;height:46px;padding:0 14px;
+  background:rgba(255,255,255,.97);border-bottom:1px solid var(--line);white-space:nowrap;overflow-x:auto}
+#sbsbar label{font-size:13px;font-weight:650;color:var(--ink2)}
+#sbsbar select{border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:#fff;max-width:420px}
+#sbsbar button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 10px;font-size:13px}
+#sbsbar .switch{margin-left:auto;font-weight:600}
+body.sbs-j .panelabel{top:108px}
+.sbs-title{display:flex;align-items:center;gap:10px;font-size:26px}
+.sbs-title .n{display:inline-grid;place-items:center;min-width:30px;height:30px;border-radius:15px;background:var(--ink);color:#fff;font-size:15px}
+.sbs-step .t{-webkit-line-clamp:4;font-size:14.5px}
+.lanechip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:650;color:var(--ink2);background:var(--soft);border-radius:6px;padding:2px 7px}
+.lanechip i{width:8px;height:8px;border-radius:2px}
+.gaprow{position:absolute;border:1.5px dashed #c9c4b8;border-radius:9px;padding:7px 12px;font-size:13px;color:var(--muted);
+  background:rgba(255,255,255,.6);cursor:pointer;text-align:center}
+.gaprow:hover{background:#fff;color:var(--ink)}
+/* the empty side of a change is a slim dashed marker, not an empty box */
+.pane-today .box.chg-new,.pane-planned .box.chg-gone{background:transparent;border:0;box-shadow:none;padding:0;overflow:visible}
+.pane-today .box.chg-new .ghostlabel,.pane-planned .box.chg-gone .ghostlabel{display:flex;position:absolute;inset:0 0 auto 0;height:26px;
+  align-items:center;justify-content:flex-start;padding:0 10px;border:1.5px dashed #c9c4b8;border-radius:7px;
+  color:var(--muted);font-size:12px;font-weight:650;background:rgba(255,255,255,.5)}
+.pane-planned .box.chg-gone .ghostlabel{border-color:#bdb9af;text-decoration:line-through;text-decoration-color:rgba(0,0,0,.25)}

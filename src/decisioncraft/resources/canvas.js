@@ -51,7 +51,7 @@ let saved = {}, storageOK = true;
 try { saved = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { saved = {}; storageOK = false; }
 const seed = SESSION ? {answers:SESSION.review.answers || {}, votes:SESSION.review.dots || {},
   decisions:SESSION.review.decisions || {}, reviewer:SESSION.review.reviewer || ""} : {};
-const S = Object.assign({map:0, mode:"changes", sbs:false, journey:-1, tech:false, notesOnMap:false, lines:false, dots:true, story:true,
+const S = Object.assign({map:0, mode:"changes", sbs:false, sbsJourney:null, sbsAll:false, journey:-1, tech:false, notesOnMap:false, lines:false, dots:true, story:true,
   hintSeen:false, roles:Object.fromEntries(ROLES.map(r => [r.id, true])),
   answers:{}, votes:{}, decisions:{}, reviewer:""}, seed, saved);
 if (SESSION && saved.syncedVersion !== SESSION.version) Object.assign(S, seed);
@@ -175,6 +175,9 @@ const groupsOf = m => [...(m.journeys || []).map(j => j.steps || []), ...(m.stag
 const hasChanges = m => groupsOf(m).some(g => g.some(b => b.when === "today" || b.when === "planned"));
 const modeOf = m => hasChanges(m) ? (MODES[S.mode] ? S.mode : "changes") : "all";
 const sbsOn = () => !!S.sbs && modeOf(MODEL.maps[S.map]) === "changes" && innerWidth >= 1000;
+/* Side by side on a journey map shows one journey at a time, as a single readable column. */
+const sbsJourneys = () => sbsOn() && KIND[MODEL.maps[S.map].template] === "journeys";
+const journeyChanges = j => arrange(j.steps || [], "changes").filter(s => s.change !== "same");
 /* One journey's steps or one stage's items, as slots for the mode. In What changes every
    thing gets one slot in the plan's order: a planned box that replaces a today box is one
    "changed" slot that carries both versions. */
@@ -465,13 +468,61 @@ function renderCustomerJourney(m) {
   return {x:0, y:0, w:W, h:y};
 }
 
+/* Side by side, journey maps: the chosen journey as one column of steps, each with its
+   lane as a chip, so both panes stay readable. By default only the steps that differ show,
+   with one step either side; runs of unchanged steps fold into a line that opens them. */
+function renderJourneySbs(m) {
+  const lanes = m.lanes || [];
+  const LI = Object.fromEntries(lanes.map((l, i) => [l.id, i]));
+  const js = m.journeys || [];
+  if (S.sbsJourney == null || !js[S.sbsJourney]) S.sbsJourney = Math.max(0, js.findIndex(j => journeyChanges(j).length));
+  const ji = S.sbsJourney, j = js[ji] || {steps:[]};
+  const all = arrange(j.steps || [], "changes");
+  const differs = all.map(s => s.change !== "same");
+  const any = differs.some(Boolean);
+  const keep = all.map((s, i) => S.sbsAll || !any || differs[i] || differs[i - 1] || differs[i + 1]);
+  const W = 540;
+  const t = place("maptitle sbs-title", 0, 0, W, `<span class="n">${ji + 1}</span>${esc(j.title || "")}`);
+  let y = t.offsetHeight + 8;
+  if (j.summary) { const q = place("mapintro", 0, y, W, gl(j.summary)); y += q.offsetHeight + 12; }
+  const changed = all.filter(s => s.change !== "same");
+  const mb = place("modebar", 0, y, 0, any ? `${countsHtml(changed)}<span class="hint-sbs">${S.sbsAll ? "The whole journey" : "Only what changes, with one step either side"}</span>` : "No changes in this journey. All of its steps are shown.");
+  y += mb.offsetHeight + 26;
+  let prev = null, hidden = 0;
+  const fold = () => {
+    if (!hidden) return;
+    const g = place("gaprow", 0, y, W, `${plural(hidden, "step")} the same here · Show the whole journey`, {type:"expand"}, `Show ${plural(hidden, "unchanged step")}`);
+    g.dataset.row = "j" + ji;
+    y += g.offsetHeight + 14; hidden = 0; prev = null;
+  };
+  all.forEach((slot, i) => {
+    if (!keep[i]) { hidden++; return; }
+    fold();
+    const s = slot.box, li = LI[s.lane] || 0, lane = lanes[li];
+    const el = place(`box step sbs-step inj${slot.change ? " chg-" + slot.change : ""}`, 0, y, W,
+      slotHtml(slot, b => `<div class="row1"><span class="n">${i + 1}</span><div class="t">${gl(b.text)}</div></div>${tech(b)}
+        <div class="meta"><span class="lanechip"><i style="background:${laneColor(LI[b.lane] || 0)}"></i>${esc((lanes[LI[b.lane] || 0] || {}).label || "")}</span>${pill(b.status)}${badges(b)}</div>`),
+      {type:"box", id:s.id}, slotLabel(slot, `Step ${i + 1}: ${s.text}`));
+    el.style.setProperty("--lane", laneColor(li));
+    el.dataset.row = "j" + ji;
+    nodes[s.id] = el;
+    if (prev) { const p = link(W / 2, prev.y + prev.h, W / 2, y - 3, "inj flow"); p.dataset.row = "j" + ji; arrowHead(W / 2, y - 3); }
+    prev = {y, h:el.offsetHeight};
+    y += el.offsetHeight + 16;
+  });
+  fold();
+  rows.push({key:"j" + ji, y:0, h:y, x:0, w:W});
+  return {x:0, y:0, w:W, h:y};
+}
+
 /* ---------- chain ---------- */
 const C = {stageW:300, stageH:104, itemW:262, itemGap:16, perRow:3, gap:70};
 const itemInner = b => `<h4>${gl(b.title)}</h4><p class="t">${gl(b.text || "")}</p>${tech(b)}<div class="meta">${pill(b.status)}${badges(b)}</div>`;
 function renderChain(m) {
   const mode = modeOf(m);
+  const perRow = sbsOn() ? 2 : C.perRow;   // two to a row side by side, so each pane stays readable
   const itemsX = C.stageW + 64;
-  const columnW = C.perRow * (C.itemW + C.itemGap) - C.itemGap;
+  const columnW = perRow * (C.itemW + C.itemGap) - C.itemGap;
   const notesX = itemsX + columnW + 56;
   const W = notesX - 56 + notesWidth();
   let y = header(m, W);
@@ -497,7 +548,7 @@ function renderChain(m) {
       el.dataset.row = "s" + si;
       nodes[it.id] = el;
       rowMax = Math.max(rowMax, el.offsetHeight);
-      if (++col === C.perRow) { col = 0; iy += rowMax + C.itemGap; rowMax = 0; }
+      if (++col === perRow) { col = 0; iy += rowMax + C.itemGap; rowMax = 0; }
     });
     let ih = iy - y0 + rowMax;
     if (!slots.length) {
@@ -666,6 +717,7 @@ function drawNoteLinks() {
   });
 }
 function layout() {
+  world.classList.remove("pane-today");   // measure boxes as they are, not as the left pane shows them
   world.innerHTML = "";
   nodes = {}; rows = []; K = 0;
   svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -674,7 +726,8 @@ function layout() {
   const m = MODEL.maps[S.map];
   const kind = KIND[m.template];
   document.body.dataset.mode = modeOf(m);
-  bounds = m.template === "customer-journey" ? renderCustomerJourney(m) : kind === "journeys" ? renderJourneys(m) : kind === "chain" ? renderChain(m) : renderTree(m);
+  document.body.classList.toggle("sbs-j", sbsJourneys());
+  bounds = sbsJourneys() ? renderJourneySbs(m) : m.template === "customer-journey" ? renderCustomerJourney(m) : kind === "journeys" ? renderJourneys(m) : kind === "chain" ? renderChain(m) : renderTree(m);
   drawNoteLinks();
   drawConnections();
   applyFocus();
@@ -689,7 +742,22 @@ function render() {
 /* Side by side: the same drawing twice, today on the left and the plan on the right, with
    one pan and zoom. The right copy is for looking; clicks open the matching box. */
 const world2 = $("#world2"), viewport2 = $("#viewport2");
+function sbsBar() {
+  const bar = $("#sbsbar");
+  if (!sbsJourneys()) { bar.innerHTML = ""; return; }
+  const js = MODEL.maps[S.map].journeys || [];
+  bar.innerHTML = `<label for="sbs-journey">Journey</label>
+    <select id="sbs-journey">${js.map((j, i) => { const c = journeyChanges(j); return `<option value="${i}"${i === S.sbsJourney ? " selected" : ""}>${i + 1}. ${esc(j.title)}${c.length ? " · " + countsText(c) : " · no changes"}</option>`; }).join("")}</select>
+    <button data-sbs-step="-1"${S.sbsJourney <= 0 ? " disabled" : ""}>‹ Previous journey</button>
+    <button data-sbs-step="1"${S.sbsJourney >= js.length - 1 ? " disabled" : ""}>Next journey ›</button>
+    <label class="switch"><input type="checkbox" id="sbs-only"${S.sbsAll ? "" : " checked"}> Only what changes</label>`;
+  const pick = i => { S.sbsJourney = Math.max(0, Math.min(js.length - 1, i)); persist(); render(); fit(); };
+  $("#sbs-journey").addEventListener("change", e => pick(+e.target.value));
+  bar.querySelectorAll("[data-sbs-step]").forEach(b => b.addEventListener("click", () => pick(S.sbsJourney + +b.dataset.sbsStep)));
+  $("#sbs-only").addEventListener("change", e => { S.sbsAll = !e.target.checked; persist(); render(); fit(); });
+}
 function syncPanes() {
+  sbsBar();
   const on = sbsOn();
   document.body.classList.toggle("sbs", on);
   world.classList.toggle("pane-today", on);
@@ -737,6 +805,7 @@ function apply() {
   const P = pane(), on = sbsOn();
   Object.assign(viewport.style, on ? {left:P.x + "px", width:P.w + "px", right:"auto"} : {left:"", width:"", right:""});
   Object.assign(viewport2.style, on ? {left:(P.x + P.w) + "px", width:P.w + "px"} : {left:"", width:""});
+  Object.assign($("#sbsbar").style, sbsJourneys() ? {display:"flex", left:P.x + "px", width:(2 * P.w) + "px"} : {display:"none"});
   const tf = `translate(${X}px,${Y}px) scale(${Z})`;
   world.style.transform = tf; world2.style.transform = tf;
   document.documentElement.style.setProperty("--z", Z);
@@ -756,7 +825,7 @@ function zoomAt(f, cx, cy) {
   X = lx - (lx - X) * (nz / Z); Y = cy - (cy - Y) * (nz / Z); Z = nz; apply();
 }
 const bottomEdge = () => document.body.classList.contains("panel-open") && innerWidth <= 720 ? innerHeight - $("#panel").getBoundingClientRect().top : 0;
-const topEdge = () => (S.notesOnMap && NOTES.length ? TOP_H + 50 : TOP_H) + (sbsOn() ? 34 : 0);
+const topEdge = () => (S.notesOnMap && NOTES.length ? TOP_H + 50 : TOP_H) + (sbsJourneys() ? 92 : sbsOn() ? 34 : 0);
 const viewCenter = () => { const P = pane(); return [P.x + P.l + (P.w - P.l - P.r) / 2, topEdge() + (innerHeight - topEdge() - bottomEdge()) / 2]; };
 function fitTo(b) {
   const P = pane();
@@ -767,7 +836,7 @@ function fitTo(b) {
   // at the top, so people scroll down through readable boxes.
   const tall = zh < 0.62 && zw > zh * 1.2;
   if (tall) z = Math.min(1, Math.max(sbsOn() ? MIN_Z : MIN_Z + 0.1, zw));
-  Z = Math.min(1.3, Math.max(MIN_Z, z));
+  Z = Math.min(1.3, Math.max(sbsJourneys() ? 0.55 : MIN_Z, z));   // one journey side by side: text stays readable
   X = P.l + 20 + Math.max(0, (vw - b.w * Z) / 2) - b.x * Z;
   Y = topEdge() + 20 + (tall ? 0 : Math.max(0, (vh - b.h * Z) / 2)) - b.y * Z;
   apply();
@@ -776,7 +845,7 @@ function fitRow(key) {
   const r = rows.find(r => r.key === key);
   if (r) fitTo({x:r.x - 10, y:r.y - 30, w:r.w + 20, h:r.h + 60});
 }
-function fit() { if (S.journey >= 0) fitRow("j" + S.journey); else fitTo(bounds); }
+function fit() { if (S.journey >= 0 && !sbsJourneys()) fitRow("j" + S.journey); else fitTo(bounds); }
 function centerOn(el) {
   const x = parseFloat(el.style.left) + el.offsetWidth / 2, y = parseFloat(el.style.top) + el.offsetHeight / 2;
   if (Z < 0.75) Z = 0.9;
@@ -803,14 +872,18 @@ $("#zfit").addEventListener("click", () => fit());
 
 /* ---------- focus ---------- */
 function applyFocus() {
-  const on = S.journey >= 0 && KIND[MODEL.maps[S.map].template] === "journeys";
+  const on = S.journey >= 0 && KIND[MODEL.maps[S.map].template] === "journeys" && !sbsJourneys();
   document.body.classList.toggle("dim", on);
   world.querySelectorAll(".inj").forEach(el => el.classList.toggle("hot", on && el.dataset.row === "j" + S.journey));
   svg.querySelectorAll("path").forEach(p => p.classList.toggle("hot", on && p.dataset.row === "j" + S.journey));
   if (sbsOn()) syncPanes();
 }
 function showMap(i) { if (i !== S.map) { S.map = i; S.journey = -1; persist(); render(); } }
-function focusJourney(mi, ji) { showMap(mi); S.journey = ji; persist(); applyFocus(); story(); fit(); }
+function focusJourney(mi, ji) {
+  showMap(mi);
+  if (sbsJourneys()) { S.sbsJourney = ji; persist(); render(); fit(); return; }
+  S.journey = ji; persist(); applyFocus(); story(); fit();
+}
 function focusRow(mi, key) { showMap(mi); S.journey = -1; persist(); applyFocus(); story(); fitRow(key); }
 function setMode(m) { S.mode = m; if (m !== "changes") S.sbs = false; persist(); render(); }
 function setSideBySide(on) {
@@ -837,7 +910,7 @@ function wireModeSwitch(root) {
 function fitFirstChange() {
   const m = MODEL.maps[S.map];
   const ji = (m.journeys || []).findIndex(j => (j.steps || []).some(s => s.when === "today" || s.when === "planned"));
-  if (KIND[m.template] === "journeys" && ji > 0) fitRow("j" + ji); else fit();
+  if (KIND[m.template] === "journeys" && ji > 0 && !sbsJourneys()) fitRow("j" + ji); else fit();
 }
 function viewItems() {
   const details = Object.values(BOX).some(info => info.mi === S.map && info.box.detail);
@@ -937,7 +1010,7 @@ function story() {
     const kind = KIND[m.template];
     const cur = mi === S.map;
     let sub = "";
-    if (kind === "journeys") sub = (m.journeys || []).map((j, ji) => `<li><button class="view" data-j="${mi}:${ji}" aria-current="${cur && S.journey === ji}"><b><span class="num">${mi + 1}.${ji + 1}</span>${esc(j.title)}</b><span>${esc(j.summary || plural((j.steps || []).length, "step"))}</span></button></li>`).join("");
+    if (kind === "journeys") sub = (m.journeys || []).map((j, ji) => `<li><button class="view" data-j="${mi}:${ji}" aria-current="${cur && (sbsJourneys() ? S.sbsJourney === ji : S.journey === ji)}"><b><span class="num">${mi + 1}.${ji + 1}</span>${esc(j.title)}</b><span>${esc(j.summary || plural((j.steps || []).length, "step"))}</span></button></li>`).join("");
     if (kind === "chain") sub = (m.stages || []).map((st, si) => `<li><button class="view" data-row="${mi}:s${si}"><b><span class="num">${mi + 1}.${si + 1}</span>${esc(st.label)}</b><span>${esc(st.sub || "")}</span></button></li>`).join("");
     if (kind === "tree") sub = (m.root.children || []).map((b, bi) => `<li><button class="view" data-row="${mi}:b${bi}"><b><span class="num">${mi + 1}.${bi + 1}</span>${esc(b.title)}</b><span>${plural((b.children || []).length, "idea")}</span></button></li>`).join("");
     const tag = hasChanges(m) ? `<span class="viewtag">${countsText(changeList(m))}</span>` : "";
@@ -1478,6 +1551,7 @@ function activate(el) {
   else if (d.type === "note") open("note", d.n);
   else if (d.type === "notes") open("notes", d);
   else if (d.type === "outcome") open("outcome", d.o);
+  else if (d.type === "expand") { S.sbsAll = true; persist(); render(); fit(); }
 }
 world.addEventListener("click", e => { const term = e.target.closest(".term"); if (term) { showTerm(term); return; } const el = e.target.closest("[role=button]"); if (el && el._data) activate(el); });
 world2.addEventListener("click", e => { const el = e.target.closest("[data-k]"); const t = twin(el); if (t && t._data) activate(t); });

@@ -263,6 +263,20 @@ def check(page, path: Path, shots: Path | None) -> tuple[list[str], list[str]]:
             assert page.is_visible("#viewport2"), "the right pane is not visible"
             same = "document.getElementById('world').style.transform === document.getElementById('world2').style.transform"
             assert page.evaluate(same), "panes start out of step"
+            if page.is_visible("#sbsbar"):
+                # journey maps: one journey, readable, only what changes by default
+                z = page.evaluate(SCALE)
+                assert z >= 0.54, f"side by side opens at {z:.2f}, too small to read"
+                rows_shown = page.evaluate("new Set([...document.querySelectorAll('#world .box')].map(b => b.dataset.row)).size")
+                assert rows_shown == 1, f"side by side shows {rows_shown} journeys"
+                assert page.locator("#sbs-only").is_checked(), "Only what changes is not on by default"
+                few = page.locator("#world .box").count()
+                page.locator("#sbs-only").uncheck(); page.wait_for_timeout(250)
+                assert page.locator("#world .box").count() >= few, "turning off Only what changes hid steps"
+                page.locator("#sbs-only").check(); page.wait_for_timeout(250)
+                assert page.locator("#sbs-journey option").count() >= 1
+                assert page.locator("#world .ghostlabel").count() == 0 or page.evaluate(
+                    "[...document.querySelectorAll('#world .chg-new .ghostlabel')].every(g => g.getBoundingClientRect().height < 40)"), "placeholders are not slim"
             page.get_by_role("button", name="+ Zoom in").click()
             page.mouse.move(700, 600); page.mouse.down(); page.mouse.move(640, 520); page.mouse.up()
             assert page.evaluate(same), "panes fell out of step after zoom and drag"
