@@ -22,6 +22,32 @@ read without training.
 All examples are fictional. Watch the [90-second trailer](https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft/releases/download/v0.2.0/decisioncraft-trailer-16x9.mp4) (no sound needed;
 [vertical](https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft/releases/download/v0.2.0/decisioncraft-trailer-9x16.mp4), [square](https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft/releases/download/v0.2.0/decisioncraft-trailer-1x1.mp4)).*
 
+## First run: install, then pick a model
+
+```sh
+uv tool install "amplifier-smart-tool-decisioncraft[smart,mcp] @ git+https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft"
+decisioncraft doctor      # checks your setup and says which model map will use
+decisioncraft map ./your-repo --open
+```
+
+`map` (and `draft`, `perspectives`, Ask the experts) needs a language model. It finds one in
+this order, so most people type nothing extra:
+
+1. **An API key you already have.** With `ANTHROPIC_API_KEY` set, it uses Anthropic with
+   `claude-sonnet-5-5`; otherwise, with `OPENAI_API_KEY` set, OpenAI with `gpt-5.5`.
+2. **Your own choice, once.** `export DECISIONCRAFT_PROVIDER=openai DECISIONCRAFT_MODEL=gpt-5.5`,
+   or `decisioncraft config set provider openai` and `decisioncraft config set model gpt-5.5`.
+   For one run: `--provider anthropic --model claude-opus-5-5`.
+3. **Your agent's model.** Inside Claude Code, Codex or Amplifier, `--complete-cmd 'your-command'`
+   sends each request through the agent's own model, and MCP hosts that allow it are asked
+   directly. See [docs/HOSTS.md](docs/HOSTS.md).
+4. **No model at all.** `decisioncraft map ./your-repo --starter --dir repo-map` writes what it
+   read and a starter map for you or your agent to fill in (`decisioncraft guide` explains each
+   field), then `decisioncraft render repo-map/model.json --open`.
+
+A first map of a small repo takes a few minutes of model time, billed to your key.
+`decisioncraft map ./your-repo --dry-run` shows what it will read without calling a model.
+
 ## Point it at anything
 
 | Point it at | It reads | You get |
@@ -32,6 +58,7 @@ All examples are fictional. Watch the [90-second trailer](https://github.com/mic
 | a topic in quotes | two or three answers from you | a first map, clearly marked as not yet checked |
 
 ```sh
+decisioncraft map ./your-repo --open             # read it, draw it, open it
 decisioncraft map ./your-repo --dry-run          # what it will read; no model call
 decisioncraft map ./your-repo --complete-cmd 'your-command' --open   # your host's model drafts it
 decisioncraft map ./your-repo --starter --dir repo-map   # no model: a digest and a starter to fill in
@@ -93,26 +120,33 @@ All names, quotes and figures are invented, except the cited public figures in t
 
 ## Install
 
-```sh
-uv tool install "amplifier-smart-tool-decisioncraft[smart,mcp] @ git+https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft"
-decisioncraft doctor
-```
+The install line and model choice are under [First run](#first-run-install-then-pick-a-model).
 
-Python 3.11 or later. `[smart]` is only needed for `--provider` on the two model-backed
-commands, and `[mcp]` only for `decisioncraft mcp`. `doctor` checks your setup, never calls
+Python 3.11 or later. `[smart]` brings the Anthropic and OpenAI SDKs, used when a model step
+runs on your API key; `[mcp]` is only for `decisioncraft mcp`. `doctor` checks your setup, never calls
 a model, and says exactly what to fix. You can also run straight from a checkout:
 `python3 bin/decisioncraft.py`.
+
 ## Use it from your agent
 
-- **Claude Code:** copy `skills/decisioncraft/` into `.claude/skills/` (project) or
-  `~/.claude/skills/` (everyone). Claude finds it when a conversation needs it.
-- **Codex:** add the body of `skills/decisioncraft/SKILL.md` to your `AGENTS.md`, or point
-  `AGENTS.md` at it.
-- **Amplifier:** add the skill directory to a bundle's skills, or keep it in `.amplifier/skills/`.
-- **Any MCP host:** `decisioncraft mcp` serves the tools (map, triage, quick, interview,
-  render, review notes and more), the prompts `map_this`, `decide`, `compare_options`,
-  `what_could_go_wrong`, `regret_test` and `review_canvas`, and resources for templates, roles,
-  the model format and the writing guide. See [docs/HOSTS.md](docs/HOSTS.md).
+```sh
+# the skill (no checkout needed): Claude Code, Codex and Amplifier read the same file
+for d in ~/.claude/skills ~/.codex/skills ~/.amplifier/skills; do
+  mkdir -p "$d/decisioncraft" && curl -fsSL https://raw.githubusercontent.com/michaeljabbour/amplifier-smart-tool-decisioncraft/main/skills/decisioncraft/SKILL.md -o "$d/decisioncraft/SKILL.md"
+done
+claude mcp add decisioncraft -- decisioncraft mcp   # optional: the MCP server in Claude Code
+codex mcp add decisioncraft -- decisioncraft mcp    # optional: the MCP server in Codex
+```
+
+From a checkout, `cp -R skills/decisioncraft ~/.claude/skills/` does the same (use
+`.claude/skills/` inside a project to install it for that project only).
+
+The skill tells the agent when to reach for Decisioncraft; the MCP server gives it the tools
+(map, triage, quick, interview, render, review notes and more), the prompts `map_this`,
+`decide`, `compare_options`, `what_could_go_wrong`, `regret_test` and `review_canvas`, and
+resources for templates, roles, the model format and the writing guide. Over MCP, model steps
+use the host's own model when it offers sampling, otherwise your API key. See
+[docs/HOSTS.md](docs/HOSTS.md) for every host and the full list.
 
 An agent that can't route a model to Decisioncraft writes the model itself: `decisioncraft
 guide` prints every field with its rules, and `validate` checks the result.
@@ -139,7 +173,8 @@ decisioncraft render pickups/model.json --out pickups/canvas.html
 cp notes/*.md pickups/material/
 decisioncraft draft pickups/material/*.md --question "How do we cut missed pickups by half?" \
   --complete-cmd 'python3 my_adapter.py' --out pickups/model.json
-#   ...or --provider anthropic --model <model-name>, with ANTHROPIC_API_KEY set
+#   ...or leave both flags off to use your API key (see First run above),
+#   or --provider anthropic --model claude-sonnet-5-5 for this one run
 
 # after the review
 decisioncraft merge pickups/model.json review-*.json --out merged.json
@@ -161,6 +196,7 @@ problems = dc.validate(model)
 html = dc.render(model)
 merged = dc.merge([json.load(open(p)) for p in ["a.json", "b.json"]], model)
 ```
+
 ## Review with an agent
 
 When the agent starts the review on your computer, use a local session:
@@ -180,6 +216,7 @@ an earlier review. `--prepared-by` can identify the actual author when the notes
 The session accepts requests only from this computer. Source links show only the files
 inside `--source-root` (the current folder by default), or open a source website when asked.
 No provider credentials are needed.
+
 ## Finish an offline review
 
 1. Open **Questions to decide**, then **Answer questions**. You see one question at a time.
@@ -194,6 +231,7 @@ For a meeting on paper, choose **More → Print the questions**. The handout lea
 for individual answers and the owner's final choice and reason.
 
 Box positions are automatic. Drag empty space to move the view; click a box to read it.
+
 ## Personal decisions
 
 For a car, a home, a job offer or a supplier, the `personal-decision` template gives a light
@@ -212,6 +250,7 @@ A model holds one or more `maps`, each using one template. Journey templates dra
 matters" mark. The decision chain draws stages with items for today and planned. The
 opportunity tree draws an outcome, needs, ideas and quick tests. Run
 `decisioncraft templates` for the list and `decisioncraft new` to see each shape.
+
 ## What is model-backed
 
 | Capability | Kind |
@@ -243,6 +282,7 @@ python3 scripts/check-session-flow.py                    # local answers reach t
 
 See [AGENTS.md](AGENTS.md), [the vision](docs/VISION.md) and [the contracts](contracts/README.md).
 The product page lives in [site/](site/README.md).
+
 ## License
 
 MIT. See [LICENSE](LICENSE).

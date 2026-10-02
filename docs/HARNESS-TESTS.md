@@ -34,6 +34,32 @@ The first runs found real problems. Each was fixed and the conversation run agai
 - **Canvas.** A cost map with no costs yet crashed the page; very wide or tall journey maps
   fitted at an unreadable size. Both fixed.
 
+## MCP in a real host (after 0.2.0)
+
+Run on 2026-10-02 with the MCP server registered in the project (`.mcp.json`) beside the skill,
+in Claude Code (sonnet) and Codex, from the same small made-up repo.
+
+| # | Agent | What the person said | Expected | Result |
+|---|---|---|---|---|
+| 7 | Claude Code + MCP | "map this repo and tell me what's missing" | a canvas, even with no model for the server | First run: fail. Claude Code does not offer MCP sampling and this test session had no API key in its environment, so `decisioncraft_map` returned an error and the agent stopped at a text summary. After the fix: `decisioncraft_map` wrote a starter, the agent filled it in from the digest, validated it and rendered `map/canvas.html`. Pass. |
+| 8 | Claude Code + MCP | "help me decide whether to keep my car", then vague answers ("idk", "not sure honestly") and a change of mind ("maybe lease something?") | triage, an offer, one question at a time | Pass. It offered a map or a quick comparison, asked one question per turn, suggested options when the person was unsure, and recorded the lease when it came up later. |
+| 9 | Codex + skill + MCP | "can you show me how this repo works and what's missing?" | a canvas | Pass. 12 steps, 6 gaps with checks, a note from each of 8 roles, validated and rendered. Opening a browser failed inside the Codex sandbox; the command printed the path instead. |
+
+What this changed:
+
+- **No dead end over MCP.** When the host can't sample and the server has no usable API key,
+  `decisioncraft_map` writes a starter (digest, starter model, fill-in steps) instead of failing.
+  `starter: true` asks for this directly.
+- **Your API key over MCP.** When the host can't sample, model steps use the server's API key
+  if it has one. A host started outside your shell (from a dock icon or a terminal multiplexer) may not see your shell's keys; give them explicitly (for
+  example `claude mcp add decisioncraft -e ANTHROPIC_API_KEY=... -- decisioncraft mcp`).
+- **A missing path is refused,** not mapped as a topic.
+- **The server reports its own version** (0.2.0), not the MCP library's, and no longer logs
+  every request to stderr.
+- **The skill description is one plain line,** so strict and simple frontmatter readers both
+  read it whole. (Headless Claude Code lists skill names without descriptions for every skill;
+  that is not specific to Decisioncraft.)
+
 ## Not covered
 
 - Real-model quality of `map` with `--complete-cmd` or `--provider` was not scored here;
