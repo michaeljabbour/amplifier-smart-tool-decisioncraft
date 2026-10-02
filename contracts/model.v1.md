@@ -37,10 +37,21 @@ remain available in the detail panel even when both endpoints cannot be drawn to
 
 - **Journeys** (`system-journeys`, `customer-journey`, `service-blueprint`): `lanes[{id, label, sub}]`
   and `journeys[{id, title, summary, creates[], steps[]}]`. A step:
-  `{id, lane, text, status, detail, pain, moment, feeling, checked, evidence[]}`.
+  `{id, lane, text, status, when (today|planned|both), replaces, detail, pain, moment, feeling, checked, evidence[]}`.
 - **Chain** (`decision-chain`): `stages[{id, label, sub, verb, items[]}]`. An item:
-  `{id, title, text, status, when (today|planned|both), detail, checked, evidence[]}`.
+  `{id, title, text, status, when (today|planned|both), replaces, detail, checked, evidence[]}`.
 - **Tree** (`opportunity-tree`): `levels[]` and `root{id, title, text, status, children[]}`.
+
+### Today, the plan, and what changes
+
+`when` says whether a step or item exists today only, only in the plan, or in both (the
+default). A planned box may name the today-only box it `replaces` in the same journey or
+stage; the pair reads as one change with a before and an after. Other planned-only boxes
+are new, and today-only boxes nothing replaces go away. Steps without `when` count as both,
+whatever their status. Maps with any `when` offer Today, Planned, What changes (one map,
+each box marked New, Changed or Goes away, with counts) and Side by side (today and the
+plan in two panes with one pan and zoom, rows lined up). The text version lists the same
+changes, and the proposed-state model keeps the planned boxes only.
 
 Status: works, partial, missing, planned. Feeling: good, ok, bad. `detail` holds technical
 descriptions. Opening a box always shows them; a display switch also shows them on the map when available.

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from .model import DECISION_STATUS, FEELINGS, STATUSES, TEMPLATES, URGENCY, roles_of, iter_boxes
+from .model import DECISION_STATUS, FEELINGS, STATUSES, TEMPLATES, URGENCY, iter_boxes, plan_changes, roles_of
 from .review import questions
 
 
@@ -42,6 +42,10 @@ def words(model: dict, merged: dict | None = None) -> str:
 
     def box_line(b, indent="- "):
         status = f" ({STATUSES[b['status']]})" if b.get("status") else ""
+        if b.get("when") == "today":
+            status += " (today only)"
+        elif b.get("when") == "planned":
+            status += " (planned)"
         title = b.get("title") or b.get("text", "")
         text = b.get("text", "") if b.get("title") else ""
         w(f"{indent}**{title}**{status}{': ' + text if text else ''}")
@@ -81,6 +85,22 @@ def words(model: dict, merged: dict | None = None) -> str:
         if m.get("intro"):
             w("")
             w(m["intro"])
+        changes = plan_changes(m)
+        if changes:
+            label = {"new": "New", "changed": "Changed", "gone": "Goes away"}
+            counts = {k: sum(c["change"] == k for c in changes) for k in label}
+            w("")
+            w("### What changes")
+            w("")
+            w(" · ".join(f"{n} {word}" for word, n in (("new", counts["new"]), ("changed", counts["changed"]),
+                                                     ("goes away" if counts["gone"] == 1 else "go away", counts["gone"])) if n) + ".")
+            w("")
+            for c in changes:
+                name = lambda b: b.get("title") or b.get("text", "")
+                if c["change"] == "changed":
+                    w(f"- **{label['changed']}:** {name(c['before'])} → {name(c['box'])}")
+                else:
+                    w(f"- **{label[c['change']]}:** {name(c['box'])}")
         if kind == "journeys":
             lanes = {ln["id"]: ln["label"] for ln in m.get("lanes", [])}
             for j in m.get("journeys", []):

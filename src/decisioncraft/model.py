@@ -447,6 +447,23 @@ def validate(model: dict) -> list[dict]:
         if box.get("status") and box["status"] not in STATUSES:
             err(path, f"Status must be one of {sorted(STATUSES)}.")
 
+
+    def check_replaces(boxes, where, noun):
+        """A planned box may replace one that exists today in the same journey or stage."""
+        today = {b.get("id"): b for b in boxes if isinstance(b, dict) and b.get("when") == "today"}
+        taken = set()
+        for bi, b in enumerate(boxes):
+            if not isinstance(b, dict) or "replaces" not in b:
+                continue
+            target = b.get("replaces")
+            bp = f"{where}[{bi}].replaces"
+            if b.get("when") != "planned":
+                err(bp, f"Only a planned {noun} can replace another; set when to planned.")
+            elif target not in today:
+                err(bp, f"{noun.capitalize()} {b.get('id')} replaces {target!r}, which is not a today-only {noun} beside it.")
+            elif target in taken:
+                err(bp, f"{noun.capitalize()} {target!r} is already replaced by another {noun}.")
+            taken.add(target)
     for mi, m in enumerate(maps):
         mp = f"maps[{mi}]"
         claim(m.get("id"), mp)
@@ -487,7 +504,10 @@ def validate(model: dict) -> list[dict]:
                             f"Feeling must be one of {sorted(FEELINGS)}.",
                         )
                     check_status(s, f"{sp}.status")
+                    if s.get("when", "both") not in {"today", "planned", "both"}:
+                        err(f"{sp}.when", "When must be today, planned or both.")
                     check_evidence(s.get("evidence"), f"{sp}.evidence")
+                check_replaces(steps, f"{jp}.steps", "step")
         elif t["kind"] == "chain":
             stages = _as_list(m.get("stages"))
             if not stages:
@@ -508,6 +528,7 @@ def validate(model: dict) -> list[dict]:
                     if it.get("when", "both") not in {"today", "planned", "both"}:
                         err(f"{ip}.when", "When must be today, planned or both.")
                     check_evidence(it.get("evidence"), f"{ip}.evidence")
+                check_replaces(_as_list(st.get("items")), f"{gp}.items", "item")
         else:
             root = m.get("root")
             if not isinstance(root, dict):
@@ -679,3 +700,28 @@ def require_valid(model: dict) -> dict:
     if errors:
         raise ModelError(errors)
     return model
+
+
+def plan_changes(map_: dict) -> list[dict]:
+    """What changes between today and the plan on one map, in map order.
+
+    Each entry is ``{"change": "new" | "changed" | "gone", "box": ..., "before": ...}``.
+    A planned box that ``replaces`` a today-only box is a change; other planned-only boxes
+    are new; today-only boxes nobody replaces go away. Journey steps without ``when`` count
+    as both, whatever their status.
+    """
+    out: list[dict] = []
+    groups = [j.get("steps", []) for j in map_.get("journeys", [])] + \
+             [st.get("items", []) for st in map_.get("stages", [])]
+    for boxes in groups:
+        boxes = [b for b in boxes if isinstance(b, dict)]
+        replaced = {b.get("replaces"): b for b in boxes if b.get("replaces")}
+        by_id = {b.get("id"): b for b in boxes}
+        for b in boxes:
+            when = b.get("when", "both")
+            if when == "planned":
+                before = by_id.get(b.get("replaces")) if b.get("replaces") else None
+                out.append({"change": "changed" if before else "new", "box": b, "before": before})
+            elif when == "today" and b.get("id") not in replaced:
+                out.append({"change": "gone", "box": b, "before": None})
+    return out

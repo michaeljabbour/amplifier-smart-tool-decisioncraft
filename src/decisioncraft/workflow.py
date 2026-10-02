@@ -149,6 +149,14 @@ def handoff(model: dict, review: dict) -> dict:
                     for item in stage.get("items", [])
                     if item.get("when", "both") != "today"
                 ]
+                for item in stage["items"]:
+                    item.pop("replaces", None)
+        elif any(step.get("when") == "planned" for j in m.get("journeys", []) for step in j.get("steps", [])):
+            # A journey that carries its own plan: keep the planned way, drop today-only steps.
+            for j in m.get("journeys", []):
+                j["steps"] = [step for step in j.get("steps", []) if step.get("when", "both") != "today"]
+                for step in j["steps"]:
+                    step.pop("replaces", None)
         elif m.get("when") != "planned":
             # A current journey or a list of options is not automatically a proposal.
             continue

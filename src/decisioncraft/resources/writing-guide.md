@@ -36,6 +36,9 @@ Choose visuals that explain the work, rather than repeating one diagram for ever
   handoffs between people and systems. Label lanes for the actual work.
 - A stage flow compares what happens now with what is proposed. Mark items today,
   planned or both. Do not present a proposal as an observed fact.
+- When the plan changes something that exists today, keep both: the today-only box and a
+  planned box that `replaces` it, in the same journey or stage. Journey steps can carry
+  `when` and `replaces` too. Leave `when` off steps that stay as they are.
 - A branching view shows alternative ways to reach an outcome and how to check them.
 - Use an additional map only when it explains a different part of the same decision.
 - Explicit links name real handoffs, supporting relationships or feedback loops.
