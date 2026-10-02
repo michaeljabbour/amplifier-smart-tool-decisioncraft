@@ -395,6 +395,12 @@ body.panel-open #zoom{right:calc(clamp(320px,30vw,460px) + 24px)}
   #hint{left:10px;right:10px;max-width:none}
   body.panel-open #panel{width:calc(100vw - 20px);top:auto;height:48vh}
   body.panel-open #zoom{display:none}
+  /* Phones: the walk-through card spans the screen so Back and Next stay reachable. */
+  #walk,body:not(.nostory) #walk,body.panel-open #walk,body.panel-open.nostory #walk{
+    left:10px;right:10px;width:auto;transform:none;bottom:10px;max-height:46vh;overflow:auto}
+  #walk .row{flex-wrap:wrap}
+  /* The list opens over the map instead of squeezing it. */
+  body:not(.nostory) #story{width:calc(100vw - 12px);box-shadow:0 8px 30px rgba(0,0,0,.18)}
 }
 
 /* ---------- print ---------- */

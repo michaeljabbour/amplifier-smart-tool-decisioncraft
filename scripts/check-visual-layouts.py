@@ -4,7 +4,8 @@ from pathlib import Path
 import sys
 import tempfile
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "src"))
 import decisioncraft as dc
 from playwright.sync_api import sync_playwright
 
@@ -86,8 +87,28 @@ def main():
         rect = page.get_by_role("button", name="Answers reach the agent", exact=True).bounding_box()
         assert rect["x"] + rect["width"] <= page.locator("#panel").bounding_box()["x"] + 1
         assert not errors, errors
+
+        # Phones: the top bar fits, the list starts hidden, and the walk-through stays reachable.
+        phone = browser.new_page(viewport={"width":375, "height":812})
+        for example in ("business", "personal-car", "engineering"):
+            phone.goto((ROOT / "examples" / example / "canvas.html").as_uri())
+            phone.evaluate("localStorage.clear()")
+            phone.reload()
+            phone.wait_for_timeout(400)
+            for b in phone.locator("#top button").all():
+                if b.is_visible():
+                    r = b.bounding_box()
+                    assert r["x"] >= 0 and r["x"] + r["width"] <= 376, (example, b.inner_text(), r)
+            assert not phone.locator("#story").is_visible(), example
+            phone.locator("#top").get_by_role("button", name="Tools ▾").click()
+            phone.get_by_role("menuitem", name="Walk me through it").first.click()
+            nxt = phone.locator("#walk").get_by_role("button", name="Next", exact=True)
+            r = nxt.bounding_box()
+            assert r and r["x"] + r["width"] <= 376, (example, r)
+            nxt.click()
+        phone.close()
         browser.close()
-    print("ok distinct timeline, What changes with Today, Planned and Side by side, named feedback, focus and panel space")
+    print("ok distinct timeline, What changes with Today, Planned and Side by side, named feedback, focus and panel space, phone layout")
 
 
 if __name__ == "__main__":
