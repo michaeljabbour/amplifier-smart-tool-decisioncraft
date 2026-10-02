@@ -56,7 +56,17 @@ def build_server():
     server = FastMCP(
         "Decisioncraft",
         instructions=(
-            "Start with decisioncraft_discover. Ask its opening questions in conversation, "
+            "To show how something works and what is missing, call decisioncraft_map with a repo or "
+            "folder path, a file, or a topic (it reads the target, then asks this host's model to "
+            "draw today's way, the planned way, gaps with user stories and 'done when' checks, and a "
+            "note from each role; dry_run shows what it would read). "
+            "When someone is weighing options (even without saying 'decision'), call "
+            "decisioncraft_triage with their words. Follow its mode: none means just answer; "
+            "quick means decisioncraft_quick in the conversation, no files; guided and team mean "
+            "decisioncraft_interview_next one question at a time, then render. Offer, don't take "
+            "over: ask before building anything. The prompts decide, compare_options, "
+            "what_could_go_wrong, regret_test and review_canvas give ready conversation scripts. "
+            "For a team review, start with decisioncraft_discover. Ask its opening questions in conversation, "
             "reusing known answers. Follow up on what matters, how to compare and the stakes. "
             "Use the host's own model to build suitable maps, sources, comparison and role notes; "
             "decisioncraft_templates gives shapes. Do not invent evidence, scores or approval. "
@@ -251,6 +261,204 @@ def build_server():
         out = await asyncio.to_thread(lib.review_notes, model, review, roles=roles, complete=_sampling_complete(ctx, loop))
         added = sum(len(n.get("replies", [])) for n in out.get("notes", [])) - sum(len(n.get("replies", [])) for n in review.get("notes", []))
         return {"asked": asked, "replies_added": added, "review": out}
+
+
+
+    @server.tool(structured_output=True)
+    async def decisioncraft_map(
+        target: str,
+        ctx: Context,
+        directory: str = "",
+        question: str = "",
+        roles: list[str] | None = None,
+        answers: dict | None = None,
+        page_text: str = "",
+        dry_run: bool = False,
+    ) -> dict[str, Any]:
+        """Point it at anything: a repo or folder path, a notes file, a web page's text, or a topic.
+
+        Reads the target, then asks this host's model (MCP sampling) to draw how it works today
+        with evidence by file and line, a planned way, gaps with user stories and 'done when'
+        checks, and a note from each role. Writes model.json and canvas.html to `directory` and
+        returns their paths. dry_run returns what would be read and asked, with no model call.
+        For a web address pass the page's text in page_text; for a topic pass answers
+        {how_today, pain, goal} if you have them.
+        """
+        if dry_run:
+            return {"plan": lib.plan_map(target, roles=roles, answers=answers)}
+        if not _can_sample(ctx):
+            raise ValueError(NO_SAMPLING.replace(
+                "write the model JSON, then call decisioncraft_validate",
+                "call decisioncraft_map with dry_run to see the material, write the model JSON "
+                "(today and planned boxes, gaps with stories, a note per role), then call "
+                "decisioncraft_validate and decisioncraft_render"))
+        loop = asyncio.get_running_loop()
+        result = await asyncio.to_thread(
+            lib.map_target, target, roles=roles, question=question, answers=answers, page_text=page_text,
+            complete=_sampling_complete(ctx, loop))
+        model = result["model"]
+        folder = Path(directory).expanduser() if directory else Path(tempfile.mkdtemp(prefix="decisioncraft-map-"))
+        folder.mkdir(parents=True, exist_ok=True)
+        import json as _json
+
+        (folder / "model.json").write_text(_json.dumps(model, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        (folder / "canvas.html").write_text(lib.render(model), encoding="utf-8")
+        return {"model_path": str((folder / "model.json").resolve()), "canvas_path": str((folder / "canvas.html").resolve()),
+                "summary": summary(model), "plan": result["plan"]}
+
+    # ------------------------------------------------------------ modes
+
+    @server.tool(structured_output=True)
+    def decisioncraft_triage(
+        text: str = "", cost: str = "", reversible: str = "", people: str = "", deadline: str = ""
+    ) -> dict[str, Any]:
+        """How much help a choice needs: none (just answer), quick, guided or team. No model call.
+
+        Pass the person's own words in `text` and anything you know. Returns the mode, why,
+        questions worth asking, and a sentence to offer help without taking over.
+        """
+        answers = {k: v for k, v in {"cost": cost, "reversible": reversible, "people": people,
+                                     "deadline": deadline}.items() if v}
+        return lib.triage(answers, text=text)
+
+    @server.tool(structured_output=True)
+    def decisioncraft_quick(
+        options: list[str],
+        criteria: list[str] | None = None,
+        scores: list[dict] | None = None,
+        question: str = "",
+    ) -> dict[str, Any]:
+        """Quick mode: score options against what matters; returns a Markdown table, a lean and one check.
+
+        criteria: most important first; prefix 'must:' or 'nice:'. scores: [{option, criterion,
+        score 1-5, why}] using names. No files and no model call; show the table in the chat.
+        """
+        return lib.quick(options, criteria, scores, question=question)
+
+    @server.tool(structured_output=True)
+    def decisioncraft_interview_next(
+        directory: str, answer: str | None = None, question: str = "", kind: str | None = None,
+        reset: bool = False,
+    ) -> dict[str, Any]:
+        """Guided mode: record the answer, get the next question (ask it in your own words).
+
+        Repeat until done; finishing writes model.json and material/README.txt in `directory`,
+        then call decisioncraft_render. kind: personal, team or system (default chosen for you).
+        """
+        return lib.interview_step(directory, answer, question=question, kind=kind, reset=reset)
+
+    # ------------------------------------------------------------ prompts
+
+    @server.prompt()
+    def map_this(target: str = "") -> str:
+        """Show how something works today, what could be better, and what each role thinks."""
+        return (
+            f"Show me how {target or '(ask me what: a repo or folder path, some notes, a page or a topic)'} "
+            "works today and what is missing.\n\nCall decisioncraft_map with dry_run first and tell me in "
+            "two lines what it will read. Then call decisioncraft_map to draw it. Tell me where the "
+            "canvas is, summarise the as-is and to-be in three sentences each, list the gaps with "
+            "their user stories, and ask me the two most urgent questions from the role notes."
+        )
+
+    @server.prompt()
+    def decide(situation: str = "") -> str:
+        """Help someone think a choice through, at the right depth."""
+        return (
+            "Help me think this choice through"
+            + (f": {situation}" if situation else ".")
+            + "\n\nFirst call decisioncraft_triage with my words. Then follow the mode it returns: "
+            "just answer if it is small; for quick, ask what matters, call decisioncraft_quick and "
+            "show the table, the lean and the one thing to check; for guided or team, ask before "
+            "building anything, then ask the decisioncraft_interview_next questions one at a time "
+            "in your own words and render the canvas at the end. Keep it plain and short."
+        )
+
+    @server.prompt()
+    def compare_options(options: str = "", what_matters: str = "") -> str:
+        """Lay options side by side against what matters, in the conversation."""
+        return (
+            f"Compare these options: {options or '(ask me for them)'}. What matters: "
+            f"{what_matters or '(ask me, most important first, and whether anything is a must-have)'}."
+            "\n\nAsk me for a rough 1 to 5 for each option on each point where you do not know. "
+            "Then call decisioncraft_quick and show its table, the lean with its reason, and the "
+            "one thing to check first. Say it is a lean, not a verdict."
+        )
+
+    @server.prompt()
+    def what_could_go_wrong(choice: str = "") -> str:
+        """A pre-mortem: imagine it went badly and work out why, then guard against it."""
+        return (
+            f"Imagine it is a year from now and this choice went badly: {choice or '(ask me what I chose)'}."
+            "\n\nList the five most likely reasons, most likely first, each with an early warning "
+            "sign and one thing I could do now to guard against it. Keep each to a line. End with "
+            "the single cheapest check I could make this week."
+        )
+
+    @server.prompt()
+    def regret_test(options: str = "") -> str:
+        """How each option is likely to feel in 10 days, 10 months and 10 years."""
+        return (
+            f"For each option ({options or 'ask me for them'}), describe in a sentence how I am "
+            "likely to feel about it in 10 days, 10 months and 10 years, as a small table. Then say "
+            "which option I would most likely regret not taking, and why. Ask me one question if "
+            "the answer depends on something you do not know about me."
+        )
+
+    @server.prompt()
+    def review_canvas(model_path: str = "") -> str:
+        """Walk someone through a Decisioncraft canvas and collect their answers."""
+        return (
+            f"Help me review the decision map at {model_path or '(ask me for the model.json path)'}."
+            "\n\nRead it with decisioncraft_words. Summarise the choice in two sentences, then go "
+            "through decisioncraft_questions most urgent first, one at a time, and record my answers. "
+            "Offer to open the canvas with decisioncraft_render or a live review with "
+            "decisioncraft_start_review if I would rather click through it."
+        )
+
+    # ------------------------------------------------------------ resources
+
+    @server.resource("decisioncraft://templates", mime_type="application/json")
+    def templates_resource() -> str:
+        """The map templates: id, kind, title and what each is for."""
+        import json as _json
+
+        return _json.dumps(lib.templates(), ensure_ascii=False)
+
+    @server.resource("decisioncraft://roles", mime_type="application/json")
+    def roles_resource() -> str:
+        """The default roles and the question each always asks."""
+        import json as _json
+
+        return _json.dumps(lib.roles(), ensure_ascii=False)
+
+    @server.resource("decisioncraft://writing-guide", mime_type="text/markdown")
+    def writing_guide_resource() -> str:
+        """How to write models and notes in plain words."""
+        from .intelligence import _guide
+
+        return _guide()
+
+    @server.resource("decisioncraft://interview-questions", mime_type="application/json")
+    def interview_resource() -> str:
+        """The interview's questions by set (personal, team, system), with why each is asked."""
+        import json as _json
+
+        return _json.dumps(lib.interview_questions(), ensure_ascii=False)
+
+    @server.resource("decisioncraft://modes", mime_type="application/json")
+    def modes_resource() -> str:
+        """The four modes (none, quick, guided, team) and what each does."""
+        import json as _json
+
+        return _json.dumps(lib.modes(), ensure_ascii=False)
+
+    @server.resource("decisioncraft://examples", mime_type="application/json")
+    def examples_resource() -> str:
+        """The worked examples and what each shows."""
+        import json as _json
+
+        return _json.dumps([{"name": e["id"], "about": e["about"]} for e in lib.example_names()],
+                           ensure_ascii=False)
 
     @server.tool(structured_output=True)
     def decisioncraft_handoff(model: dict, review: dict) -> dict[str, Any]:

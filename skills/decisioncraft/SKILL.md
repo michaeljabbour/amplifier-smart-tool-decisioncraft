@@ -1,6 +1,15 @@
 ---
 name: decisioncraft
-description: Map how a problem works, gather every point of view, and decide together. Builds a zoomable, offline HTML canvas and a plain-text version from a decision model. Use when a decision affects several groups and each should be heard, with a record of why it was decided, before anyone chooses.
+description: >-
+  Point it at anything - a codebase, a folder of notes, a page or a topic - and get a map
+  of how it works today, how it could work, the gaps as user stories with 'done when'
+  checks, and notes from every role. It also helps someone weigh a choice at the right
+  depth, from a quick side-by-side in the chat to a full team review. Use for "map this
+  codebase", "show me how X works", "as-is and to-be", "where are the gaps", "turn these
+  notes into a process map", "review this process", and whenever someone is weighing
+  options, even without saying 'decision': "should I...", "torn between", "pros and cons",
+  "which is better", "renew or buy", "keep or replace", "help me think this through",
+  comparing offers, quotes or vendors. Not for factual questions or trivial picks.
 ---
 
 # Decisioncraft
@@ -15,33 +24,28 @@ decisioncraft doctor
 Then run `decisioncraft --help` and follow it. It is the full guide and stays correct
 when the tool changes. Each command has its own: `decisioncraft <command> --help`.
 
-**Use it when** a decision affects several groups, you need to show how something works
-today against a plan, or you want meeting notes and documents turned into a map people
-can review. **Don't use it for** a quick yes or no, task tracking, or live co-editing.
+**To show how something works:** `decisioncraft map <repo, folder, file or "topic"> --dry-run
+--json` shows what it will read; then add `--complete-cmd 'your-command'` (or `--provider`)
+and `--open` to draw today's way, the planned way, gaps with user stories and "done when"
+checks, and a note from each role.
 
-Five things worth knowing before you start:
+**To help with a choice, start with triage.** When someone seems to be weighing options, run
+`decisioncraft triage --text "<their words>" --json` and follow its `mode`:
 
-- Add `--json` to any command: one JSON result on stdout, errors included, and `ok` is
-  true exactly when the exit code is 0 (1 input, 2 command line, 3 set up first, 4 model
-  call failed). It never prompts when stdin is not a terminal.
-- To show today against a plan, mark steps or items `when: today` or `when: planned`, and
-  give a planned box `replaces: <id>` when it replaces a today-only box. The canvas then
-  offers Today, Planned, What changes and Side by side; the text version lists the changes.
-- Only `draft` and `perspectives` use a model. If you can't call your own model from a
-  command, write the model yourself: `decisioncraft new --question "..." --dir NAME --yes`,
-  fill in `NAME/model.json` from the material, and run `decisioncraft validate` until it is
-  clean. Otherwise route through your model with `--complete-cmd 'your-command'` (it reads
-  `{"system", "prompt"}` JSON on stdin and prints the reply), or use `decisioncraft mcp`,
-  whose draft tools ask your model through MCP sampling. Never invent evidence.
-- To review with the person on this computer, use `decisioncraft session MODEL --dir
-  NEW_FOLDER --open --until-finished --json` and read their answers and the `handoff`
-  when it finishes. A vote or a finished review is not a decision; the owner decides.
-- To chain steps, import the library (`import decisioncraft as dc`) instead of parsing
-  command output.
+- `none`: just answer. Build nothing.
+- `quick`: ask what matters, score the options with them, run `decisioncraft quick ... --json`
+  and show its `table`, `lean` and `check_first` in the chat. No files.
+- `guided`: offer first, then `decisioncraft interview --dir NAME --question "..." --json`,
+  one question at a time (`--answer "..."` each turn) until `done`, then
+  `decisioncraft render NAME/model.json --open`.
+- `team`: the same with `--kind team`, then draft, render and review (see `--help`).
 
-The recipes in `--help` cover: meeting notes to a canvas, a live review, getting expert
-replies on reviewers' rough notes, comparing two versions, merging reviews, and exporting
-questions to a task list. For expert replies: `decisioncraft perspectives MODEL --notes
-ANSWERS --dry-run` shows what would be asked; add `--complete-cmd` (or use the MCP tool
-`decisioncraft_review_notes`) to write the replies, then `render --reviews` to show them. See `docs/HOSTS.md`
-in the repository for MCP setup.
+**Offer, don't take over.** Never build files unasked. Use the `offer` sentence triage
+returns, or your own: "Want me to lay the options side by side?" If they say no, help in
+the conversation as usual.
+
+Add `--json` to any command for one JSON result (errors included). It never prompts when
+stdin is not a terminal. Over MCP (`decisioncraft mcp`) the same steps are
+`decisioncraft_map`, `decisioncraft_triage`, `decisioncraft_quick` and
+`decisioncraft_interview_next`, plus the prompts `map_this`, `decide`, `compare_options`, `what_could_go_wrong`, `regret_test` and
+`review_canvas`. See `docs/HOSTS.md` in the repository for MCP setup.
