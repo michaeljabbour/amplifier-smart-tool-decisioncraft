@@ -1,15 +1,6 @@
 ---
 name: decisioncraft
-description: >-
-  Point it at anything - a codebase, a folder of notes, a page or a topic - and get a map
-  of how it works today, how it could work, the gaps as user stories with 'done when'
-  checks, and notes from every role. It also helps someone weigh a choice at the right
-  depth, from a quick side-by-side in the chat to a full team review. Use for "map this
-  codebase", "show me how X works", "as-is and to-be", "where are the gaps", "turn these
-  notes into a process map", "review this process", and whenever someone is weighing
-  options, even without saying 'decision': "should I...", "torn between", "pros and cons",
-  "which is better", "renew or buy", "keep or replace", "help me think this through",
-  comparing offers, quotes or vendors. Not for factual questions or trivial picks.
+description: Point it at anything (a codebase, a folder of notes, a page or a topic) and get a map of how it works today, how it could work, the gaps as user stories with 'done when' checks, and a note from every role. It also helps someone weigh a choice at the right depth, from a quick side-by-side in the chat to a full team review. Use for 'map this codebase', 'show me how X works', 'as-is and to-be', 'where are the gaps', 'turn these notes into a process map', 'review this process', and whenever someone is weighing options without saying decision, such as 'should I', 'torn between', 'pros and cons', 'which is better', 'renew or buy', 'keep or replace', 'help me think this through', or comparing offers, quotes or vendors. Not for factual questions or trivial picks.
 ---
 
 # Decisioncraft
@@ -25,15 +16,24 @@ decisioncraft doctor
 choice" or `--version` is not recognised, an older copy is first on the PATH: upgrade it with
 the install line above (add `--force`), then check again.
 
+**First run: which model?** `map`, `draft`, `perspectives` and Ask the experts need a model.
+`decisioncraft doctor` says which one they will use. In order: an `ANTHROPIC_API_KEY`
+(`claude-sonnet-5-5`) or `OPENAI_API_KEY` (`gpt-5.5`) already set means nothing extra to
+type; `DECISIONCRAFT_PROVIDER` / `DECISIONCRAFT_MODEL` or `decisioncraft config set` pick one
+for good; `--provider NAME --model NAME` picks one for a run (`perspectives` and `session`
+take `--model-name`, because their first argument is the model file); `--complete-cmd 'cmd'`
+routes through your own model; and with no model at all, `map --starter` lets you fill the
+map in yourself. If a model step fails with "Say which model should answer", use one of these.
+
 Then run `decisioncraft --help` and follow it. It is the full guide and stays correct
 when the tool changes. Each command has its own: `decisioncraft <command> --help`.
 
 **To show how something works:** `decisioncraft map <repo, folder, file or "topic"> --dry-run
 --json` shows what it will read. Then either:
 
-- route a model with `--complete-cmd 'your-command'` (or `--provider`) and add `--open` to draw
-  today's way, the planned way, gaps with user stories and "done when" checks, and a note from
-  each role; or
+- run `decisioncraft map TARGET --open` (it uses the model from First run above, or add
+  `--complete-cmd 'your-command'`) to draw today's way, the planned way, gaps with user stories
+  and "done when" checks, and a note from each role. It takes a few minutes; or
 - if you can't route a model, run `decisioncraft map TARGET --starter --dir NAME --json`. It
   writes `NAME/material/digest.md` (numbered lines to cite), a starter `NAME/model.json` and
   `NAME/FILL-IN.md`. Fill the model in yourself using `decisioncraft guide`, then validate and

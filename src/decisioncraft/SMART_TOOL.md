@@ -2,17 +2,7 @@
 smart_tool_format: 1
 name: decisioncraft
 version: 0.2.1
-description: >-
-  Point it at anything (a codebase, a folder of notes, a page or a topic) and get a map
-  of how it works today, how it could work, the gaps as user stories with 'done when'
-  checks, and notes from every role. It also helps someone weigh a choice at the right
-  depth, from a quick side-by-side in the chat to a full team review. Use for "map this
-  codebase", "show me how X works", "as-is and to-be", "where are the gaps", "turn these
-  notes into a process map", "review this process", and whenever someone is weighing
-  options, even without saying 'decision': "should I...", "torn between", "pros and
-  cons", "which is better", "renew or buy", "keep or replace", "help me think this
-  through", comparing offers, quotes or vendors. Not for factual questions or trivial
-  picks.
+description: Point it at anything (a codebase, a folder of notes, a page or a topic) and get a map of how it works today, how it could work, the gaps as user stories with 'done when' checks, and a note from every role. It also helps someone weigh a choice at the right depth, from a quick side-by-side in the chat to a full team review. Use for 'map this codebase', 'show me how X works', 'as-is and to-be', 'where are the gaps', 'turn these notes into a process map', 'review this process', and whenever someone is weighing options without saying decision, such as 'should I', 'torn between', 'pros and cons', 'which is better', 'renew or buy', 'keep or replace', 'help me think this through', or comparing offers, quotes or vendors. Not for factual questions or trivial picks.
 use_cases:
   - Point it at a codebase, a folder of notes or a topic and see how it works today, how it could work, and the gaps as user stories
   - Talk a personal choice through, like renewing a lease or buying a car, a job offer or a school, and see the options side by side
@@ -28,14 +18,16 @@ platforms:
 requires:
   - name: ANTHROPIC_API_KEY
     purpose: >-
-      `draft` and `perspectives` with --provider anthropic. Without it, those two
-      capabilities fail with a clear message; every other capability is unaffected.
+      The model-backed steps (map, draft, perspectives and Ask the experts) with
+      --provider anthropic. Without it those steps fail with a clear message; every other
+      capability, and --complete-cmd or --starter, is unaffected.
     install: https://docs.anthropic.com/en/api/getting-started
     optional: true
   - name: OPENAI_API_KEY
     purpose: >-
-      `draft` and `perspectives` with --provider openai. Without it, those two
-      capabilities fail with a clear message; every other capability is unaffected.
+      The model-backed steps (map, draft, perspectives and Ask the experts) with
+      --provider openai. Without it those steps fail with a clear message; every other
+      capability, and --complete-cmd or --starter, is unaffected.
     install: https://platform.openai.com/docs/quickstart
     optional: true
 ---
@@ -188,23 +180,26 @@ uv tool install "amplifier-smart-tool-decisioncraft[smart,mcp] @ git+https://git
 decisioncraft doctor
 ```
 
-Python 3.11 or later. `[smart]` is only for `--provider` on the two model-backed
-commands; `[mcp]` is only for `decisioncraft mcp`. `doctor` checks everything, never
+Python 3.11 or later. `[smart]` brings the Anthropic and OpenAI SDKs, used when a model
+step runs on your API key; `[mcp]` is only for `decisioncraft mcp`. `doctor` checks everything, never
 calls a model, and prints exactly what to fix.
 
 ## First five minutes
 
 ```
 decisioncraft                                  # start screen
-decisioncraft map ./your-repo --dry-run        # what map would read; add a model to draw it
+decisioncraft map ./your-repo --open          # read, draw and open it (see Which model answers)
+decisioncraft map ./your-repo --dry-run        # what map would read; no model call
 decisioncraft example medical --open           # a finished example in the browser
 decisioncraft new                              # asks a few questions, makes a folder
 decisioncraft render model.json --open         # draw your model
 ```
 
-Worked examples: `business` (a bakery's subscription box), `technical` (moving file
-uploads), `engineering` (repair or replace a footbridge), `medical` (a ward's discharge
-process; not medical advice, no patient data).
+Worked examples: `map` (a made-up bike hire repo, mapped as-is and to-be), `car` (keep,
+renew, buy new, buy used or car share, with scores and cost over time), `business` (a
+bakery's subscription box), `technical` (moving file uploads), `engineering` (repair or
+replace a footbridge), `medical` (a ward's discharge process; not medical advice, no
+patient data).
 
 ## Deterministic and model-backed
 
@@ -289,7 +284,8 @@ missing?"
 
 ```
 decisioncraft map ./the-repo --dry-run --json      # what it will read; no model call
-decisioncraft map ./the-repo --complete-cmd 'python3 my_adapter.py' --dir repo-map --open
+decisioncraft map ./the-repo --dir repo-map --open  # drafts with the model from Which model answers
+decisioncraft map ./the-repo --complete-cmd 'python3 my_adapter.py' --dir repo-map --open  # or your own model
 ```
 
 It reads the README, docs, manifests, schemas, routes and entry points first (respecting

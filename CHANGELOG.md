@@ -26,6 +26,20 @@
 - `map` prints its steps as it works, a time and cost estimate before it starts, and the
   token use at the end. Error hints give a command you can copy.
 
+### Easier first run, and MCP that never dead-ends
+
+- README and the Agent Skill open with **First run: which model?**: what to type, in order
+  (your API key, a saved choice, `--provider`, your agent's model, or no model with `--starter`).
+- The skill installs without a checkout (one `curl` line per host), and `docs/HOSTS.md` gives
+  exact setup for Claude Code, Codex, Amplifier and any MCP host, with every tool, prompt and
+  resource.
+- Over MCP, model steps use the host's model when it can sample, otherwise the server's API
+  key. `decisioncraft_map` writes a starter instead of failing when neither is available.
+- A path that doesn't exist is refused instead of being mapped as a topic; an unwritable folder
+  says so plainly.
+- The MCP server reports Decisioncraft's version and logs only warnings.
+- The skill description is a single plain line that every skill loader reads whole.
+
 ## 0.2.0 (2026-10-02)
 
 ### Point it at anything

@@ -17,7 +17,8 @@ sys.path.insert(0, str(HERE))
 import stub_map  # noqa: E402
 
 REPO = HERE / "fixtures" / "sample-repo"
-ENV = dict(os.environ, PYTHONPATH=str(HERE.parent / "src"), DECISIONCRAFT_NO_BROWSER="1")
+# No API keys: a host without sampling must not fall back to a paid provider in tests.
+ENV = dict({k: v for k, v in os.environ.items() if k not in ("ANTHROPIC_API_KEY", "OPENAI_API_KEY", "DECISIONCRAFT_PROVIDER", "DECISIONCRAFT_MODEL")}, PYTHONPATH=str(HERE.parent / "src"), DECISIONCRAFT_NO_BROWSER="1")
 
 
 def cli(*args, cwd=None):
@@ -142,7 +143,9 @@ def test_mcp_map():
                 plan = await client.call_tool("decisioncraft_map", {"target": str(REPO), "dry_run": True})
                 assert plan.structuredContent["plan"]["kind"] == "repo"
                 nosample = await client.call_tool("decisioncraft_map", {"target": str(REPO)})
-                assert nosample.isError and "dry_run" in nosample.content[0].text
+                # No sampling and no key: a starter to fill in, not a dead end.
+                assert not nosample.isError and nosample.structuredContent["starter"] is True
+                assert Path(nosample.structuredContent["digest_path"]).is_file()
                 p = await client.get_prompt("map_this", {"target": "./the-repo"})
                 assert "decisioncraft_map" in p.messages[0].content.text
 
