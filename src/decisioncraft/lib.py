@@ -62,6 +62,24 @@ def manifest() -> dict:
     return _m()
 
 
+def guide() -> dict:
+    """The model format (every field, with its rules) and the writing guide, as Markdown."""
+    from importlib import resources
+    from pathlib import Path
+
+    from .intelligence import _guide
+
+    fmt = ""
+    packaged = resources.files("decisioncraft").joinpath("resources/model-format.md")
+    if packaged.is_file():
+        fmt = packaged.read_text(encoding="utf-8")
+    else:  # a checkout: read the contract from the repository
+        repo = Path(__file__).resolve().parents[2] / "contracts" / "model.v1.md"
+        if repo.is_file():
+            fmt = repo.read_text(encoding="utf-8")
+    return {"model_format": fmt, "writing_guide": _guide()}
+
+
 def roles() -> list[dict]:
     """The default roles: id, label, colour and the question each role always asks."""
     return default_roles()

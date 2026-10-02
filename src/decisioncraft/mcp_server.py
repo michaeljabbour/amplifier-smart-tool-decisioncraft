@@ -431,6 +431,13 @@ def build_server():
 
         return _json.dumps(lib.roles(), ensure_ascii=False)
 
+    @server.resource("decisioncraft://model-format", mime_type="text/markdown")
+    def model_format_resource() -> str:
+        """Every field of the decision model, with its rules."""
+        from .lib import guide
+
+        return guide()["model_format"]
+
     @server.resource("decisioncraft://writing-guide", mime_type="text/markdown")
     def writing_guide_resource() -> str:
         """How to write models and notes in plain words."""

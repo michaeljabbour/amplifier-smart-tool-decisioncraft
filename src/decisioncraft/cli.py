@@ -32,7 +32,7 @@ GROUPS = [
     ("Talk a choice through", ["triage", "quick", "interview"]),
     ("Review and compare", ["session", "questions", "merge", "diff", "words", "validate", "handoff"]),
     ("Draft with a model (costs tokens)", ["draft", "perspectives"]),
-    ("For agents and hosts", ["discover", "templates", "roles", "manifest", "mcp"]),
+    ("For agents and hosts", ["discover", "guide", "templates", "roles", "manifest", "mcp"]),
 ]
 
 # Set from argv before parsing, so even a usage error can answer in JSON.
@@ -372,7 +372,7 @@ def build() -> SkillParser:
     # For agents and hosts
     c = cmd("discover")
     c.add_argument_group("Input").add_argument("--question", default="", help="The choice, if already described.")
-    for name in ("templates", "roles", "manifest", "mcp"):
+    for name in ("guide", "templates", "roles", "manifest", "mcp"):
         cmd(name)
     for name, sp in sub.choices.items():
         _globals(sp, root=False)
@@ -1044,6 +1044,12 @@ def do_simple(run: Run) -> Out:
         if run.pretty:
             text = "\n".join(_wrap(r["id"], f"{r['label']}: {r.get('asks', '')}", 13) for r in roles) + "\n"
         return Out(data=roles, text=text)
+    if cmd == "guide":
+        g = lib.guide()
+        text = None
+        if run.pretty or not run.args.json:
+            text = "# The model format\n\n" + g["model_format"].strip() + "\n\n# Writing guide\n\n" + g["writing_guide"].strip() + "\n"
+        return Out(data=g, text=text)
     if cmd == "templates":
         temps = lib.templates()
         text = None
@@ -1282,7 +1288,7 @@ HANDLERS = {
     "example": do_example, "new": do_new, "render": do_render, "doctor": do_doctor,
     "session": do_session, "questions": do_questions, "words": do_words, "merge": do_merge,
     "diff": do_diff, "validate": do_validate, "handoff": do_handoff, "draft": do_draft,
-    "perspectives": do_perspectives, "discover": do_simple, "templates": do_simple,
+    "perspectives": do_perspectives, "discover": do_simple, "templates": do_simple, "guide": do_simple,
     "roles": do_simple, "manifest": do_simple, "mcp": do_mcp,
     "triage": do_triage, "quick": do_quick, "interview": do_interview, "map": do_map,
 }

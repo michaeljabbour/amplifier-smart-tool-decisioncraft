@@ -228,10 +228,11 @@ falls back to a lesser answer. If you are an agent, choose the first that fits:
 
 1. **Write the model yourself** when you can't call your own model from a command (for
    example a coding agent with no MCP sampling). Run `decisioncraft new --question "..."
-   --dir NAME --yes`, read `decisioncraft templates` and the writing guide
-   (`resources/writing-guide.md` in the skill directory), fill in `NAME/model.json` from
-   the material, quoting it as evidence, then run `decisioncraft validate NAME/model.json`
-   until it reports no errors. No model call happens inside Decisioncraft.
+   --dir NAME --yes` (or finish an `interview`), read `decisioncraft guide` (every field
+   of the model, with its rules, plus the writing guide; `--json` for both as Markdown) and
+   `decisioncraft templates`, fill in `NAME/model.json` from the material, quoting it as
+   evidence, then run `decisioncraft validate NAME/model.json` until it reports no errors.
+   Don't read the tool's source code; `guide` is the reference. No model call happens inside Decisioncraft.
 2. **Your host's own model, by command** (`--complete-cmd`). Decisioncraft runs the
    command once per model call: once for the draft, and once more only if the reply needs
    a repair. Each run gets `{"system": "...", "prompt": "..."}` as JSON on stdin. Print

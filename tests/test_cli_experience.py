@@ -242,3 +242,11 @@ def test_session_refuses_a_used_folder(tmp_path):
     doc = envelope(run("session", str(ROOT / "examples" / "medical" / "model.json"), "--dir", str(used), "--json"))
     assert doc["error"]["code"] == "folder_not_empty" and doc["error"]["field"] == "--dir"
     assert "--review" in doc["error"]["hint"]
+
+
+def test_guide_prints_the_model_format_and_writing_guide():
+    import decisioncraft as dc
+
+    g = dc.guide()
+    assert "decisioncraft/1" in g["model_format"] and "criteria" in g["model_format"]
+    assert g["writing_guide"].strip()

@@ -188,6 +188,16 @@ CAPABILITIES: dict[str, dict] = {
         "result": "JSON: name, version, description, capabilities and their kind.",
         "fails": "Never, unless the installation is damaged.",
     },
+    "guide": {
+        "kind": "deterministic",
+        "summary": "Print the model format and the writing guide, for writing a model by hand.",
+        "when": "When you (or an agent with no model routing) fill in model.json yourself: read this, "
+        "then `validate` until it reports no errors.",
+        "args": [],
+        "example": "decisioncraft guide",
+        "result": "Text, or with --json: {model_format, writing_guide} as Markdown.",
+        "fails": "Never, unless the installation is damaged.",
+    },
     "templates": {
         "kind": "deterministic",
         "summary": "List the map templates.",

@@ -27,6 +27,8 @@ build-backend = "hatchling.build"
 packages = ["src/decisioncraft"]
 
 [tool.hatch.build.targets.wheel.force-include]
+# The model contract ships as `decisioncraft guide`'s model format.
+"contracts/model.v1.md" = "decisioncraft/resources/model-format.md"
 # The worked examples ship inside the package so `decisioncraft example NAME` works after
 # installation. Only models, material and reviews: the canvases are rebuilt on demand.
 "examples/business/model.json" = "decisioncraft/examples/business/model.json"

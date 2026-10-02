@@ -21,6 +21,10 @@ uv tool install "amplifier-smart-tool-decisioncraft[smart,mcp] @ git+https://git
 decisioncraft doctor
 ```
 
+`decisioncraft --version` should print 0.2.0 or later. If a command below is "not a valid
+choice" or `--version` is not recognised, an older copy is first on the PATH: upgrade it with
+the install line above (add `--force`), then check again.
+
 Then run `decisioncraft --help` and follow it. It is the full guide and stays correct
 when the tool changes. Each command has its own: `decisioncraft <command> --help`.
 
@@ -39,6 +43,10 @@ checks, and a note from each role.
   one question at a time (`--answer "..."` each turn) until `done`, then
   `decisioncraft render NAME/model.json --open`.
 - `team`: the same with `--kind team`, then draft, render and review (see `--help`).
+
+**Filling in a model yourself** (no model routing, or after an interview): read
+`decisioncraft guide`, which lists every field with its rules, edit `model.json`, and run
+`decisioncraft validate` until it reports no errors. You don't need the tool's source.
 
 **Personal and household choices** (a car, a home, a job offer): the interview writes a
 `personal-decision` model with must-haves, weighted scores and a computed "what would change

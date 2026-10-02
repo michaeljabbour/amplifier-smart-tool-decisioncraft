@@ -19,6 +19,7 @@ from .lib import (  # noqa: F401
     notes_to_ask,
     questions,
     render,
+    guide,
     roles,
     session,
     templates,
