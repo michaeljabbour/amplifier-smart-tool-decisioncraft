@@ -124,10 +124,16 @@ def check_choice(model: dict, evidence_ids: set) -> list[dict]:
             if r not in evidence_ids:
                 err(f"{p}.evidence", f"Unknown evidence {r!r}.")
     if options and criteria and "scores" in model:
-        for o in options:
-            for c in criteria:
-                if (o.get("id"), c.get("id")) not in seen:
-                    warn("scores", f"{o.get('name', o.get('id'))} has no score for {c.get('name', c.get('id'))}.")
+        gaps = [(o, c) for o in options for c in criteria if (o.get("id"), c.get("id")) not in seen]
+        if gaps and len(gaps) == len(options) * len(criteria):
+            # A starter model (for example after an interview): one warning, not one per cell.
+            warn("scores", f"No scores yet for {len(options)} options and {len(criteria)} criteria. "
+                 "Add a score 1-5 with a note and evidence for each, or meets true/false for a must-have.")
+        else:
+            for o, c in gaps[:10]:
+                warn("scores", f"{o.get('name', o.get('id'))} has no score for {c.get('name', c.get('id'))}.")
+            if len(gaps) > 10:
+                warn("scores", f"... and {len(gaps) - 10} more option and criterion pairs with no score.")
 
     costs = model.get("costs")
     if costs is not None:
@@ -233,8 +239,12 @@ def _check_costs(costs, option_ids) -> list[dict]:
             elif any(b > a for a, b in zip(value, value[1:])):
                 warn(f"{p}.value", "The value goes up in a later year. Check the numbers.")
     missing = option_ids - set(per)
-    for oid in sorted(x for x in missing if isinstance(x, str)):
-        warn("costs.options", f"Option {oid} has no costs, so it is left off the cost chart.")
+    if missing and not per:
+        warn("costs.options", f"No costs yet for any of the {len(option_ids)} options, so the cost chart is empty. "
+             "Add upfront amounts, yearly items, any loan and value by year for each option.")
+    else:
+        for oid in sorted(x for x in missing if isinstance(x, str)):
+            warn("costs.options", f"Option {oid} has no costs, so it is left off the cost chart.")
     return out
 
 

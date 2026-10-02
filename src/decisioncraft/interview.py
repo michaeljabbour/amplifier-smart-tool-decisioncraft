@@ -344,22 +344,37 @@ def _fill_personal(model: dict, options: list, crit: list, answers: dict) -> Non
     does not have yet, and the person (or an agent with evidence) fills them in.
     """
     used: set = set()
+    # The interview's options question already asks about doing nothing; don't add it here
+    # (when a lease ends, "keep things as they are" may not even be possible).
     names = list(options) or []
-    if names and not any(re.search(r"\b(nothing|as they are|keep)\b", n, re.I) for n in names):
-        names.append("Keep things as they are")
     model["options"] = [{"id": _slug_id(n, used), "name": n.strip(), "summary": ""} for n in names if n.strip()]
     used_c: set = set()
     out = []
     for c in crit:
         cid = _slug_id(c["label"], used_c)
         if c["importance"] == "must":
-            out.append({"id": cid, "name": c["label"], "kind": "must", "measure": ""})
+            measure = ""
+            # A money must-have ("not too expensive per month") is measured by the budget given.
+            if answers.get("budget") and not re.search(r"\d", c["label"]) and re.search(r"\b(cost|price|expensive|afford|month|budget|payment|cheap)", c["label"], re.I):
+                measure = f"Within the budget: {answers['budget']}"
+            out.append({"id": cid, "name": c["label"], "kind": "must", "measure": measure})
         else:
             out.append({"id": cid, "name": c["label"], "kind": "scored",
                         "weight": 4 if c["importance"] == "important" else 2, "measure": ""})
     model["criteria"] = out
+    notes = []
     if answers.get("budget"):
-        model["costs"]["assumptions"] = f"Budget: {answers['budget']}"
+        notes.append(f"Budget: {answers['budget']}.")
+    changes = answers.get("whatifs") or []
+    if isinstance(changes, str):
+        changes = [changes]
+    if changes:
+        # Free-text "what could change" answers are not cost multipliers; keep them in words
+        # where people read them, so they are not lost.
+        notes.append("What could change: " + "; ".join(x.strip().rstrip(".") for x in changes if x.strip()) + ".")
+    if notes:
+        model["costs"]["assumptions"] = " ".join(notes)
+        model["summary"] = (model.get("summary", "") + " " + " ".join(notes)).strip()
 
 
 def build_model(state: dict, *, date: str = "") -> dict:

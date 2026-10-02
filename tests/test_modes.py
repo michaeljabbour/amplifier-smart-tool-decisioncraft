@@ -160,8 +160,20 @@ def test_interview_car_one_question_at_a_time(tmp_path):
     assert model["criteria"][0] == {"id": "under-500-a-month", "name": "Under 500 a month", "kind": "must", "measure": ""}
     assert any(c["kind"] == "scored" and c["weight"] == 4 for c in model["criteria"])
     assert "personal" not in model and "comparison" not in model
+    assert "Keep things as they are" not in [o["name"] for o in model["options"]]  # the interview asks; never added
+    assert "What could change: Petrol prices rise" in model["costs"]["assumptions"]
     assert not [p for p in dc.validate(model) if p["level"] == "error"]
     assert (tmp_path / "car" / "material" / "README.txt").is_file()
+
+
+def test_interview_money_must_have_is_measured_by_the_budget(tmp_path):
+    answers = dict(CAR, must_haves="not too expensive per month, fits 2 car seats", budget="about 450 a month")
+    r, _ = run_interview(tmp_path / "car2", "my lease is up soon, buy it out or get something else?", answers)
+    model = json.loads(Path(r["model_path"]).read_text())
+    money = next(c for c in model["criteria"] if c["name"].lower().startswith("not too expensive"))
+    assert money["measure"] == "Within the budget: about 450 a month"
+    warns = [p for p in dc.validate(model) if p["level"] == "warning" and p["path"] == "scores"]
+    assert len(warns) == 1 and warns[0]["message"].startswith("No scores yet")
 
 
 def test_interview_state_survives_between_calls(tmp_path):
