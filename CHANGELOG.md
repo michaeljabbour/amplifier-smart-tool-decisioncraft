@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.2.1 (2026-10-02)
+
+### Works with just an API key
+
+- `map`, `draft` and `perspectives` no longer need `--provider` and `--model`. With
+  `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` set they pick the model and say which on stderr:
+  Anthropic `claude-sonnet-5-5` (trying `claude-opus-5-5` once if a draft still has problems),
+  or OpenAI `gpt-5.5`. Override with flags, `DECISIONCRAFT_PROVIDER` / `DECISIONCRAFT_MODEL`,
+  or the new `decisioncraft config set provider|model ...`.
+- `doctor` names the model that will answer and only says "Ready, including drafting" when
+  one does. `doctor --live` makes one tiny real call to each provider.
+
+### Maps that finish with real models
+
+- Before, a real-model `map` could run for minutes and then fail: long replies were cut off
+  at 16,000 tokens and the cut-off reply was misread, and common model slips failed the whole
+  map. Now replies stream with room for a whole model, a cut-off is reported as such, and the
+  slips are fixed before checking: evidence kinds such as "code" or "fact", stories written as
+  sentences, decision ids that clash with box ids, planned steps drawn in a separate journey,
+  effort written as "Medium" or "not sure", line numbers copied into quotes. Quotes that can't
+  be found word for word in the material are marked unverified instead of failing the map.
+- `map` draws the boxes first, then asks each role for its notes in a separate small call,
+  several at once, at lower effort.
+- `map` prints its steps as it works, a time and cost estimate before it starts, and the
+  token use at the end. Error hints give a command you can copy.
+
 ## 0.2.0 (2026-10-02)
 
 ### Point it at anything

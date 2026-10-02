@@ -12,7 +12,7 @@ from importlib.resources import files
 from .model import templates
 
 NAME = "decisioncraft"
-VERSION = "0.2.0"
+VERSION = "0.2.1"
 
 CAPABILITIES: dict[str, dict] = {
     "map": {
@@ -68,17 +68,34 @@ CAPABILITIES: dict[str, dict] = {
         "kind": "deterministic",
         "summary": "Check your setup and say exactly what to fix.",
         "when": "After installing, before drafting with a model, or when something fails and "
-        "you are not sure why. It never calls a model.",
+        "you are not sure why. It says which provider and model will answer. It never calls a "
+        "model unless you add --live.",
         "args": [
             ("--dir", "Folder you plan to write into (default: the current folder)."),
             ("--complete-cmd", "A host command you plan to route model calls through; "
              "its program is looked up, not run."),
+            ("--live", "Also make one tiny real call to each provider with a key (costs a fraction of a cent)."),
         ],
-        "example": "decisioncraft doctor --complete-cmd 'my-host complete'",
+        "example": "decisioncraft doctor --live",
         "result": "One line per check (Python, write access, provider packages and keys, "
         "--complete-cmd, MCP) with what to fix. With --json: {checks, ready, summary}.",
         "fails": "Exit 3 when something every user needs is broken (old Python, no write "
         "access, or a --complete-cmd program that can't be found). Optional parts only warn.",
+    },
+    "config": {
+        "kind": "deterministic",
+        "summary": "Remember which provider and model answer, so you never pass --provider again.",
+        "when": "When both API keys are set and you prefer one, or to pin a model. Precedence: "
+        "--provider/--model, then DECISIONCRAFT_PROVIDER/DECISIONCRAFT_MODEL, then this file, then "
+        "whichever key is set (Anthropic first) with its default model.",
+        "args": [
+            ("action", "show, set, or unset."),
+            ("key", "provider or model."),
+            ("value", "For set: anthropic or openai, or a model name such as claude-sonnet-5-5."),
+        ],
+        "example": "decisioncraft config set provider openai",
+        "result": "The settings and the file they live in. With --json: {path, settings, resolved}.",
+        "fails": "Unknown setting or provider (exit 2).",
     },
     "mcp": {
         "kind": "deterministic", "summary": "Serve the same decision workflow to an MCP host over stdio.",

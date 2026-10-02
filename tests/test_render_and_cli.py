@@ -244,9 +244,9 @@ def test_neither_provider_nor_complete_cmd_is_a_clean_error(tmp_path):
     r = run(
         "draft", str(note), "--template", "decision-chain", "--question", "Q?", ok=False
     )
-    # exit 2: the command line is missing a choice
+    # exit 3: nothing is set up to answer; the message says how to fix it
     assert (
-        r.returncode == 2 and "--provider" in r.stderr and "--complete-cmd" in r.stderr
+        r.returncode == 3 and "ANTHROPIC_API_KEY" in r.stderr and "--complete-cmd" in r.stderr
     )
 
 

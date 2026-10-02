@@ -98,9 +98,11 @@ uv tool install "amplifier-smart-tool-decisioncraft[smart,mcp] @ git+https://git
 decisioncraft doctor
 ```
 
-Python 3.11 or later. `[smart]` is only needed for `--provider` on the two model-backed
-commands, and `[mcp]` only for `decisioncraft mcp`. `doctor` checks your setup, never calls
-a model, and says exactly what to fix. You can also run straight from a checkout:
+Python 3.11 or later. `[smart]` lets `map`, `draft` and `perspectives` call Anthropic or
+OpenAI: set `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` and it picks the model for you (pin one
+with `decisioncraft config set provider openai`). `[mcp]` is only for `decisioncraft mcp`.
+`doctor` says which model will answer and exactly what to fix; `doctor --live` also makes one
+tiny real call. You can also run straight from a checkout:
 `python3 bin/decisioncraft.py`.
 ## Use it from your agent
 
@@ -139,7 +141,7 @@ decisioncraft render pickups/model.json --out pickups/canvas.html
 cp notes/*.md pickups/material/
 decisioncraft draft pickups/material/*.md --question "How do we cut missed pickups by half?" \
   --complete-cmd 'python3 my_adapter.py' --out pickups/model.json
-#   ...or --provider anthropic --model <model-name>, with ANTHROPIC_API_KEY set
+#   ...or just set ANTHROPIC_API_KEY or OPENAI_API_KEY and leave the flags off
 
 # after the review
 decisioncraft merge pickups/model.json review-*.json --out merged.json

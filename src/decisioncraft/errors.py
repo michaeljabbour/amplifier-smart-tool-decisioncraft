@@ -59,7 +59,8 @@ class ToolError(Exception):
 
 
 # Phrases the library uses when a provider is not set up, as opposed to a failed call.
-_SETUP_PHRASES = ("Set ", "Install the", "Unknown provider", "Name a model", "Pass --provider")
+_SETUP_PHRASES = ("Set ", "Install the", "Unknown provider", "Name a model", "Pass --provider",
+                  "No model is set up", "The anthropic provider needs", "The openai provider needs")
 
 
 def classify(error: BaseException, *, file: str | None = None, model_backed: bool = False) -> ToolError:
@@ -75,9 +76,10 @@ def classify(error: BaseException, *, file: str | None = None, model_backed: boo
         if model_backed:
             return ToolError(
                 "reply_invalid",
-                "The model's reply still had problems after one repair.",
-                hint="Run the command again, add clearer material, or try another model. "
-                "The problems are listed below.",
+                "The model's reply still had problems after a repair (and the stronger model, if one was available).",
+                hint="Try the other provider, for example: decisioncraft map TARGET --provider openai "
+                "(or --provider anthropic --model claude-opus-5-5). Or draw it yourself with "
+                "decisioncraft map TARGET --starter. The problems are listed below.",
                 exit_code=MODEL_CALL,
                 problems=problems,
             )
@@ -95,8 +97,8 @@ def classify(error: BaseException, *, file: str | None = None, model_backed: boo
             return ToolError(
                 "provider_not_configured",
                 text,
-                hint="Run decisioncraft doctor to see what is missing, or route the call "
-                "through your own model with --complete-cmd.",
+                hint="Check with: decisioncraft doctor   Pick one for good with: decisioncraft config set "
+                "provider anthropic   Or route through your own model: --complete-cmd 'your-command'",
                 exit_code=SETUP,
             )
         return ToolError(

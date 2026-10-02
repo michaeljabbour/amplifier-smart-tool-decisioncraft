@@ -255,6 +255,13 @@ def build() -> SkillParser:
     g = c.add_argument_group("What to check")
     g.add_argument("--dir", default=".", help="Folder you plan to write into (default: here).")
     g.add_argument("--complete-cmd", metavar="CMD", help="A host command to look up (not run).")
+    g.add_argument("--live", action="store_true", help="Make one tiny real call to each provider with a key.")
+
+    c = cmd("config", ("decisioncraft config set model claude-opus-5-5", "decisioncraft config show"))
+    g = c.add_argument_group("What to change")
+    g.add_argument("action", nargs="?", default="show", choices=["show", "set", "unset"], help="show, set or unset.")
+    g.add_argument("key", nargs="?", choices=["provider", "model"], help="provider or model.")
+    g.add_argument("value", nargs="?", help="For set: the value.")
 
 
     # Talk a choice through
@@ -767,7 +774,7 @@ def do_render(run: Run) -> Out | None:
 
 def do_doctor(run: Run) -> Out:
     a = run.args
-    result = lib.doctor(directory=a.dir, complete_cmd=a.complete_cmd)
+    result = lib.doctor(directory=a.dir, complete_cmd=a.complete_cmd, live=getattr(a, "live", False))
     failed = any(c["status"] == "fail" for c in result["checks"])
     err = ToolError("setup_incomplete", result["summary"], hint="Fix the items marked fix, then run doctor again.",
                     exit_code=E.SETUP) if failed else None
@@ -938,21 +945,48 @@ def do_handoff(run: Run) -> Out:
 
 
 def _complete_kwargs(run: Run, *, name_attr: str) -> tuple[dict, str]:
+    """The model that answers: --complete-cmd, or a provider and model resolved from flags,
+    DECISIONCRAFT_PROVIDER/DECISIONCRAFT_MODEL, the user config, or whichever API key is set.
+    Says on stderr which one and why. Sets run.escalate to the stronger model (or None)."""
     a = run.args
+    run.escalate = None
     if a.complete_cmd:
         from .intelligence import command_complete
 
         return {"complete": command_complete(a.complete_cmd)}, f"your command ({a.complete_cmd.split()[0]})"
-    if not a.provider:
+    from .intelligence import ProviderError, escalation_complete, provider_complete, resolve
+
+    name = getattr(a, "model" if name_attr == "model" else "model_name", None)
+    try:
+        r = resolve(a.provider, name)
+    except ProviderError as e:
         raise ToolError(
-            "missing_argument",
-            "Say which model should answer: pass --provider (anthropic or openai) or --complete-cmd.",
-            hint="Use --complete-cmd to route through your host's own model, or "
-            "--provider anthropic --model NAME with ANTHROPIC_API_KEY set. Check with: decisioncraft doctor",
-            exit_code=E.USAGE, field="--provider",
-        )
-    kwargs = {"provider": a.provider, name_attr: getattr(a, "model" if name_attr == "model" else "model_name")}
-    return kwargs, f"the {a.provider} provider"
+            "provider_not_configured", str(e),
+            hint="Set ANTHROPIC_API_KEY or OPENAI_API_KEY (it then picks for you), or name one: "
+            "--provider anthropic --model claude-sonnet-5-5   Check with: decisioncraft doctor",
+            exit_code=E.SETUP, field="--provider",
+        ) from None
+    fn = provider_complete(r["provider"], r["model"])
+    if r["escalate"]:
+        run.escalate = escalation_complete(r["provider"], r["escalate"])
+    more = f"; tries {r['escalate']} once if the draft still has problems" if run.escalate else ""
+    run.term.say(f"Using {r['provider']} {r['model']} ({r['why']}{more}).")
+    return {"complete": fn}, f"{r['provider']} {r['model']}"
+
+
+# Prices per million tokens (input, output) for the estimate printed before a long run.
+_PRICES = {"claude-sonnet-5-5": (2.0, 10.0), "claude-opus-5-5": (4.0, 20.0), "claude-haiku-4-5": (1.0, 5.0)}
+
+
+def _estimate(model_name: str, chars: int, roles: int) -> str:
+    """A rough time and cost for map: one draft (sometimes a repair), then a small call per role
+    that rereads the drafted model."""
+    tokens_in = (chars // 4 + 15000) * 1.3 + roles * (chars // 4 + 16000)
+    tokens_out = 18000 + roles * 2500
+    low, high = max(2, round(tokens_out / 12000)), max(4, round(tokens_out / 6000))
+    price = _PRICES.get(model_name)
+    cost = f", about ${(tokens_in * price[0] + tokens_out * price[1]) / 1e6:.2f}" if price else ""
+    return f"roughly {low}-{high} minutes{cost}"
 
 
 def do_draft(run: Run) -> Out:
@@ -965,7 +999,7 @@ def do_draft(run: Run) -> Out:
     run.term.say(f"Reading {len(material)} file(s) ({chars:,} characters) ...")
     run.term.say(f"Asking {who} to draft the model. This can take a minute or two ...")
     model = lib.draft(material, template=a.template, question=a.question, title=a.title, date=a.date,
-                      brief=brief, **kwargs)
+                      brief=brief, escalate=getattr(run, "escalate", None), progress=run.term.say, **kwargs)
     run.term.say(f"Checked the draft: {describe(model)}.")
     return _model_result(run, model, verb="Drafted")
 
@@ -1022,7 +1056,8 @@ def do_perspectives(run: Run) -> Out:
     kwargs, who = _complete_kwargs(run, name_attr="model_name")
     before = summary(model)["notes"]
     run.term.say(f"Asking {who} for up to {a.per_role} notes per role ...")
-    out = lib.perspectives(model, material=material, per_role=a.per_role, **kwargs)
+    out = lib.perspectives(model, material=material, per_role=a.per_role,
+                           escalate=getattr(run, "escalate", None), progress=run.term.say, **kwargs)
     run.term.say(f"Added {summary(out)['notes'] - before} note(s); {describe(out)}.")
     return _model_result(run, out, verb="Updated")
 
@@ -1277,9 +1312,20 @@ def do_map(run: Run) -> Out:
                             hint="Point it at a folder with Markdown, text or code files.")
     kwargs, who = _complete_kwargs(run, name_attr="model")
     page = Path(a.page).expanduser().read_text(encoding="utf-8") if a.page else ""
-    run.term.say(f"Reading {a.target} ({kind}), then drafting with {who}. This can take a few minutes.")
+    chars = plan["chars"] if kind in ("repo", "folder") else len(page) or 4000
+    est = _estimate(getattr(kwargs["complete"], "model", ""), chars, len(roles or []) or 8)
+    run.term.say(f"Mapping {a.target} ({kind}) with {who}: {est}.")
+    if chars > 200_000 and run.can_ask:
+        if run.ask("That is a lot to read. Go ahead? (y/n)", "y").lower() not in ("y", "yes"):
+            raise ToolError("cancelled", "Stopped before calling the model.", exit_code=E.USAGE,
+                            hint="Read less with --budget 60000, or add --yes to skip this question.")
     result = lib.map_target(a.target, roles=roles, question=a.question, answers=answers, page_text=page,
-                            budget=a.budget, allow_network=a.allow_network, **kwargs)
+                            budget=a.budget, allow_network=a.allow_network, progress=run.term.say,
+                            escalate=getattr(run, "escalate", None), **kwargs)
+    usage = getattr(kwargs["complete"], "usage", None)
+    if usage and usage.get("calls"):
+        run.term.say(f"Model use: {usage['calls']} call(s), {usage['input_tokens']:,} tokens in, "
+                     f"{usage['output_tokens']:,} out.")
     model = result["model"]
     name = Path(a.target).expanduser().resolve().name if kind not in ("topic", "url") else slug(a.target)
     folder = Path(a.dir).expanduser() if a.dir else Path(f"decisioncraft-map-{slug(name)}")
@@ -1312,7 +1358,35 @@ def do_mcp(run: Run) -> None:
     serve()
 
 
+def do_config(run: Run) -> Out:
+    a = run.args
+    from .intelligence import ProviderError, config_path, load_config, resolve, save_config
+
+    if a.action in ("set", "unset"):
+        if not a.key or (a.action == "set" and not a.value):
+            raise ToolError("missing_argument", f"Say what to {a.action}.", exit_code=E.USAGE,
+                            hint="decisioncraft config set provider anthropic   or   decisioncraft config unset model")
+        try:
+            save_config({a.key: a.value if a.action == "set" else None})
+        except ValueError as e:
+            raise ToolError("invalid_input", str(e), exit_code=E.USAGE, field=a.key,
+                            hint="decisioncraft config set provider anthropic") from None
+    settings = load_config()
+    try:
+        r = resolve()
+        resolved = {"provider": r["provider"], "model": r["model"], "why": r["why"]}
+    except ProviderError as e:
+        resolved = {"error": str(e)}
+    lines = [f"Settings file: {config_path()}"]
+    lines += [f"  {k} = {v}" for k, v in settings.items()] or ["  (nothing set)"]
+    lines.append(f"Answers with: {resolved['provider']} {resolved['model']} ({resolved['why']})"
+                 if "provider" in resolved else f"Answers with: nothing yet. {resolved['error']}")
+    return Out(data={"path": str(config_path()), "settings": settings, "resolved": resolved},
+               text="\n".join(lines) + "\n")
+
+
 HANDLERS = {
+    "config": do_config,
     "example": do_example, "new": do_new, "render": do_render, "doctor": do_doctor,
     "session": do_session, "questions": do_questions, "words": do_words, "merge": do_merge,
     "diff": do_diff, "validate": do_validate, "handoff": do_handoff, "draft": do_draft,

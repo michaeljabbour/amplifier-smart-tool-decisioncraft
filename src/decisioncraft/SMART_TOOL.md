@@ -1,7 +1,7 @@
 ---
 smart_tool_format: 1
 name: decisioncraft
-version: 0.2.0
+version: 0.2.1
 description: >-
   Point it at anything (a codebase, a folder of notes, a page or a topic) and get a map
   of how it works today, how it could work, the gaps as user stories with 'done when'
@@ -223,8 +223,18 @@ plain word rules, and both use a model only if you name one (`--complete-cmd` or
 
 ## Which model answers
 
-`draft` and `perspectives` need a model. Decisioncraft never picks one for you and never
-falls back to a lesser answer. If you are an agent, choose the first that fits:
+`map`, `draft` and `perspectives` need a model. **With an API key set, nothing else is
+needed:** `decisioncraft map ./repo --open` picks the model itself and says which on stderr.
+The order, first that is set wins: `--provider`/`--model`, then `DECISIONCRAFT_PROVIDER` /
+`DECISIONCRAFT_MODEL`, then `decisioncraft config set provider|model ...` (a small file in
+your config folder), then whichever key is set, Anthropic first. Defaults: Anthropic
+`claude-sonnet-5-5`, trying `claude-opus-5-5` once if a draft still has problems after a
+repair; OpenAI `gpt-5.5` (and `gpt-5.5-pro` once, if your account has it). `decisioncraft
+doctor` names the model that will answer; `doctor --live` makes one tiny real call to each.
+A map of a mid-size repository takes a few minutes and costs about a dollar; the command
+prints its estimate first and its token use at the end.
+
+If you are an agent, choose the first that fits:
 
 1. **Write the model yourself** when you can't call your own model from a command (for
    example a coding agent with no MCP sampling). Run `decisioncraft new --question "..."
@@ -256,9 +266,9 @@ falls back to a lesser answer. If you are an agent, choose the first that fits:
    and `decisioncraft_perspectives`, which ask the host's model through MCP sampling. A
    host without sampling gets a clear error and goes back to option 1, using
    `decisioncraft_templates` and `decisioncraft_validate`.
-5. **A vendor SDK** (`--provider anthropic` or `--provider openai`, with `--model NAME`
-   for draft or `--model-name NAME` for perspectives, the matching API key, and the
-   `[smart]` extra).
+5. **A vendor SDK.** With `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` set and the `[smart]`
+   extra installed, no flags are needed. Pin one with `--provider anthropic --model
+   claude-sonnet-5-5` (`--model-name` for perspectives) or `decisioncraft config set`.
 
 ## For agents and scripts
 
