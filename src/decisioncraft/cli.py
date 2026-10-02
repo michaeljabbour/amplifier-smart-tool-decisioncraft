@@ -9,14 +9,17 @@ from pathlib import Path
 
 from . import lib
 from .help import CAPABILITIES, capability_skill, skill
-from .intelligence import ProviderError
+from .intelligence import ProviderError, command_complete
 from .model import ModelError, require_valid
 
 
 class SkillHelp(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
-        print(skill() if self.const is None else
-              capability_skill(self.const, argument_reference=parser.format_help()))
+        print(
+            skill()
+            if self.const is None
+            else capability_skill(self.const, argument_reference=parser.format_help())
+        )
         parser.exit()
 
 
@@ -24,9 +27,16 @@ class SkillParser(argparse.ArgumentParser):
     def __init__(self, *args, capability=None, **kwargs):
         kwargs["add_help"] = False
         super().__init__(*args, **kwargs)
-        self.add_argument("-h", action="help", help="Show the short argument reference.")
-        self.add_argument("--help", action=SkillHelp, nargs=0, const=capability,
-                          help="Read the full usage skill.")
+        self.add_argument(
+            "-h", action="help", help="Show the short argument reference."
+        )
+        self.add_argument(
+            "--help",
+            action=SkillHelp,
+            nargs=0,
+            const=capability,
+            help="Read the full usage skill.",
+        )
 
 
 def _load(path: str):
@@ -42,7 +52,9 @@ def _material(paths):
     out = []
     for p in paths or []:
         try:
-            out.append({"name": Path(p).name, "text": Path(p).read_text(encoding="utf-8")})
+            out.append(
+                {"name": Path(p).name, "text": Path(p).read_text(encoding="utf-8")}
+            )
         except (OSError, UnicodeDecodeError) as e:
             raise SystemExit(_fail(f"Could not read {p}: {e}"))
     return out
@@ -53,24 +65,51 @@ def _fail(msg: str) -> int:
     return 1
 
 
+def _complete_kwargs(args) -> dict:
+    """Build the provider/model/complete kwargs `draft` and `perspectives` share.
+
+    `--complete-cmd` routes the model call through an external command (for example a
+    host's own provider setup) instead of a vendor SDK; otherwise `--provider` picks
+    one of the built-in SDKs.
+    """
+    if args.complete_cmd:
+        return {"complete": command_complete(args.complete_cmd)}
+    if not args.provider:
+        raise SystemExit(
+            _fail("Pass --provider (anthropic or openai) or --complete-cmd.")
+        )
+    return {"provider": args.provider}
+
+
 def _emit(value, out: str | None):
-    text = value if isinstance(value, str) else json.dumps(value, indent=2, ensure_ascii=False)
+    text = (
+        value
+        if isinstance(value, str)
+        else json.dumps(value, indent=2, ensure_ascii=False)
+    )
     if out:
-        Path(out).write_text(text if text.endswith("\n") else text + "\n", encoding="utf-8")
+        Path(out).write_text(
+            text if text.endswith("\n") else text + "\n", encoding="utf-8"
+        )
         print(f"Wrote {out}", file=sys.stderr)
     else:
         sys.stdout.write(text if text.endswith("\n") else text + "\n")
 
 
 def build() -> SkillParser:
-    p = SkillParser(prog="decisioncraft",
-                    description="Map how a problem works, gather every point of view, and "
-                                "decide together. --help prints the full skill.")
+    p = SkillParser(
+        prog="decisioncraft",
+        description="Map how a problem works, gather every point of view, and "
+        "decide together. --help prints the full skill.",
+    )
     sub = p.add_subparsers(dest="command", required=True, parser_class=SkillParser)
 
     def cap(name):
-        return sub.add_parser(name, capability=name, help=f"[{CAPABILITIES[name]['kind']}] "
-                              + CAPABILITIES[name]["summary"])
+        return sub.add_parser(
+            name,
+            capability=name,
+            help=f"[{CAPABILITIES[name]['kind']}] " + CAPABILITIES[name]["summary"],
+        )
 
     for name in ("manifest", "templates", "roles"):
         cap(name)
@@ -104,15 +143,22 @@ def build() -> SkillParser:
     c.add_argument("--question", required=True)
     c.add_argument("--title", default="")
     c.add_argument("--date", default="")
-    c.add_argument("--provider", required=True)
+    c.add_argument("--provider")
     c.add_argument("--model")
+    c.add_argument("--complete-cmd")
     c.add_argument("--out")
     c = cap("perspectives")
     c.add_argument("model")
     c.add_argument("material", nargs="*")
     c.add_argument("--per-role", type=int, default=3)
-    c.add_argument("--provider", required=True)
-    c.add_argument("--model")
+    c.add_argument("--provider")
+    c.add_argument(
+        "--model-name",
+        dest="model_name",
+        metavar="MODEL",
+        help="Model name (the positional `model` is the model JSON file).",
+    )
+    c.add_argument("--complete-cmd")
     c.add_argument("--out")
     return p
 
@@ -128,7 +174,9 @@ def main(argv=None) -> int:
         elif cmd == "roles":
             _emit(lib.roles(), None)
         elif cmd == "new":
-            _emit(lib.new(args.template, args.title, args.question, args.date), args.out)
+            _emit(
+                lib.new(args.template, args.title, args.question, args.date), args.out
+            )
         elif cmd == "validate":
             problems = lib.validate(_load(args.model))
             _emit(problems, None)
@@ -154,14 +202,26 @@ def main(argv=None) -> int:
         elif cmd == "diff":
             _emit(lib.diff(_load(args.old), _load(args.new)), None)
         elif cmd == "draft":
-            model = lib.draft(_material(args.material), template=args.template,
-                              question=args.question, title=args.title, date=args.date,
-                              provider=args.provider, model=args.model)
+            model = lib.draft(
+                _material(args.material),
+                template=args.template,
+                question=args.question,
+                title=args.title,
+                date=args.date,
+                model=args.model,
+                **_complete_kwargs(args),
+            )
             _emit(model, args.out)
         elif cmd == "perspectives":
-            model = lib.perspectives(_load(args.model), material=_material(args.material),
-                                     per_role=args.per_role, provider=args.provider,
-                                     model_name=args.model)
+            kwargs = _complete_kwargs(args)
+            if "provider" in kwargs:
+                kwargs["model_name"] = args.model_name
+            model = lib.perspectives(
+                _load(args.model),
+                material=_material(args.material),
+                per_role=args.per_role,
+                **kwargs,
+            )
             _emit(model, args.out)
     except ModelError as e:
         for p in e.problems:
