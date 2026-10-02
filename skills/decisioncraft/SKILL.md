@@ -5,38 +5,37 @@ description: Map how a problem works, gather every point of view, and decide tog
 
 # Decisioncraft
 
-Install:
+Install, then check the setup (it never calls a model):
 
 ```sh
-uv tool install "amplifier-smart-tool-decisioncraft[smart] @ git+https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft"
+uv tool install "amplifier-smart-tool-decisioncraft[smart,mcp] @ git+https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft"
+decisioncraft doctor
 ```
 
-Then run `decisioncraft --help` and follow it. Each capability has its own help:
-`decisioncraft <capability> --help`.
+Then run `decisioncraft --help` and follow it. It is the full guide and stays correct
+when the tool changes. Each command has its own: `decisioncraft <command> --help`.
 
-When you start a review for the person on this computer, use `decisioncraft session`
-instead of opening a standalone HTML file. Pass a fresh `--dir`, `--open`, and
-`--until-finished`. The answers return directly when the person presses Finish review.
-Read the completed review before acting; an unanswered question or vote is not a decision.
-Use `--review` to continue earlier responses. Keep session folders outside tracked content.
+**Use it when** a decision affects several groups, you need to show how something works
+today against a plan, or you want meeting notes and documents turned into a map people
+can review. **Don't use it for** a quick yes or no, task tracking, or live co-editing.
 
-For a new draft, let `draft` choose suitable maps (the default `--template auto`).
-Choose a template explicitly only when the person wants that view. Customer actions,
-staff handoffs, current versus proposed work, and alternative choices need different
-visuals. Use named links only for relationships the source material establishes.
-Do not invent dependencies or loops to make a diagram look complete.
+Four things worth knowing before you start:
 
-Start a new decision by calling `discover`. Ask its few opening questions in conversation;
-reuse earlier answers. Follow up on what matters, how to compare, and the stakes. Store
-answers in a private `decisioncraft-brief/1` file and pass it to `draft --brief` when using
-the draft capability. Do not ask a long checklist or draw first and explain later.
+- Add `--json` to any command: one JSON result on stdout, errors included, and `ok` is
+  true exactly when the exit code is 0 (1 input, 2 command line, 3 set up first, 4 model
+  call failed). It never prompts when stdin is not a terminal.
+- Only `draft` and `perspectives` use a model. If you can't call your own model from a
+  command, write the model yourself: `decisioncraft new --question "..." --dir NAME --yes`,
+  fill in `NAME/model.json` from the material, and run `decisioncraft validate` until it is
+  clean. Otherwise route through your model with `--complete-cmd 'your-command'` (it reads
+  `{"system", "prompt"}` JSON on stdin and prints the reply), or use `decisioncraft mcp`,
+  whose draft tools ask your model through MCP sampling. Never invent evidence.
+- To review with the person on this computer, use `decisioncraft session MODEL --dir
+  NEW_FOLDER --open --until-finished --json` and read their answers and the `handoff`
+  when it finishes. A vote or a finished review is not a decision; the owner decides.
+- To chain steps, import the library (`import decisioncraft as dc`) instead of parsing
+  command output.
 
-Agree criteria before assessing alternatives. Compare realistic options using evidence
-and a method proportionate to the stakes. Keep uncertainty explicit. The owner makes
-and records the choice and its reason; a vote or completed review is not approval.
-
-When a review finishes, read `handoff` from the returned CLI or MCP result. Follow its
-`agent_request`: explain the answers, show proposed user stories, acceptance criteria and
-a proposed-state map, and draft missing parts for owner review. Do not leave the person
-with a download instruction. For an MCP host, use `decisioncraft mcp`; the same flow is
-available through its standard tools. See `docs/HOSTS.md` in the checkout.
+The recipes in `--help` cover: meeting notes to a canvas, a live review, comparing two
+versions, merging reviews, and exporting questions to a task list. See `docs/HOSTS.md`
+in the repository for MCP setup.

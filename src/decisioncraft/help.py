@@ -15,14 +15,47 @@ NAME = "decisioncraft"
 VERSION = "0.1.0"
 
 CAPABILITIES: dict[str, dict] = {
+    "example": {
+        "kind": "deterministic",
+        "summary": "Copy a worked example into a folder and draw it.",
+        "when": "To see what a finished decision map looks like before starting your own, "
+        "or to try the commands on real-looking material.",
+        "args": [
+            ("name", "business, technical, engineering or medical."),
+            ("--out", "Folder to create (default: ./decisioncraft-example-<name>)."),
+            ("--open", "Open the canvas in your browser when it is ready."),
+            ("--force", "Write into the folder even if it already has files."),
+        ],
+        "example": "decisioncraft example medical --open",
+        "result": "A folder with model.json, the material it cites, canvas.html and in-words.md. "
+        "With --json: {directory, files, summary}.",
+        "fails": "Unknown example name (exit 2); the folder already has files and --force was "
+        "not given (exit 1); the folder can't be written (exit 3).",
+    },
+    "doctor": {
+        "kind": "deterministic",
+        "summary": "Check your setup and say exactly what to fix.",
+        "when": "After installing, before drafting with a model, or when something fails and "
+        "you are not sure why. It never calls a model.",
+        "args": [
+            ("--dir", "Folder you plan to write into (default: the current folder)."),
+            ("--complete-cmd", "A host command you plan to route model calls through; "
+             "its program is looked up, not run."),
+        ],
+        "example": "decisioncraft doctor --complete-cmd 'my-host complete'",
+        "result": "One line per check (Python, write access, provider packages and keys, "
+        "--complete-cmd, MCP) with what to fix. With --json: {checks, ready, summary}.",
+        "fails": "Exit 3 when something every user needs is broken (old Python, no write "
+        "access, or a --complete-cmd program that can't be found). Optional parts only warn.",
+    },
     "mcp": {
         "kind": "deterministic", "summary": "Serve the same decision workflow to an MCP host over stdio.",
         "when": "For any host that supports a local MCP server.", "args": [],
         "example": "decisioncraft mcp", "result": "Standard tools for discovery, map shapes, validation, review, waiting for completion and agent handoff.",
-        "fails": "The optional mcp extra is not installed.",
+        "fails": "The optional mcp extra is not installed (exit 3, says what to install).",
     },
     "discover": {
-        "kind": "deterministic", "summary": "Start with four short questions about the choice and the useful visual.",
+        "kind": "deterministic", "summary": "Four opening questions about the choice, for a host to ask.",
         "when": "At the start of a decision, before drawing or drafting.",
         "args": [("--question", "Optional choice already described by the person.")],
         "example": "decisioncraft discover --question 'Which trial should we run?'",
@@ -30,12 +63,12 @@ CAPABILITIES: dict[str, dict] = {
         "fails": "The supplied choice is not text.",
     },
     "handoff": {
-        "kind": "deterministic", "summary": "Return a review to the agent with stories, acceptance criteria and a proposed map.",
+        "kind": "deterministic", "summary": "Turn a finished review into stories, checks and a proposed map.",
         "when": "After the person finishes a review, or to read a completed review file.",
         "args": [("model", "Decision model file."), ("review", "Completed review file."), ("--out", "Optional output JSON file.")],
         "example": "decisioncraft handoff model.json review.json --out handoff.json",
         "result": "Answers, proposed stories and checks, an explicit proposed-state model, missing parts and an agent request. It does not invent requirements or treat finishing as approval.",
-        "fails": "Invalid model or review, or a review for a different model.",
+        "fails": "Invalid model or review, or a review for a different model (exit 1).",
     },
     "session": {
         "kind": "deterministic",
@@ -46,7 +79,7 @@ CAPABILITIES: dict[str, dict] = {
                  ("--prepared-by", "Who prepared notes when no author is recorded."), ("--open", "Open the review in the browser."), ("--until-finished", "Return after the person presses Finish review.")],
         "example": "decisioncraft session model.json --dir .work/review --open --until-finished",
         "result": "JSON with a local URL and review file path. Answers save automatically. Finish review records completion; the human still decides.",
-        "fails": "Invalid model or review, an existing session folder, or a local server that cannot start.",
+        "fails": "Invalid model or review, or an existing session folder (exit 1); a local server that cannot start (exit 3).",
     },
     "manifest": {
         "kind": "deterministic",
@@ -77,19 +110,28 @@ CAPABILITIES: dict[str, dict] = {
     },
     "new": {
         "kind": "deterministic",
-        "summary": "Start an empty model from a template.",
-        "when": "To write a model by hand, or to see the exact shape `draft` fills in.",
+        "summary": "Start a new decision: a starter folder, or just an empty model.",
+        "when": "At the start of your own decision. In a terminal with no flags it asks a "
+        "few questions; agents and scripts pass flags (it never prompts when stdin is not a "
+        "terminal or --yes is given).",
         "args": [
-            ("--template", "Template id (see `templates`)."),
-            ("--title", "Short title for the canvas."),
             ("--question", "The decision being made, as one question."),
+            ("--template", "Template id (see `templates`; default decision-chain)."),
+            ("--title", "Short title for the canvas (default: taken from the question)."),
+            ("--roles", "Comma-separated role ids to keep (see `roles`; default all)."),
+            ("--material", "Where your notes and documents are, noted in the README."),
+            ("--dir", "Create a starter folder here: model.json and material/README.txt."),
             ("--date", "Optional date the model is checked against its sources."),
-            ("--out", "Write the model here instead of printing it."),
+            ("--out", "Without --dir: write just the model here instead of printing it."),
+            ("--yes", "Never ask; use defaults for anything not given."),
         ],
-        "example": 'decisioncraft new --template decision-chain --title "Delivery van" '
-        '--question "Should we lease or buy our next van?" --out model.json',
-        "result": "A model JSON with the template's lanes or stages and default roles.",
-        "fails": "Unknown template (exit 1, message names the valid ones).",
+        "example": 'decisioncraft new --question "Should we lease or buy our next van?" '
+        "--template decision-chain --dir van-decision",
+        "result": "With --dir: a folder with model.json and material/README.txt, and the next "
+        "commands to run. Without --dir: the model JSON (printed, or written to --out).",
+        "fails": "Unknown template or role (exit 1, the message names the valid ones); "
+        "--question missing when it can't ask (exit 2); the folder already has a model.json "
+        "(exit 1).",
     },
     "validate": {
         "kind": "deterministic",
@@ -99,7 +141,7 @@ CAPABILITIES: dict[str, dict] = {
         "example": "decisioncraft validate model.json",
         "result": "JSON list of problems (level error or warning, path, message). "
         "Exit 0 when there are no errors, 1 when there are.",
-        "fails": "Unreadable or non-JSON file (exit 1).",
+        "fails": "Exit 1 when the model has errors (the list is still printed), or the file is missing or not JSON.",
     },
     "render": {
         "kind": "deterministic",
@@ -113,12 +155,17 @@ CAPABILITIES: dict[str, dict] = {
                 "--since",
                 "An earlier version of the model; new and changed boxes are marked.",
             ),
-            ("--out", "Output HTML path (default: print to stdout)."),
+            ("--out", "Output HTML path. Default: print to stdout when piped; in a terminal, "
+             "or with --open, --watch or --json, write canvas.html next to the model."),
+            ("--open", "Open the canvas in your browser when it is written."),
+            ("--watch", "Keep running and draw again whenever the model or a review file changes."),
         ],
-        "example": "decisioncraft render model.json --reviews a.json b.json --out canvas.html",
+        "example": "decisioncraft render model.json --reviews a.json b.json --out canvas.html --open",
         "result": "HTML. Pan and zoom, role filter, Questions to decide, Decisions, Gaps "
-        "ranked by impact and effort, Evidence, and Save my answers.",
-        "fails": "A model with errors (exit 1, the problems are listed).",
+        "ranked by impact and effort, Evidence, and Save my answers. Progress and the "
+        "written path go to stderr. With --json: {path, summary, bytes}.",
+        "fails": "A model with errors (exit 1, the problems are listed); a missing or "
+        "non-JSON file (exit 1). With --watch, errors are shown and it keeps watching.",
     },
     "words": {
         "kind": "deterministic",
@@ -175,7 +222,7 @@ CAPABILITIES: dict[str, dict] = {
     },
     "draft": {
         "kind": "model-backed",
-        "summary": "Read your material and draft a full model with a language model.",
+        "summary": "Draft a full model from your notes with a language model.",
         "when": "Use when you have real notes, transcripts, documents or data and want a "
         "first draft instead of starting from a blank model. Costs tokens; results "
         "differ run to run; always review the draft.",
@@ -203,12 +250,13 @@ CAPABILITIES: dict[str, dict] = {
             ("--out", "Output path (default: print)."),
         ],
         "example": "decisioncraft draft notes/*.md --template customer-journey "
-        '--question "How do we cut missed pickups?" --provider anthropic --out model.json',
+        '--question "How do we cut missed pickups?" --provider anthropic '
+        "--model <model-name> --out model.json",
         "result": "A validated model citing your material. It is checked and, if needed, "
-        "repaired once; it still needs a person's review.",
-        "fails": "Neither --provider nor --complete-cmd, or a provider with no key or SDK "
-        "installed (exit 1, says what to set); a reply that stays invalid after one "
-        "repair (exit 1, problems listed).",
+        "repaired once; it still needs a person's review. Progress goes to stderr.",
+        "fails": "Neither --provider nor --complete-cmd (exit 2); a provider with no key, "
+        "no --model, or no SDK installed (exit 3, says what to set); a failed call, or a "
+        "reply that stays invalid after one repair (exit 4, problems listed).",
     },
     "perspectives": {
         "kind": "model-backed",
@@ -232,10 +280,11 @@ CAPABILITIES: dict[str, dict] = {
             ),
             ("--out", "Output path (default: print)."),
         ],
-        "example": "decisioncraft perspectives model.json --provider anthropic --out model.json",
+        "example": "decisioncraft perspectives model.json --provider anthropic "
+        "--model-name <model-name> --out model.json",
         "result": "The model with new notes added; existing notes are kept.",
-        "fails": "Neither --provider nor --complete-cmd, or a provider with no key or SDK "
-        "installed; an invalid reply after one repair (exit 1).",
+        "fails": "Neither --provider nor --complete-cmd (exit 2); a provider with no key, "
+        "model name or SDK (exit 3); a failed call or an invalid reply after one repair (exit 4).",
     },
 }
 

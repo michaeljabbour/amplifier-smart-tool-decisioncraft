@@ -3,7 +3,12 @@
 from .help import VERSION as __version__  # noqa: F401 -- single source of the version
 from .lib import (  # noqa: F401
     discover,
+    doctor,
+    example,
+    example_names,
     handoff,
+    starter,
+    summary,
     diff,
     draft,
     manifest,

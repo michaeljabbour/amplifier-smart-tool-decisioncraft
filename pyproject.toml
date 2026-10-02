@@ -26,6 +26,20 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/decisioncraft"]
 
+[tool.hatch.build.targets.wheel.force-include]
+# The worked examples ship inside the package so `decisioncraft example NAME` works after
+# installation. Only models, material and reviews: the canvases are rebuilt on demand.
+"examples/business/model.json" = "decisioncraft/examples/business/model.json"
+"examples/business/material" = "decisioncraft/examples/business/material"
+"examples/business/reviews" = "decisioncraft/examples/business/reviews"
+"examples/technical/model.json" = "decisioncraft/examples/technical/model.json"
+"examples/technical/model-before.json" = "decisioncraft/examples/technical/model-before.json"
+"examples/technical/material" = "decisioncraft/examples/technical/material"
+"examples/engineering/model.json" = "decisioncraft/examples/engineering/model.json"
+"examples/engineering/material" = "decisioncraft/examples/engineering/material"
+"examples/medical/model.json" = "decisioncraft/examples/medical/model.json"
+"examples/medical/material" = "decisioncraft/examples/medical/material"
+
 [dependency-groups]
 dev = ["pytest>=8,<10"]
 

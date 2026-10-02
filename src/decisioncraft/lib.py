@@ -1,7 +1,11 @@
 """The public library. Every capability lives here; the CLI only reads files and prints.
 
-Deterministic: manifest, templates, roles, new, validate, render, words, questions,
-merge, diff, session. Model-backed: draft, perspectives.
+Deterministic: manifest, templates, roles, new, starter, example, example_names, doctor,
+summary, validate, render, words, questions, merge, diff, session, discover, handoff.
+Model-backed: draft, perspectives.
+
+To chain capabilities, call these functions from Python rather than piping CLI output:
+results are ordinary return values (dicts, lists and strings).
 """
 
 from __future__ import annotations
@@ -13,10 +17,15 @@ from .review import diff, merge, questions
 from .words import words
 from .session import session
 from .workflow import discover, handoff
+from .doctor import doctor
+from .examples import example, example_names
+from .starter import starter
+from .stats import summary
 
 __all__ = [
     "manifest", "templates", "roles", "new", "validate", "render", "words", "questions",
     "merge", "diff", "draft", "perspectives", "session", "discover", "handoff",
+    "starter", "example", "example_names", "doctor", "summary",
 ]
 
 

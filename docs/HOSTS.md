@@ -37,6 +37,18 @@ The agent workflow is the same everywhere:
 6. Read the returned handoff. Show stories, acceptance criteria and the proposed-state
    map, identify missing parts, and help the owner make and record a reasoned choice.
 
+Tools: `decisioncraft_discover`, `decisioncraft_templates`, `decisioncraft_validate`,
+`decisioncraft_start_review`, `decisioncraft_wait_for_review`, `decisioncraft_handoff`,
+`decisioncraft_close_review`, and the deterministic `decisioncraft_render` (writes an HTML
+canvas and returns its path), `decisioncraft_words`, `decisioncraft_questions`,
+`decisioncraft_merge`, `decisioncraft_diff` and `decisioncraft_example`.
+
+`decisioncraft_draft` and `decisioncraft_perspectives` ask the host's own model through
+MCP sampling. If the host does not offer sampling, they fail and say so; the agent then
+writes the model with its own model, using `decisioncraft_templates`, and checks it with
+`decisioncraft_validate`. Outside MCP, `--complete-cmd` does the same job from the command
+line: the command reads `{"system", "prompt"}` JSON on stdin and prints the reply.
+
 MCP returns both structured content and a text JSON version. Library and CLI callers get
 the same data. Completion returns through the waiting tool call; it does not send an
 unsolicited message to an idle host. A remote host still needs access to the local review
