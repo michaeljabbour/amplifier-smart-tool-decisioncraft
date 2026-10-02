@@ -135,6 +135,7 @@ plain-text version. All names, quotes and figures are invented.
 | [technical](examples/technical/) | Move file uploads to a new storage provider, change how uploads reach storage, or both? Includes an earlier version to show what changed. | system journeys, opportunity tree | 6 journeys, 46 steps, 6 gaps, 33 notes, 7 sources |
 | [engineering](examples/engineering/) | Repair, replace, or replace a footbridge with a wider one? | decision chain, system journeys, service blueprint | 7 journeys, 51 steps, 6 gaps, 32 notes, 8 sources |
 | [medical](examples/medical/) | How should a ward change the way it sends patients home, so fewer come back? About how a team organises its work. **Not medical advice; no patient data.** | customer journey, service blueprint | 7 journeys, 57 steps, 6 gaps, 32 notes, 7 sources |
+| [car](examples/personal-car/) | When the lease ends, should a family keep and repair the car, renew the lease, buy new, buy used, or go car-free? Fictional family, real published figures. | personal decision: scoring table, cost over time, today-and-after journey, light chain | 5 options, 10 criteria, 4 what-ifs, 14 notes, 8 sources |
 
 Each example opens with a short "How to read this" in the list on the left (the optional
 `reading` field in the model). Live copies of the four canvases are on the product page.

@@ -502,6 +502,93 @@ details.storynotes summary{cursor:pointer;font-size:12.5px;color:var(--accent)}
   box-shadow:0 2px 2px rgba(0,0,0,.05),2px 8px 14px rgba(0,0,0,.1);transform:rotate(var(--note-tilt,0deg))}
 .roughcard p{margin:6px 0 0;font-size:13.5px}
 
+/* ---------- scoring table ---------- */
+.scoreboard{position:absolute;background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  box-shadow:0 1px 2px rgba(0,0,0,.05),0 8px 24px rgba(40,35,20,.08);overflow:hidden}
+.scoretable{border-collapse:separate;border-spacing:0;width:100%;font-size:14px}
+.scoretable th,.scoretable td{border-bottom:1px solid var(--line);padding:10px 12px;vertical-align:top;text-align:left}
+.scoretable thead th{background:#faf9f6;vertical-align:bottom}
+.scoretable th.corner{color:var(--muted);font-size:12px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;width:270px}
+.scoretable .optcol{border-top:5px solid var(--opt);min-width:150px}
+.scoretable .optcol.lead{background:#f2f6ff}
+.scoretable .optcol.out{background:#f6f4ef;color:var(--muted)}
+.optbtn,.critbtn{all:unset;cursor:pointer;font-weight:700;font-size:15px;color:var(--ink);display:flex;align-items:center;gap:7px;line-height:1.25}
+.optbtn:focus-visible,.critbtn:focus-visible{outline:3px solid var(--accent);outline-offset:3px;border-radius:4px}
+.optbtn:hover,.critbtn:hover{text-decoration:underline}
+.critbtn{font-size:14px}
+.swatch{display:inline-block;width:12px;height:12px;border-radius:3px;background:var(--opt,#888);flex:none}
+.optsum{display:block;font-size:12.5px;color:var(--ink2);font-weight:400;margin-top:4px;line-height:1.35}
+.optmeta{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;align-items:center;font-weight:400}
+.rank{font-size:12px;font-weight:700;color:#203f8f;background:#e9eefb;border-radius:6px;padding:2px 7px}
+.optcol.lead .rank{background:#203f8f;color:#fff}
+.crit-sub{display:block;font-size:12px;color:var(--muted);font-weight:400;margin-top:3px;line-height:1.35}
+.weight{display:inline-block;font-size:11.5px;font-weight:700;color:var(--ink2);background:var(--soft);border-radius:6px;padding:1px 7px;margin-top:5px}
+.weight.mine{background:#fff4dc;color:#7a4a00}
+.chip.split{background:#fde6e3;color:#8a1f16;font-weight:700;margin-left:4px}
+.scoretable td.score{text-align:center;min-width:110px}
+.scoretable td.score .num{display:block;font-size:22px;font-weight:800;color:var(--ink)}
+.scoretable td.out{opacity:.45}
+.cellnote{display:block;font-size:11.5px;color:var(--ink2);margin-top:3px;line-height:1.3;text-align:left}
+.scoretable td.must{font-weight:700;font-size:13.5px}
+.scoretable td.must.meets{color:var(--works)}
+.scoretable td.must.fails{color:#fff;background:var(--missing)}
+.scoretable td.must.fails .cellnote{color:#fde6e3}
+.scoretable td.must.unknown{color:var(--muted)}
+.scoretable tr.mustrow th{background:#fbfaf7}
+.scoretable tr.totalrow th,.scoretable tr.totalrow td{border-bottom:0;background:#faf9f6;font-size:15px}
+.scoretable td.total{position:relative;text-align:center}
+.scoretable td.total b{font-size:22px}
+.scoretable td.total .bar{display:block;height:6px;border-radius:3px;margin:0 auto 6px;max-width:100%}
+.flipcard,.costsay,.costsplit{position:absolute;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 20px;
+  box-shadow:0 1px 2px rgba(0,0,0,.05),0 8px 24px rgba(40,35,20,.08)}
+.flipcard h3,.costsay h3,.costsplit h3{margin:0 0 8px;font-size:18px}
+.flipcard ul,.costsay ul{margin:8px 0 0;padding-left:20px}
+.flipcard li,.costsay li{margin:5px 0}
+.cardbtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.cardbtns button,.costbar button.toggle{border:1px solid var(--line);background:#fff;border-radius:9px;padding:6px 12px;font-size:13.5px;cursor:pointer}
+.cardbtns button:hover,.costbar button.toggle:hover{border-color:var(--accent)}
+/* ---------- cost over time ---------- */
+.costbar{position:absolute;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.costbar .whatifs{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.costbar button.toggle[aria-pressed="true"]{background:#fff4dc;border-color:var(--changed);font-weight:700;color:#5c3a00}
+.costchart{position:absolute;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 8px 8px;
+  box-shadow:0 1px 2px rgba(0,0,0,.05),0 8px 24px rgba(40,35,20,.08)}
+.chart{display:block;font-size:12px}
+.chart .grid{stroke:#e7e4dc}
+.chart .vgrid{stroke:#f0eee8}
+.chart .zero{stroke:#9a978e;stroke-dasharray:3 3}
+.chart .tick{fill:var(--muted);font-size:11.5px}
+.chart .line{fill:none;stroke-width:3;stroke-linejoin:round}
+.chart .line.out{stroke-dasharray:7 6;stroke-width:2;opacity:.75}
+.chart .leader{stroke-width:1.5}
+.chart .lab{font-weight:800;font-size:13px}
+.chart .labv{fill:var(--ink2);font-size:12px}
+.chart .cross{fill:#fff;stroke:var(--ink);stroke-width:2}
+.chart .crossn{font-size:11px;font-weight:800;fill:var(--ink)}
+.crosslist{margin:6px 16px 4px 44px;font-size:13px;color:var(--ink2)}
+.costtable{border-collapse:collapse;width:100%;font-size:14px}
+.costtable th,.costtable td{padding:9px 12px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+.costtable th[scope=row],.costtable thead th:first-child{text-align:left}
+.costtable thead th{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+.costtable tr.out{color:var(--muted)}
+.costtable .swatch{margin-right:7px;vertical-align:-1px}
+.splitgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.split h4{margin:0 0 6px;display:flex;align-items:center;gap:7px;font-size:15px}
+.split .stack{display:flex;height:10px;border-radius:5px;overflow:hidden;background:var(--soft);margin-bottom:6px}
+.split .stack i{display:block;height:100%;background:var(--opt)}
+.split ul{list-style:none;margin:0;padding:0;font-size:13px}
+.split li{display:flex;justify-content:space-between;gap:10px;padding:2px 0;border-bottom:1px dotted var(--line)}
+.split li b{font-variant-numeric:tabular-nums}
+/* weights panel */
+.wrow{display:grid;gap:3px;margin:12px 0}
+.wrow label{display:flex;justify-content:space-between;gap:8px}
+.wrow .wval{font-weight:800;font-variant-numeric:tabular-nums}
+.wrow input[type=range]{width:100%;accent-color:var(--accent)}
+.scorelist{padding-left:18px}
+.scorelist li{margin:4px 0}
+@media print{.costbar,.cardbtns{display:none}}
+.chartfoot{margin:2px 16px 0 44px;font-size:12px;color:var(--muted)}
+
 </style>
 </head>
 <body class="dots">
@@ -557,7 +644,7 @@ const DEFAULT_ROLES = [
   {id:"security",label:"Security and privacy",color:"#d1543f"},{id:"voice",label:"Customer voice",color:"#d99a1e"},
   {id:"agent",label:"AI agent teammate",color:"#1f9aa6"},{id:"finance",label:"Finance",color:"#7a7a72"}];
 const KIND = {"system-journeys":"journeys","customer-journey":"journeys","service-blueprint":"journeys",
-  "decision-chain":"chain","opportunity-tree":"tree"};
+  "decision-chain":"chain","opportunity-tree":"tree","scoring-table":"scoring","cost-over-time":"costs"};
 const TREE_LEVELS = ["What we want","What needs attention","Possible next step","How we will check"];
 const MIN_Z = 0.25, MAX_Z = 2.2;
 const STORY_W = 320, PANEL_W = 480, TOP_H = 52;
@@ -581,10 +668,14 @@ const sinceChanged = Object.fromEntries((SINCE && SINCE.changed || []).map(x => 
 let saved = {}, storageOK = true;
 try { saved = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { saved = {}; storageOK = false; }
 const seed = SESSION ? {answers:SESSION.review.answers || {}, votes:SESSION.review.dots || {},
-  decisions:SESSION.review.decisions || {}, reviewer:SESSION.review.reviewer || "", myNotes:SESSION.review.notes || []} : {};
-const S = Object.assign({map:0, mode:"changes", sbs:false, sbsJourney:null, sbsAll:false, journey:-1, tech:false, notesOnMap:false, lines:false, dots:true, story:true,
+  decisions:SESSION.review.decisions || {}, reviewer:SESSION.review.reviewer || "", myNotes:SESSION.review.notes || [],
+  weights:SESSION.review.weights || {}, whatifs:SESSION.review.whatifs || []} : {};
+/* The model can choose how the map first opens (display.notes_on_map, display.start_view).
+   Anything the reviewer picks later in View is saved here and wins from then on. */
+const DISPLAY = MODEL.display || {};
+const S = Object.assign({map:0, mode:["today", "planned", "changes"].includes(DISPLAY.start_view) ? DISPLAY.start_view : "changes", sbs:false, sbsJourney:null, sbsAll:false, journey:-1, tech:false, notesOnMap:DISPLAY.notes_on_map === true, lines:false, dots:true, story:true,
   hintSeen:false, roles:Object.fromEntries(ROLES.map(r => [r.id, true])),
-  answers:{}, votes:{}, decisions:{}, reviewer:"", myNotes:[]}, seed, saved);
+  answers:{}, votes:{}, decisions:{}, reviewer:"", myNotes:[], weights:{}, whatifs:[], costView:"chart", horizon:0}, seed, saved);
 if (SESSION && saved.syncedVersion !== SESSION.version) Object.assign(S, seed);
 if (SESSION) { S.syncedVersion = SESSION.version; S.sessionFinished = SESSION.state === "finished"; }
 ROLES.forEach(r => { if (!(r.id in S.roles)) S.roles[r.id] = true; });
@@ -593,8 +684,8 @@ if (S.mode === "compare" || S.mode === "both") S.mode = "changes";
 let completedHandoff = SESSION && SESSION.handoff || null;
 let syncVersion = SESSION ? SESSION.version : 0, syncPromise = null, syncTimer = null;
 let syncState = SESSION ? "saved" : "", syncError = "", finishing = false;
-const snapshot = () => JSON.stringify([S.answers, S.votes, S.decisions, S.reviewer, S.myNotes]);
-let lastWritten = SESSION ? JSON.stringify([seed.answers, seed.votes, seed.decisions, seed.reviewer, seed.myNotes]) : "";
+const snapshot = () => JSON.stringify([S.answers, S.votes, S.decisions, S.reviewer, S.myNotes, S.weights, S.whatifs]);
+let lastWritten = SESSION ? JSON.stringify([seed.answers, seed.votes, seed.decisions, seed.reviewer, seed.myNotes, seed.weights, seed.whatifs]) : "";
 function queueSync() {
   if (!SESSION || finishing || snapshot() === lastWritten) return;
   S.sessionFinished = false;
@@ -700,6 +791,10 @@ MODEL.maps.forEach((m, mi) => {
   }
 });
 GAPS.forEach(g => BOX[g.id] = {box:g, mi:-1, kind:"gap"});
+{ const sm = MODEL.maps.findIndex(m => m.template === "scoring-table"), cm = MODEL.maps.findIndex(m => m.template === "cost-over-time");
+  (MODEL.options || []).forEach(o => BOX[o.id] = {box:o, mi:sm, kind:"option"});
+  (MODEL.criteria || []).forEach(c => BOX[c.id] = {box:c, mi:sm, kind:"criterion"});
+  (MODEL.whatifs || []).forEach(w => BOX[w.id] = {box:w, mi:cm, kind:"whatif"}); }
 const notesOn = id => NOTES.filter(n => n.anchor === id && S.roles[n.role] !== false);
 
 /* ---------- today, planned and what changes ---------- */
@@ -848,7 +943,7 @@ function wordDiff(a, b) {
   return [oa, ob];
 }
 const mapOfAnchor = a => BOX[a] ? (BOX[a].mi >= 0 ? BOX[a].mi : mapOfAnchor((BOX[a].box.anchors || [])[0])) : -1;
-const titleOf = b => b.title || b.label || b.text || b.id;
+const titleOf = b => b.title || b.name || b.label || b.text || b.id;
 
 function badges(b) {
   const out = [];
@@ -912,14 +1007,14 @@ function tint(hex) {
 /* Notes beside a row (only when "Show all notes on the map" is on): a column to the right of
    every box, sized from the real cards, so a note never sits over any text. */
 const NOTE_W = 250, NOTE_GAP = 12, NOTES_W = 2 * NOTE_W + NOTE_GAP;
-function notePile(anchors, x, y, max, rowKey) {
+function notePile(anchors, x, y, max, rowKey, cols = 2) {
   if (!S.notesOnMap) return 0;
   const list = NOTES.filter(n => anchors.includes(n.anchor) && S.roles[n.role] !== false)
     .sort((a, b) => URG_ORDER[a.urgency || "info"] - URG_ORDER[b.urgency || "info"]);
   const shown = list.slice(0, max);
   const colH = [0, 0];
   shown.forEach((n, i) => {
-    const c = colH[0] <= colH[1] ? 0 : 1;
+    const c = cols === 1 || colH[0] <= colH[1] ? 0 : 1;
     const r = ROLE[n.role] || {label:n.role, color:"#888"};
     const el = place(`notecard ${n.urgency || "info"} inj`, x + c * (NOTE_W + NOTE_GAP), y + colH[c], NOTE_W,
       `<div class="notehead"><span class="who"><i style="background:${r.color}"></i>${esc(r.label)}</span><span class="urg">${URG[n.urgency || "info"]}</span></div>
@@ -933,7 +1028,7 @@ function notePile(anchors, x, y, max, rowKey) {
   });
   let h = Math.max(colH[0], colH[1]);
   if (list.length > shown.length) {
-    const more = place("morenotes inj", x, y + h, NOTES_W, `+ ${plural(list.length - shown.length, "more note")} here`,
+    const more = place("morenotes inj", x, y + h, cols === 1 ? NOTE_W : NOTES_W, `+ ${plural(list.length - shown.length, "more note")} here`,
       {type:"notes", anchors, title:"Notes here"}, `${list.length - shown.length} more notes`);
     more.dataset.row = rowKey;
     h += more.offsetHeight + NOTE_GAP;
@@ -1141,21 +1236,25 @@ const C = {stageW:300, stageH:104, itemW:262, itemGap:16, perRow:3, gap:70};
 const itemInner = b => `${kindLabel(b)}<h4>${gl(b.title)}</h4><p class="t">${gl(b.text || "")}</p>${tech(b)}<div class="meta">${bpill(b)}${badges(b)}</div>`;
 function renderChain(m) {
   const mode = modeOf(m);
-  const perRow = sbsOn() ? 2 : C.perRow;   // two to a row side by side, so each pane stays readable
+  // Two to a row side by side, or with notes on the map, so the boxes and their stickies fit on screen.
+  const perRow = sbsOn() || S.notesOnMap ? 2 : C.perRow;
+  const pileW = S.notesOnMap ? NOTE_W : 0;
   const hasBefore = (m.stages || []).some(st => st.before);
   const bands = m.bands || [];
   const beforeW = 250, stageX = hasBefore ? beforeW + 40 : 0;
   const itemsX = stageX + C.stageW + 64;
   const columnW = perRow * (C.itemW + C.itemGap) - C.itemGap;
-  const bandX = itemsX + columnW + 56, bandW = 270;
-  const notesX = (bands.length ? bandX + bands.length * (bandW + 20) - 20 : itemsX + columnW) + 56;
-  const W = notesX - 56 + notesWidth();
+  // Notes sit right after each row's own boxes, so a sticky is always next to what it is about;
+  // bands move out past the notes.
+  const notesX = itemsX + columnW + 40;
+  const bandX = (S.notesOnMap ? notesX + pileW + 40 : itemsX + columnW + 56), bandW = 270;
+  const W = Math.max(S.notesOnMap ? notesX + pileW : itemsX + columnW, bands.length ? bandX + bands.length * (bandW + 20) - 20 : 0);
   let y = header(m, W);
   if (hasBefore) place("label", 0, y, beforeW, esc(m.before_label || "Before"));
   place("label", stageX, y, 0, "The chain");
   if (bands.length) place("label", bandX, y, 0, "Across the chain");
   place("label", itemsX, y, columnW, {today:"What exists today", planned:"What the plan puts in place", changes:"The plan, with every change marked", all:"What is here"}[mode]);
-  if (S.notesOnMap) place("label", notesX, y, 0, "Notes from each role");
+  // (no column label: each row's notes sit beside its own boxes)
   y += 34;
   let prevStage = null;
   (m.stages || []).forEach((st, si) => {
@@ -1184,7 +1283,8 @@ function renderChain(m) {
       const e = place("emptyslot", itemsX, y0, C.itemW, mode === "today" ? "Nothing here today" : mode === "planned" ? "Nothing planned here" : "Nothing here yet");
       e.dataset.row = "s" + si; ih = e.offsetHeight;
     }
-    const nh = notePile([st.id, ...(st.items || []).map(i => i.id)], notesX, y0, 4, "s" + si);
+    const used = Math.max(1, Math.min(slots.length, perRow));
+    const nh = notePile([st.id, ...(st.items || []).map(i => i.id)], itemsX + used * (C.itemW + C.itemGap) + 22, y0, 3, "s" + si, 1);
     const h = Math.max(stEl.offsetHeight, ih, nh, bc ? bc.offsetHeight : 0);
     rows.push({key:"s" + si, y:y0, h, x:0, w:W, stage:st.id, mid:y0 + stEl.offsetHeight / 2});
     if (prevStage) {
@@ -1215,7 +1315,7 @@ function renderChain(m) {
     if (chips) el.insertAdjacentHTML("beforeend", `<div class="bandchips" aria-hidden="true">${chips}</div>`);
     nodes[band.id] = el;
     linked.forEach(r => {
-      const l = link(itemsX + columnW + 10, r.mid, x - 6, r.mid, "bandlink");
+      const l = link((S.notesOnMap ? notesX + pileW : itemsX + columnW) + 10, r.mid, x - 6, r.mid, "bandlink");
       l.dataset.row = r.key;
     });
   });
@@ -1311,6 +1411,348 @@ function renderTree(m) {
   return {x:0, y:0, w:W, h:bottom + 60};
 }
 
+/* ---------- options: scoring table and cost over time ----------
+   The same arithmetic as choice.py, so totals, flips and costs match the text version.
+   Scores are whole numbers 1 to 5; totals show one decimal so they never look more exact
+   than the judgments behind them. */
+const OPTIONS = (MODEL.options || []).filter(o => o && o.id);
+const CRITERIA = (MODEL.criteria || []).filter(c => c && c.id);
+const SCORED = CRITERIA.filter(c => (c.kind || "scored") === "scored");
+const MUSTS = CRITERIA.filter(c => c.kind === "must");
+const CELL = Object.fromEntries((MODEL.scores || []).map(s => [s.option + "|" + s.criterion, s]));
+const WHATIFS = (MODEL.whatifs || []).filter(w => w && w.id);
+const OPT_COLORS = ["#0072b2", "#d55e00", "#009e73", "#b5568c", "#8a6a00", "#56b4e9", "#4a4a4a"];
+const optColor = o => okColour(o.color) ? o.color : OPT_COLORS[OPTIONS.indexOf(o) % OPT_COLORS.length];
+const OPT = Object.fromEntries(OPTIONS.map(o => [o.id, o]));
+const optName = id => (OPT[id] || {}).name || id;
+const critName = id => ((CRITERIA.find(c => c.id === id)) || {}).name || id;
+const CUR = (MODEL.costs || {}).currency || "";
+function money(v) {
+  const sym = {USD:"$", GBP:"£", EUR:"€"}[CUR] || "";
+  const t = Math.round(Math.abs(v)).toLocaleString("en-US");
+  return (v < 0 ? "-" : "") + (sym ? sym + t : t + (CUR ? " " + CUR : ""));
+}
+const modelWeight = c => +c.weight || 0;
+const weightOf = c => c.id in S.weights ? S.weights[c.id] : modelWeight(c);
+const ownWeights = () => SCORED.some(c => c.id in S.weights && S.weights[c.id] !== modelWeight(c));
+
+function scoreTable(weights) {
+  const w = Object.fromEntries(SCORED.map(c => [c.id, weights ? (c.id in weights ? weights[c.id] : modelWeight(c)) : weightOf(c)]));
+  const rows = OPTIONS.map(o => {
+    const fails = MUSTS.filter(c => (CELL[o.id + "|" + c.id] || {}).meets === false).map(c => c.id);
+    let A = 0, W = 0;
+    SCORED.forEach(c => { const s = CELL[o.id + "|" + c.id]; if (s && typeof s.value === "number") { A += w[c.id] * s.value; W += w[c.id]; } });
+    return {option:o.id, points:A, total:W ? Math.round(A / W * 100) / 100 : 0, fails};
+  });
+  const eligible = rows.filter(r => !r.fails.length).sort((a, b) => b.total - a.total || OPTIONS.findIndex(o => o.id === a.option) - OPTIONS.findIndex(o => o.id === b.option));
+  eligible.forEach((r, i) => r.rank = i + 1);
+  const close = eligible.length > 1 && eligible[0].total - eligible[1].total < 0.25;
+  return {w, rows, eligible, leader:eligible.length ? eligible[0].option : null, close, flips:flipsOf(w, eligible)};
+}
+function topOf(ids, w, cell) {
+  const tot = o => { let A = 0, W = 0; SCORED.forEach(c => { const s = cell[o + "|" + c.id]; if (s && typeof s.value === "number") { A += w[c.id] * s.value; W += w[c.id]; } }); return W ? A / W : 0; };
+  return ids.slice().sort((a, b) => tot(b) - tot(a) || OPTIONS.findIndex(o => o.id === a) - OPTIONS.findIndex(o => o.id === b))[0];
+}
+function flipsOf(w, eligible) {
+  if (eligible.length < 2) return [];
+  const lead = eligible[0].option, val = (o, c) => (CELL[o + "|" + c] || {}).value;
+  const W = SCORED.reduce((a, c) => a + w[c.id], 0), out = [];
+  eligible.slice(1).forEach(r => {
+    const o = r.option;
+    const A_l = SCORED.reduce((a, c) => a + w[c.id] * (val(lead, c.id) || 0), 0);
+    const A_o = SCORED.reduce((a, c) => a + w[c.id] * (val(o, c.id) || 0), 0);
+    const gap = A_l - A_o;
+    SCORED.forEach(c => {
+      const vl = val(lead, c.id), vo = val(o, c.id);
+      if (vl == null || vo == null || vl === vo) return;
+      const delta = gap / (vo - vl), nw = w[c.id] + delta;
+      let target = delta > 0 ? Math.ceil(nw * 2) / 2 : Math.floor(nw * 2) / 2;
+      if (target === nw) target += delta > 0 ? 0.5 : -0.5;
+      if (target >= 0 && target <= 5 && target !== w[c.id]) out.push({kind:"weight", option:o, criterion:c.id, from:w[c.id], to:target, size:Math.abs(target - w[c.id])});
+    });
+    SCORED.forEach(c => {
+      const vl = val(lead, c.id), vo = val(o, c.id);
+      if (vl == null || vo == null || !W) return;
+      if (vo < 5 && A_o + w[c.id] > A_l) out.push({kind:"score", option:o, criterion:c.id, of:o, from:vo, to:vo + 1, size:1});
+      if (vl > 1 && A_l - w[c.id] < A_o) out.push({kind:"score", option:o, criterion:c.id, of:lead, from:vl, to:vl - 1, size:1});
+    });
+  });
+  const oi = id => OPTIONS.findIndex(o => o.id === id), ci = id => SCORED.findIndex(c => c.id === id);
+  out.sort((a, b) => a.size - b.size || (a.kind === "score" ? 0 : 1) - (b.kind === "score" ? 0 : 1) || (w[b.criterion] || 0) - (w[a.criterion] || 0) || oi(a.option) - oi(b.option) || ci(a.criterion) - ci(b.criterion));
+  const ids = eligible.map(r => r.option);
+  return out.map(f => {
+    const ww = Object.assign({}, w), cell = Object.assign({}, CELL);
+    if (f.kind === "weight") ww[f.criterion] = f.to;
+    else { const k = f.of + "|" + f.criterion; cell[k] = Object.assign({}, cell[k], {value:f.to}); }
+    return Object.assign(f, {new_leader:topOf(ids, ww, cell)});
+  }).filter(f => f.new_leader !== lead).slice(0, 3);
+}
+const flipText = f => f.kind === "weight"
+  ? `If <b>${esc(critName(f.criterion))}</b> mattered ${f.to > f.from ? "more" : "less"} (weight ${f.from} → ${f.to}), <b>${esc(optName(f.new_leader))}</b> would come out on top.`
+  : `If <b>${esc(optName(f.of))}</b> scored ${f.to} instead of ${f.from} on <b>${esc(critName(f.criterion))}</b>, <b>${esc(optName(f.new_leader))}</b> would come out on top.`;
+
+function choicePanelHtml(info, b) {
+  if (info.kind === "option") {
+    const r = scoreTable(), row = r.rows.find(x => x.option === b.id) || {fails:[]};
+    const cr = MODEL.costs && MODEL.costs.options && MODEL.costs.options[b.id] ? costResult() : null;
+    const scoreLines = CRITERIA.map(c => { const s = CELL[b.id + "|" + c.id] || {}; const v = c.kind === "must" ? (s.meets === true ? "Meets" : s.meets === false ? "Fails" : "Not checked") : (typeof s.value === "number" ? s.value + " of 5" : "–");
+      return `<li><b>${esc(c.name)}:</b> ${v}${s.note ? ` – ${gl(s.note, true)}` : ""}${(s.evidence || []).length ? ` <button class="mini" data-evidence="${esc(s.evidence.join(","))}">Evidence</button>` : ""}</li>`; }).join("");
+    return `${b.summary ? `<p>${gl(b.summary, true)}</p>` : ""}
+      <p>${row.fails.length ? `<span class="pill missing">Fails a must-have</span> ${row.fails.map(id => esc(critName(id))).join(", ")}.` : row.rank ? `Place ${row.rank} in the table, ${row.total.toFixed(1)} of 5.` : ""}</p>
+      ${cr ? `<p>Real cost after ${cr.h} years: <b>${money(cr.series[b.id].real[cr.h * 12])}</b>${cr.series[b.id].payment ? `; payment about ${money(cr.series[b.id].payment)} a month` : ""}.</p>` : ""}
+      ${CRITERIA.length ? `<h3>How it scores</h3><ul class="scorelist">${scoreLines}</ul>` : ""}
+      <p>${info.mi >= 0 ? `<button class="mini" data-goto-map="${info.mi}:sc-table">Show in the table</button>` : ""}${cr ? ` <button class="mini" data-goto-map="${MODEL.maps.findIndex(m => m.template === "cost-over-time")}:co-chart">Show on the cost chart</button>` : ""}</p>`;
+  }
+  if (info.kind === "criterion") {
+    const lines = OPTIONS.map(o => { const s = CELL[o.id + "|" + b.id] || {}; const v = b.kind === "must" ? (s.meets === true ? "Meets" : s.meets === false ? "Fails" : "Not checked") : (typeof s.value === "number" ? s.value + " of 5" : "–"); return `<li><b>${esc(o.name)}:</b> ${v}${s.note ? ` – ${gl(s.note, true)}` : ""}</li>`; }).join("");
+    return `${b.measure ? `<p><b>How it is judged:</b> ${gl(b.measure, true)}</p>` : ""}<ul class="scorelist">${lines}</ul>${b.kind !== "must" ? `<p><button class="mini" data-goto-map="${info.mi}:sc-flip">What would change the winner</button></p>` : ""}`;
+  }
+  if (info.kind === "whatif") {
+    const f = Object.entries(b.multiply || {}).map(([k, v]) => `${esc(k)} × ${v}`).join(", ");
+    return `<p class="small">Changes: ${f}.</p><p><button class="mini" data-goto-map="${info.mi}:co-chart">Show on the cost chart</button></p>`;
+  }
+  return "";
+}
+/* Cost over time: money spent + loan still owed − what it is worth + what the cash up front
+   could have earned. Month 0 is the day you start. */
+function yearly(it, y) {
+  if (typeof it.yearly === "number") return it.yearly;
+  const ys = (it.yearly || []).filter(v => typeof v === "number");
+  return ys.length ? ys[Math.min(y, ys.length - 1)] : 0;
+}
+function factor(mult, keys) { return keys.reduce((f, k) => k in mult ? f * mult[k] : f, 1); }
+function loanSchedule(amount, apr, months) {
+  const r = apr / 12, pay = r === 0 ? amount / months : amount * r / (1 - Math.pow(1 + r, -months));
+  const bal = [amount]; let b = amount;
+  for (let i = 0; i < months; i++) { b = b * (1 + r) - pay; bal.push(Math.max(b, 0)); }
+  return [pay, bal];
+}
+function mults(ids) {
+  const m = {};
+  ids.forEach(id => { const w = WHATIFS.find(x => x.id === id); if (w) Object.entries(w.multiply || {}).forEach(([k, f]) => m[k] = (m[k] || 1) * f); });
+  return m;
+}
+function optionSeries(oid, mult) {
+  const costs = MODEL.costs, h = costs.horizon_years || 5, c = costs.options[oid];
+  const keys = x => [x.kind || "other", ...(x.tags || [])];
+  const up = (c.upfront || []).reduce((a, u) => a + u.amount * factor(mult, keys(u)), 0);
+  const items = c.items || [], loan = c.loan;
+  const [pay, bal] = loan ? loanSchedule(loan.amount, loan.apr, loan.months) : [0, [0]];
+  const value = (c.value || []).filter(v => typeof v === "number"); if (!value.length) value.push(0);
+  const vf = factor(mult, ["value"]), rate = costs.cash_return || 0;
+  const real = []; let total = up;
+  for (let m = 0; m <= h * 12; m++) {
+    if (m > 0) {
+      const y = Math.floor((m - 1) / 12);
+      total += items.reduce((a, it) => a + yearly(it, y) * factor(mult, keys(it)) / 12, 0);
+      if (loan && m <= loan.months) total += pay;
+    }
+    const owed = loan ? bal[Math.min(m, bal.length - 1)] : 0;
+    const yi = Math.floor(m / 12), frac = m % 12;
+    const a = value[Math.min(yi, value.length - 1)], b = value[Math.min(yi + 1, value.length - 1)];
+    const worth = (a + (b - a) * frac / 12) * vf;
+    real.push(total + owed - worth + up * (Math.pow(1 + rate, m / 12) - 1));
+  }
+  const payment = loan ? pay : items.filter(it => it.kind === "lease").reduce((a, it) => a + yearly(it, 0), 0) / 12;
+  return {real, payment};
+}
+function costResult() {
+  const costs = MODEL.costs;
+  if (!costs || !costs.options) return null;
+  const order = OPTIONS.map(o => o.id).filter(id => costs.options[id]);
+  const mult = mults(S.whatifs);
+  const h = costs.horizon_years || 5;
+  const series = Object.fromEntries(order.map(o => [o, optionSeries(o, mult)]));
+  const crossings = [];
+  order.forEach((a, i) => order.slice(i + 1).forEach(b => {
+    let prev = null;
+    for (let m = 1; m <= h * 12; m++) {
+      const d = series[a].real[m] - series[b].real[m], sign = d > 0 ? 1 : d < 0 ? -1 : 0;
+      if (prev !== null && sign && prev && sign !== prev) crossings.push({month:m, cheaper:sign < 0 ? a : b, dearer:sign < 0 ? b : a});
+      if (sign) prev = sign;
+    }
+  }));
+  crossings.sort((x, y) => x.month - y.month || order.indexOf(x.cheaper) - order.indexOf(y.cheaper));
+  const fails = new Set(scoreTable().rows.filter(r => r.fails.length).map(r => r.option));
+  const ranking = order.slice().sort((a, b) => series[a].real[h * 12] - series[b].real[h * 12]);
+  return {h, order, series, crossings, fails, ranking, cheapest:ranking.find(o => !fails.has(o))};
+}
+const whenText = m => { const y = Math.floor(m / 12), mo = m % 12; return y && mo ? `${y} year${y > 1 ? "s" : ""} and ${mo} month${mo > 1 ? "s" : ""} in` : y ? `${y} year${y > 1 ? "s" : ""} in` : `${mo} month${mo > 1 ? "s" : ""} in`; };
+
+/* ---------- drawing the scoring table ---------- */
+function heat(v) {   // calm sequential shading; the number is always written in the cell
+  const t = Math.max(0, Math.min(1, (v - 1) / 4));
+  const mix = (a, b) => Math.round(a + (b - a) * t);
+  return `rgb(${mix(246, 196)},${mix(244, 222)},${mix(238, 250)})`;
+}
+function renderScoring(m) {
+  const res = scoreTable();
+  const colW = 176, headW = 270;
+  const W = Math.max(headW + OPTIONS.length * colW, 760);
+  const top = header(m, W);
+  let y = top;
+  const merged = (MERGED && MERGED.weights) || {};
+  const split = new Set((MERGED && MERGED.weight_split) || []);
+  const cellOf = (o, c) => CELL[o.id + "|" + c.id] || {};
+  const head = OPTIONS.map(o => {
+    const r = res.rows.find(x => x.option === o.id);
+    const out = r.fails.length;
+    return `<th scope="col" class="optcol${out ? " out" : ""}${res.leader === o.id ? " lead" : ""}" style="--opt:${optColor(o)}">
+      <button class="optbtn" data-choice-open="${esc(o.id)}"><span class="swatch" aria-hidden="true"></span>${esc(o.name || o.id)}</button>
+      <span class="optsum">${gl(o.summary || "")}</span>
+      <span class="optmeta">${out ? `<span class="pill missing">Fails a must-have</span>` : `<span class="rank">${r.rank === 1 ? "Top of the table" : "Place " + r.rank}</span>`}${bpill(o)}${badges(o)}</span></th>`;
+  }).join("");
+  const mustRows = MUSTS.map(c => `<tr class="mustrow"><th scope="row"><button class="critbtn" data-choice-open="${esc(c.id)}">${esc(c.name)}</button><span class="crit-sub">Must-have${c.measure ? ": " + esc(c.measure) : ""}</span>${badges(c)}</th>
+    ${OPTIONS.map(o => { const s = cellOf(o, c); const ok = s.meets; return `<td class="must ${ok === true ? "meets" : ok === false ? "fails" : "unknown"}"${s.note ? ` title="${esc(s.note)}"` : ""}>${ok === true ? "✓ Meets" : ok === false ? "✕ Fails" : "Not checked"}${ok === false && s.note ? `<span class="cellnote">${esc(s.note)}</span>` : ""}</td>`; }).join("")}</tr>`).join("");
+  const scoreRows = SCORED.map(c => {
+    const w = weightOf(c), mine = c.id in S.weights && S.weights[c.id] !== modelWeight(c);
+    return `<tr><th scope="row"><button class="critbtn" data-choice-open="${esc(c.id)}">${esc(c.name)}</button>
+      <span class="weight${mine ? " mine" : ""}" title="${mine ? `Your weight (the model says ${modelWeight(c)})` : "How much this matters, 0 to 5"}">Weight ${w}${mine ? " (yours)" : ""}</span>${split.has(c.id) ? `<span class="chip split" title="${esc((merged[c.id] || []).map(v => v.who + " " + v.weight).join(", "))}">Reviewers disagree</span>` : ""}
+      ${c.measure ? `<span class="crit-sub">${esc(c.measure)}</span>` : ""}${badges(c)}</th>
+      ${OPTIONS.map(o => { const s = cellOf(o, c); const v = s.value; const out = res.rows.find(x => x.option === o.id).fails.length;
+        return `<td class="score${out ? " out" : ""}" style="background:${typeof v === "number" ? heat(v) : "transparent"}"${s.note ? ` title="${esc(s.note)}"` : ""}><span class="num">${typeof v === "number" ? v : "–"}</span>${s.note ? `<span class="cellnote">${esc(s.note)}</span>` : ""}</td>`; }).join("")}</tr>`;
+  }).join("");
+  const totals = OPTIONS.map(o => { const r = res.rows.find(x => x.option === o.id);
+    return r.fails.length ? `<td class="total out">Out</td>` : `<td class="total"><span class="bar" style="width:${Math.round(r.total / 5 * 100)}%;background:${optColor(o)}"></span><b>${r.total.toFixed(1)}</b> <span class="small">of 5</span></td>`; }).join("");
+  const table = place("scoreboard", 0, y, W, `<table class="scoretable"><caption class="sr">Scores for each option. Must-haves first, then weighted scores from 1 to 5.</caption>
+    <thead><tr><th scope="col" class="corner">${MUSTS.length ? "Must-haves first, then what matters" : "What matters"}</th>${head}</tr></thead>
+    <tbody>${mustRows}${scoreRows}<tr class="totalrow"><th scope="row">Weighted total${ownWeights() ? " (your weights)" : ""}</th>${totals}</tr></tbody></table>`);
+  rows.push({key:"sc-table", y, h:table.offsetHeight, x:0, w:W});
+  y += table.offsetHeight + 26;
+  const lead = res.leader;
+  const verdict = lead ? `<b>${esc(optName(lead))}</b> is top of the table${res.close ? `, but it is a <b>close call</b>: the top totals are within a quarter of a point, so treat them as level and let the notes and costs decide.` : "."}` : "No option meets every must-have.";
+  const flips = res.flips.length ? `<ul>${res.flips.map(f => `<li>${flipText(f)}</li>`).join("")}</ul>` : `<p>No change of one weight within 0 to 5, or of one score by one point, changes the winner. The result is steady.</p>`;
+  const card = place("flipcard", 0, y, Math.min(W, 900), `<h3>What would change the winner?</h3><p>${verdict}</p>${flips}
+    <div class="cardbtns"><button data-choice="weights">Change the weights</button>${ownWeights() ? `<button data-choice="resetweights">Use the model's weights</button>` : ""}${MODEL.framing ? `<button data-choice="framing">Before you decide</button>` : ""}</div>`);
+  rows.push({key:"sc-flip", y, h:card.offsetHeight, x:0, w:W});
+  let bottom = y + card.offsetHeight;
+  if (S.notesOnMap) {
+    const ids = [...OPTIONS, ...CRITERIA].map(x => x.id);
+    const nh = notePile(ids, W + 48, top, 8, "sc-notes");
+    bottom = Math.max(bottom, top + nh);
+  }
+  table.querySelectorAll("[data-choice-open]").forEach(b => { b._data = {type:"box", id:b.dataset.choiceOpen}; nodes[b.dataset.choiceOpen] = b; });
+  return {x:0, y:0, w:W + notesWidth(), h:bottom + 60};
+}
+
+/* ---------- drawing cost over time ---------- */
+function renderCosts(m) {
+  const res = costResult();
+  const W = 980;
+  const top = header(m, W);
+  let y = top;
+  if (!res) { place("mapintro", 0, y, 600, "No costs in this model yet."); return {x:0, y:0, w:W, h:y + 80}; }
+  const span = Math.min(S.horizon || res.h, res.h);
+  const controls = `<div class="seg" role="group" aria-label="How far ahead">${[1, 3, 5, 10].filter(n => n <= res.h).concat(res.h > 5 && res.h !== 10 ? [res.h] : []).filter((v, i, a) => a.indexOf(v) === i).map(n => `<button data-choice="horizon:${n}" aria-pressed="${span === n}">${n} year${n > 1 ? "s" : ""}</button>`).join("")}</div>
+    <div class="seg" role="group" aria-label="Chart or table"><button data-choice="view:chart" aria-pressed="${S.costView !== "table"}">Chart</button><button data-choice="view:table" aria-pressed="${S.costView === "table"}">Table</button></div>
+    ${WHATIFS.length ? `<div class="whatifs" role="group" aria-label="What if"><span class="small">What if:</span>${WHATIFS.map(w => `<button class="toggle" data-choice="whatif:${esc(w.id)}" aria-pressed="${S.whatifs.includes(w.id)}" data-whatif="${esc(w.id)}">${esc(w.label)}</button>`).join("")}</div>` : ""}`;
+  const bar = place("costbar", 0, y, W, controls);
+  y += bar.offsetHeight + 16;
+  const months = span * 12;
+  const vis = res.order;
+  let body;
+  if (S.costView === "table") {
+    const years = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].filter(n => n <= span);
+    body = `<table class="costtable"><caption class="sr">Real cost so far for each option, by year.</caption><thead><tr><th scope="col">Option</th>${years.map(n => `<th scope="col">After ${n} year${n > 1 ? "s" : ""}</th>`).join("")}<th scope="col">Loan or lease payment</th></tr></thead><tbody>
+      ${vis.map(o => `<tr${res.fails.has(o) ? ` class="out"` : ""}><th scope="row"><span class="swatch" style="background:${optColor(OPT[o])}"></span>${esc(optName(o))}${res.fails.has(o) ? ` <span class="small">(fails a must-have)</span>` : ""}</th>${years.map(n => `<td>${money(res.series[o].real[n * 12])}</td>`).join("")}<td>${res.series[o].payment ? money(res.series[o].payment) + " a month" : "–"}</td></tr>`).join("")}</tbody></table>`;
+  } else body = costChart(res, months, W);
+  const chart = place("costchart", 0, y, W, body);
+  rows.push({key:"co-chart", y:bar.offsetTop, h:chart.offsetTop + chart.offsetHeight - bar.offsetTop, x:0, w:W});
+  y += chart.offsetHeight + 20;
+  const relevant = res.crossings.filter(c => c.month <= months && !res.fails.has(c.cheaper) && !res.fails.has(c.dearer));
+  const cheapNow = res.order.filter(o => !res.fails.has(o)).sort((a, b) => res.series[a].real[months] - res.series[b].real[months])[0];
+  const say = place("costsay", 0, y, Math.min(W, 900), `<h3>What the lines say</h3>
+    <p>Cheapest after ${span} year${span > 1 ? "s" : ""}${res.fails.size ? " among options that meet every must-have" : ""}: <b>${esc(optName(cheapNow))}</b>, ${money(res.series[cheapNow].real[months])} in real cost.${S.whatifs.length ? ` With: ${S.whatifs.map(id => esc((WHATIFS.find(w => w.id === id) || {}).label || id)).join(", ")}.` : ""}</p>
+    ${relevant.length ? `<ul>${relevant.slice(0, 5).map(c => `<li><b>${esc(optName(c.cheaper))}</b> costs less than ${esc(optName(c.dearer))} from month ${c.month} on (${whenText(c.month)}).</li>`).join("")}</ul>` : `<p>No lines cross in this time: the order stays the same.</p>`}
+    ${res.fails.size ? `<p class="small">Dashed lines fail a must-have; they are shown for comparison only.</p>` : ""}
+    <p class="small">Real cost = money spent so far, plus any loan still owed, minus what you could sell it for${MODEL.costs.cash_return ? `, plus what the cash put down could have earned at ${Math.round(MODEL.costs.cash_return * 1000) / 10}% a year` : ""}.${MODEL.costs.assumptions ? " " + esc(MODEL.costs.assumptions) : ""}</p>`);
+  rows.push({key:"co-say", y, h:say.offsetHeight, x:0, w:W});
+  y += say.offsetHeight + 20;
+  const split = place("costsplit", 0, y, W, `<h3>Where the money goes over ${res.h} years</h3><div class="splitgrid">${vis.map(o => {
+      const parts = breakdownOf(o), total = parts.reduce((a, p) => a + Math.max(p.amount, 0), 0) || 1;
+      return `<div class="split"><h4><span class="swatch" style="background:${optColor(OPT[o])}"></span>${esc(optName(o))}</h4>
+        <div class="stack" role="img" aria-label="${esc(parts.map(p => p.label + " " + money(p.amount)).join(", "))}">${parts.filter(p => p.amount > 0).map((p, i) => `<i style="width:${p.amount / total * 100}%;opacity:${1 - i * 0.13}"></i>`).join("")}</div>
+        <ul>${parts.slice(0, 5).map(p => `<li><span>${esc(p.label)}</span><b>${money(p.amount)}</b></li>`).join("")}</ul></div>`; }).join("")}</div>`);
+  split.querySelectorAll(".split").forEach((el, i) => el.style.setProperty("--opt", optColor(OPT[vis[i]])));
+  rows.push({key:"co-split", y, h:split.offsetHeight, x:0, w:W});
+  y += split.offsetHeight;
+  let bottom = y;
+  if (S.notesOnMap) {
+    const nh = notePile(WHATIFS.map(w => w.id), W + 48, top, 6, "co-notes");
+    bottom = Math.max(bottom, top + nh);
+  }
+  bar.querySelectorAll("[data-whatif]").forEach(b => { const n = notesOn(b.dataset.whatif).length; if (n) b.insertAdjacentHTML("beforeend", ` <span class="small">· ${plural(n, "note")}</span>`); });
+  return {x:0, y:0, w:W + notesWidth(), h:bottom + 60};
+}
+function breakdownOf(oid) {
+  const costs = MODEL.costs, h = costs.horizon_years || 5, c = costs.options[oid], mult = mults(S.whatifs);
+  const keys = x => [x.kind || "other", ...(x.tags || [])];
+  const KINDS = {purchase:"Buying it", lease:"Lease payments", financing:"Loan payments", insurance:"Insurance", energy:"Fuel or charging",
+    maintenance:"Servicing and repairs", tax:"Taxes and fees", membership:"Membership and hire", other:"Other costs",
+    interest:"Loan interest", value_lost:"Value lost", cash_tied_up:"What the cash put down could have earned"};
+  const parts = {}; let bought = 0;
+  (c.upfront || []).forEach(u => { const a = u.amount * factor(mult, keys(u)); if (u.kind === "purchase") bought += a; else parts[u.kind || "other"] = (parts[u.kind || "other"] || 0) + a; });
+  (c.items || []).forEach(it => { const f = factor(mult, keys(it)); let t = 0; for (let y = 0; y < h; y++) t += yearly(it, y) * f; parts[it.kind || "other"] = (parts[it.kind || "other"] || 0) + t; });
+  if (c.loan) { const [pay, bal] = loanSchedule(c.loan.amount, c.loan.apr, c.loan.months); const n = Math.min(c.loan.months, h * 12); parts.interest = pay * n - (c.loan.amount - bal[n]); bought += c.loan.amount; }
+  const value = (c.value || []).filter(v => typeof v === "number");
+  if (value.length) parts.value_lost = bought - value[Math.min(h, value.length - 1)] * factor(mult, ["value"]);
+  else if (bought) parts.purchase = (parts.purchase || 0) + bought;
+  const up = (c.upfront || []).reduce((a, u) => a + u.amount * factor(mult, keys(u)), 0);
+  if (costs.cash_return && up) parts.cash_tied_up = up * (Math.pow(1 + costs.cash_return, h) - 1);
+  return Object.entries(parts).filter(([, v]) => Math.abs(v) >= 25).map(([k, v]) => ({kind:k, label:KINDS[k] || k, amount:v})).sort((a, b) => b.amount - a.amount);
+}
+function costChart(res, months, W) {
+  const H = 380, L = 78, R = 190, T = 18, B = 46, pw = W - L - R, ph = H - T - B;
+  const vals = res.order.flatMap(o => res.series[o].real.slice(0, months + 1));
+  const lo = Math.min(0, ...vals), hi = Math.max(...vals);
+  const step = niceStep((hi - lo) / 5);
+  const y0 = Math.floor(lo / step) * step, y1 = Math.ceil(hi / step) * step;
+  const X = m => L + m / months * pw, Y = v => T + ph - (v - y0) / (y1 - y0 || 1) * ph;
+  let s = `<svg class="chart" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-labelledby="chart-t chart-d"><title id="chart-t">Real cost so far, month by month</title><desc id="chart-d">${esc(res.order.map(o => `${optName(o)}: ${money(res.series[o].real[months])} after ${months / 12} years`).join("; "))}. The Table view has every number.</desc>`;
+  for (let v = y0; v <= y1 + 1e-6; v += step) s += `<line class="grid" x1="${L}" x2="${L + pw}" y1="${Y(v)}" y2="${Y(v)}"/><text class="tick" x="${L - 8}" y="${Y(v) + 4}" text-anchor="end">${money(v)}</text>`;
+  const yStep = months <= 12 ? 3 : 12;
+  for (let m = 0; m <= months; m += yStep) s += `<line class="vgrid" x1="${X(m)}" x2="${X(m)}" y1="${T}" y2="${T + ph}"/><text class="tick" x="${X(m)}" y="${T + ph + 18}" text-anchor="middle">${m === 0 ? "Start" : months <= 12 ? "Month " + m : "Year " + m / 12}</text>`;
+  if (y0 < 0) s += `<line class="zero" x1="${L}" x2="${L + pw}" y1="${Y(0)}" y2="${Y(0)}"/>`;
+  const labels = [];
+  res.order.forEach(o => {
+    const pts = res.series[o].real.slice(0, months + 1).map((v, m) => `${X(m).toFixed(1)},${Y(v).toFixed(1)}`).join(" ");
+    const col = optColor(OPT[o]);
+    s += `<polyline class="line${res.fails.has(o) ? " out" : ""}" points="${pts}" style="stroke:${col}"/>`;
+    labels.push({o, y:Y(res.series[o].real[months]), col});
+  });
+  labels.sort((a, b) => a.y - b.y);
+  for (let i = 1; i < labels.length; i++) if (labels[i].y - labels[i - 1].y < 30) labels[i].y = labels[i - 1].y + 30;   // direct labels never overlap
+  labels.forEach(l => {
+    const end = Y(res.series[l.o].real[months]);
+    s += `<line class="leader" x1="${L + pw + 2}" x2="${L + pw + 12}" y1="${end}" y2="${l.y}" style="stroke:${l.col}"/>
+      <text class="lab" x="${L + pw + 16}" y="${l.y - 2}" style="fill:${l.col}">${esc(optName(l.o))}${res.fails.has(l.o) ? "*" : ""}</text>
+      <text class="labv" x="${L + pw + 16}" y="${l.y + 14}">${money(res.series[l.o].real[months])}</text>`;
+  });
+  res.crossings.filter(c => c.month <= months && !res.fails.has(c.cheaper) && !res.fails.has(c.dearer)).slice(0, 5).forEach((c, i) => {
+    const v = (res.series[c.cheaper].real[c.month] + res.series[c.dearer].real[c.month]) / 2;
+    s += `<circle class="cross" cx="${X(c.month)}" cy="${Y(v)}" r="9"/><text class="crossn" x="${X(c.month)}" y="${Y(v) + 4}" text-anchor="middle">${i + 1}</text>`;
+  });
+  s += `</svg>`;
+  const marks = res.crossings.filter(c => c.month <= months && !res.fails.has(c.cheaper) && !res.fails.has(c.dearer)).slice(0, 5);
+  const foot = res.fails.size ? `<p class="chartfoot">* Dashed: fails a must-have, shown for comparison only.</p>` : "";
+  return s + foot + (marks.length ? `<ol class="crosslist">${marks.map(c => `<li>${esc(optName(c.cheaper))} becomes cheaper than ${esc(optName(c.dearer))} at month ${c.month}.</li>`).join("")}</ol>` : "");
+}
+function niceStep(raw) {
+  const p = Math.pow(10, Math.floor(Math.log10(raw || 1))), n = raw / p;
+  return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p;
+}
+function choiceAction(a) {
+  const [k, v] = a.split(":");
+  if (k === "weights") return open("weights");
+  if (k === "framing") return open("framing");
+  if (k === "resetweights") { S.weights = {}; persist(); render(); return; }
+  if (k === "horizon") S.horizon = +v;
+  if (k === "view") S.costView = v;
+  if (k === "whatif") S.whatifs = S.whatifs.includes(v) ? S.whatifs.filter(x => x !== v) : [...S.whatifs, v];
+  persist(); layout(); applyFocusBack(a);
+}
+function applyFocusBack(a) { const b = world.querySelector(`[data-choice="${CSS.escape(a)}"]`); if (b) b.focus({preventScroll:true}); }
+
 /* Named connections come from the model, never from the card positions. */
 function visibleLinks() {
   const mode = modeOf(MODEL.maps[S.map]);
@@ -1378,7 +1820,13 @@ function drawNoteLinks() {
     const box = nodes[note.dataset.anchor];
     if (!box) return;
     const nx = parseFloat(note.style.left), ny = parseFloat(note.style.top) + 22;
-    const bx = parseFloat(box.style.left) + box.offsetWidth, by = parseFloat(box.style.top) + Math.min(box.offsetHeight / 2, 40);
+    // A box placed on the map has its own position; one inside a table (an option or a
+    // criterion) is measured against the map instead.
+    const wr = world.getBoundingClientRect(), br = box.getBoundingClientRect(), k = (typeof Z === "number" && Z) || 1;
+    const left = box.style.left ? parseFloat(box.style.left) : (br.left - wr.left) / k;
+    const top = box.style.top ? parseFloat(box.style.top) : (br.top - wr.top) / k;
+    const bx = left + box.offsetWidth, by = top + Math.min(box.offsetHeight / 2, 40);
+    if (![nx, ny, bx, by].every(Number.isFinite)) return;
     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
     const mx = bx + (nx - bx) * 0.55;
     path.setAttribute("d", `M${bx + 4},${by} C${mx},${by} ${mx},${ny} ${nx - 4},${ny}`);
@@ -1398,7 +1846,7 @@ function layout() {
   const kind = KIND[m.template];
   document.body.dataset.mode = modeOf(m);
   document.body.classList.toggle("sbs-j", sbsJourneys());
-  bounds = sbsJourneys() ? renderJourneySbs(m) : m.template === "customer-journey" ? renderCustomerJourney(m) : kind === "journeys" ? renderJourneys(m) : kind === "chain" ? renderChain(m) : renderTree(m);
+  bounds = sbsJourneys() ? renderJourneySbs(m) : m.template === "customer-journey" ? renderCustomerJourney(m) : kind === "journeys" ? renderJourneys(m) : kind === "chain" ? renderChain(m) : kind === "scoring" ? renderScoring(m) : kind === "costs" ? renderCosts(m) : renderTree(m);
   drawNoteLinks();
   drawFreeNotes(m);
   drawConnections();
@@ -1518,6 +1966,14 @@ function fitRow(key) {
   if (r) fitTo({x:r.x - 10, y:r.y - 30, w:r.w + 20, h:r.h + 60});
 }
 function fit() { if (S.journey >= 0 && !sbsJourneys()) fitRow("j" + S.journey); else fitTo(bounds); }
+/* With notes on the map the whole drawing is wide; on first open, start at a size where the
+   stickies can be read and begin at the top left, rather than shrinking everything. */
+function fitReadable() {
+  if (!S.notesOnMap || Z >= 0.8 || sbsOn()) return;
+  const P = pane();
+  Z = 0.8; X = P.l + 20 - bounds.x * Z; Y = topEdge() + 20 - bounds.y * Z;
+  apply();
+}
 function centerOn(el) {
   if (Z < 0.75) {
     // zooming in can rebuild the drawing (text sizes change), so find the box again after
@@ -1690,6 +2146,8 @@ function story() {
     let sub = "";
     if (kind === "journeys") sub = (m.journeys || []).map((j, ji) => `<li class="jrow"><button class="mini startj" data-startj="${mi}:${ji}" aria-label="Walk through journey ${mi + 1}.${ji + 1}, ${esc(j.title)}">▶ Start</button><button class="view" data-j="${mi}:${ji}" aria-current="${cur && (sbsJourneys() ? S.sbsJourney === ji : S.journey === ji)}"><b><span class="num">${mi + 1}.${ji + 1}</span>${esc(j.title)}</b><span>${esc(j.summary || plural((j.steps || []).length, "step"))}</span></button></li>`).join("");
     if (kind === "chain") sub = (m.stages || []).map((st, si) => `<li><button class="view" data-row="${mi}:s${si}"><b><span class="num">${mi + 1}.${si + 1}</span>${esc(st.label)}</b><span>${esc(st.sub || "")}</span></button></li>`).join("");
+    if (kind === "scoring") sub = [["sc-table", "The table", `${plural(OPTIONS.length, "option")}, ${plural(CRITERIA.length, "thing")} that matter`], ["sc-flip", "What would change the winner", scoreTable().close ? "A close call" : "How steady the result is"]].map(([k, t, d], i) => `<li><button class="view" data-row="${mi}:${k}"><b><span class="num">${mi + 1}.${i + 1}</span>${t}</b><span>${d}</span></button></li>`).join("");
+    if (kind === "costs") sub = [["co-chart", "The chart", `Real cost over ${(MODEL.costs || {}).horizon_years || 5} years`], ["co-say", "What the lines say", "Where the cheaper option changes"], ["co-split", "Where the money goes", "Each option, part by part"]].map(([k, t, d], i) => `<li><button class="view" data-row="${mi}:${k}"><b><span class="num">${mi + 1}.${i + 1}</span>${t}</b><span>${d}</span></button></li>`).join("");
     if (kind === "tree") sub = (m.root.children || []).map((b, bi) => `<li><button class="view" data-row="${mi}:b${bi}"><b><span class="num">${mi + 1}.${bi + 1}</span>${esc(b.title)}</b><span>${plural((b.children || []).length, "idea")}</span></button></li>`).join("");
     const tag = hasChanges(m) ? `<span class="viewtag">${countsText(changeList(m))}</span>` : "";
     return `<li class="${cur ? "cur" : ""}"><button class="view top-view" data-map="${mi}" aria-current="${cur && S.journey < 0}"><b><span class="num">${mi + 1}.</span>${esc(m.title)}</b><span>${esc(m.intro || "")}</span>${tag}</button>${cur ? modeSwitch("in-story") : ""}${cur ? `<ol class="sub">${sub}</ol>` : ""}</li>`;
@@ -1713,6 +2171,8 @@ function story() {
     </div>
     <h2>Supporting material</h2><div class="more">
       ${MODEL.comparison ? `<button data-open="comparison">Compare the options</button>` : ""}
+      ${MODEL.framing ? `<button data-open="framing">Before you decide</button>` : ""}
+      ${SCORED.length ? `<button data-open="weights">Change the weights</button>` : ""}
       <button data-open="evidence">Supporting sources</button>
       ${DECISIONS.length ? `<button data-open="decisions">Decision record</button>` : ""}
       ${GAPS.length ? `<button data-open="gaps">Changes to consider</button>` : ""}
@@ -1751,6 +2211,16 @@ function steps() {
       const items = arrange(st.items || [], modeOf(m)).map(slot => slotLabel(slot, slot.box.title));
       out.push({title:`${si + 1}. ${st.label}`, text:`${st.sub || ""}. ${items.length ? items.join("; ") + "." : "Nothing here yet."}`, go:() => focusRow(mi, "s" + si)});
     });
+    if (kind === "scoring") {
+      const r = scoreTable();
+      const fails = r.rows.filter(x => x.fails.length).map(x => optName(x.option));
+      out.push({title:"Must-haves and scores", text:(fails.length ? `${fails.join(", ")} ${fails.length > 1 ? "fail" : "fails"} a must-have, so ${fails.length > 1 ? "they are" : "it is"} out. ` : "") + (r.leader ? `Top of the table: ${optName(r.leader)}${r.close ? ", but it is a close call" : ""}.` : ""), go:() => focusRow(mi, "sc-table")});
+      out.push({title:"What would change the winner", text:r.flips.length ? r.flips.map(f => flipText(f).replace(/<[^>]+>/g, "")).join(" ") : "No small change alters the winner.", go:() => focusRow(mi, "sc-flip")});
+    }
+    if (kind === "costs") {
+      const r = costResult();
+      if (r) out.push({title:"Cost over time", text:`Cheapest over ${r.h} years${r.fails.size ? " among options that meet every must-have" : ""}: ${optName(r.cheapest)}. ` + r.crossings.filter(c => !r.fails.has(c.cheaper) && !r.fails.has(c.dearer)).slice(0, 2).map(c => `${optName(c.cheaper)} costs less than ${optName(c.dearer)} from month ${c.month}.`).join(" ") + (WHATIFS.length ? " Try the what-ifs above the chart." : ""), go:() => focusRow(mi, "co-chart")});
+    }
     if (kind === "tree") (m.root.children || []).forEach((b, bi) => {
       out.push({title:b.title, text:`Ideas: ${(b.children || []).map(c => c.title).join("; ") || "none yet"}.`, go:() => focusRow(mi, "b" + bi)});
     });
@@ -1976,12 +2446,14 @@ const PANELS = {
     const gaps = GAPS.filter(g => (g.anchors || []).includes(id));
     const ch = sinceChanged[id];
     const notes = notesOn(id);
-    const where = info.kind === "step" ? `Step ${info.k + 1} · ${esc(lane ? lane.label : b.lane)}` : info.kind === "journey" ? `Journey ${info.ji + 1}` : info.kind === "stage" ? `Stage ${info.si + 1}` : "";
+    const where = info.kind === "step" ? `Step ${info.k + 1} · ${esc(lane ? lane.label : b.lane)}` : info.kind === "journey" ? `Journey ${info.ji + 1}` : info.kind === "stage" ? `Stage ${info.si + 1}` : info.kind === "option" ? "Option" : info.kind === "criterion" ? (b.kind === "must" ? "Must-have" : `Weighted ${weightOf(b)} of 5`) : info.kind === "whatif" ? "What if" : "";
+    const choiceInfo = choicePanelHtml(info, b);
     return [esc(titleOf(b)), `
       ${changeSection(id)}
       <p class="small">${where} ${b.kind ? `<span class="kind inline">${esc(b.kind)}</span>` : ""} ${bpill(b)}</p>
       ${b.status_reason ? `<p><b>${esc(STATUS[b.status] || "Status")}:</b> ${gl(b.status_reason, true)}</p>` : ""}
       ${b.title && b.text ? `<p>${gl(b.text, true)}</p>` : ""}${b.summary ? `<p>${gl(b.summary, true)}</p>` : ""}${b.sub ? `<p>${gl(b.sub, true)}</p>` : ""}
+      ${choiceInfo}
       ${b.pain ? `<p><b>Pain point:</b> ${gl(b.pain, true)}</p>` : ""}
       ${b.moment ? `<p><b>A moment that matters.</b> Get this right and people trust the rest.</p>` : ""}
       ${b.feeling ? `<p><i class="feel ${b.feeling}"></i>${FEEL[b.feeling]}</p>` : ""}
@@ -2027,6 +2499,22 @@ const PANELS = {
     return [esc(o.measure), `${o.baseline ? `<p><b>Before:</b> ${esc(o.baseline)}</p>` : ""}${o.target ? `<p><b>Target:</b> ${esc(o.target)}</p>` : ""}
       <p><b>Result:</b> ${o.result ? esc(o.result) : "Not measured yet."}</p>${o.checked ? `<p class="small">Measured ${esc(o.checked)}.</p>` : ""}
       ${o.becomes_evidence ? `<h3>Feeds back as evidence</h3>${evidenceHtml([o.becomes_evidence])}` : ""}`];
+  },
+  weights() {
+    const merged = (MERGED && MERGED.weights) || {};
+    const r = scoreTable();
+    return ["Change the weights", `<p>How much does each thing matter to you, from 0 (not at all) to 5 (a lot)? The table and the winner update as you move a slider. Your weights are saved with your answers.</p>
+      ${SCORED.map(c => { const w = weightOf(c), others = merged[c.id] || [];
+        return `<div class="wrow"><label for="w-${esc(c.id)}"><b>${esc(c.name)}</b> <span class="wval" id="wv-${esc(c.id)}">${w}</span></label>
+          <input type="range" id="w-${esc(c.id)}" min="0" max="5" step="0.5" value="${w}" data-weight="${esc(c.id)}" aria-describedby="wd-${esc(c.id)}">
+          <span class="small" id="wd-${esc(c.id)}">The model says ${modelWeight(c)}.${others.length ? " Reviewers: " + others.map(v => esc(v.who) + " " + v.weight).join(", ") + "." : ""}</span></div>`; }).join("")}
+      <p id="wnow" aria-live="polite">${r.leader ? `Top now: <b>${esc(optName(r.leader))}</b>${r.close ? " (a close call)" : ""}.` : ""}</p>
+      <button class="mini" data-resetw>Use the model's weights</button>`];
+  },
+  framing() {
+    const f = MODEL.framing || {};
+    return ["Before you decide", `${(f.premortem || []).length ? `<h3>A year later this went badly. Why?</h3><p class="small">A pre-mortem: imagine the choice has already gone wrong, then list the likely reasons. Guard against each one now.</p><ul>${f.premortem.map(x => `<li>${gl(x, true)}</li>`).join("")}</ul>` : ""}
+      ${f.regret && Object.keys(f.regret).length ? `<h3>How will it feel later?</h3><p class="small">The 10-10-10 check: how will you feel about the choice soon, in a while, and much later?</p>${Object.entries(f.regret).map(([k, v]) => `<p><b>In ${esc(k)}:</b> ${gl(v, true)}</p>`).join("")}` : ""}`];
   },
   reading() { return ["How to read this", `<p>${gl(MODEL.reading || "Start with the decision, then answer the review questions.", true)}</p>`]; },
   sources(refs) {
@@ -2205,6 +2693,17 @@ async function goReview(index) {
   open("review", index);
 }
 function wirePanel(p) {
+  p.querySelectorAll("[data-weight]").forEach(inp => inp.addEventListener("input", () => {
+    const id = inp.dataset.weight, v = +inp.value, c = SCORED.find(x => x.id === id);
+    if (c && v === modelWeight(c)) delete S.weights[id]; else S.weights[id] = v;
+    persist();
+    const out = p.querySelector("#wv-" + CSS.escape(id)); if (out) out.textContent = v;
+    const r = scoreTable(), now = p.querySelector("#wnow");
+    if (now) now.innerHTML = r.leader ? `Top now: <b>${esc(optName(r.leader))}</b>${r.close ? " (a close call)" : ""}.` : "";
+    if (KIND[MODEL.maps[S.map].template] === "scoring") layout();
+  }));
+  p.querySelectorAll("[data-resetw]").forEach(b => b.addEventListener("click", () => { S.weights = {}; persist(); if (KIND[MODEL.maps[S.map].template] === "scoring") layout(); open("weights"); }));
+  p.querySelectorAll("[data-goto-map]").forEach(b => b.addEventListener("click", () => { const [mi, key] = b.dataset.gotoMap.split(":"); focusRow(+mi, key); }));
   p.querySelectorAll("[data-evidence]").forEach(b => b.addEventListener("click", () => openSupport("sources", b.dataset.evidence.split(","))));
   p.querySelectorAll("[data-responses]").forEach(b => b.addEventListener("click", () => openSupport("responses", b.dataset.responses)));
   p.querySelectorAll("[data-support-back]").forEach(b => b.addEventListener("click", () => { if (supportReturn) { const previous = supportReturn; open(previous.kind, previous.arg); $("#panel .body").scrollTop = previous.scroll; } }));
@@ -2365,7 +2864,9 @@ function activate(el) {
   else if (d.type === "mapnotes") open("mapnotes");
 }
 const startFrom = e => { const sj = e.target.closest("[data-startj]"); if (!sj) return false; e.stopPropagation(); const [mi, ji] = sj.dataset.startj.split(":").map(Number); walkJourney(mi, ji, 0); return true; };
-world.addEventListener("click", e => { if (startFrom(e)) return; const term = e.target.closest(".term"); if (term) { showTerm(term); return; } const el = e.target.closest("[role=button]"); if (el && el._data) activate(el); });
+world.addEventListener("click", e => { if (startFrom(e)) return;
+  const ch = e.target.closest("[data-choice]"); if (ch) { e.stopPropagation(); choiceAction(ch.dataset.choice); return; }
+  const co = e.target.closest("[data-choice-open]"); if (co) { e.stopPropagation(); hideHint(); open("box", co.dataset.choiceOpen); return; } const term = e.target.closest(".term"); if (term) { showTerm(term); return; } const el = e.target.closest("[role=button]"); if (el && el._data) activate(el); });
 world2.addEventListener("click", e => { if (startFrom(e)) return; const el = e.target.closest("[data-k]"); const t = twin(el); if (t && t._data) activate(t); });
 world.addEventListener("keydown", e => {
   const term = e.target.closest(".term"); if (term && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); showTerm(term); return; }
@@ -2407,6 +2908,8 @@ world.addEventListener("focusout", e => { if (e.target.closest(".term")) hideTer
 function reviewData() {
   return {format:"decisioncraft-review/1", model:MODEL.title, model_fingerprint:META.fingerprint || "",
     reviewer:S.reviewer || "", saved_at:new Date().toISOString(), answers:S.answers, dots:S.votes, decisions:S.decisions,
+    ...(ownWeights() ? {weights:Object.fromEntries(SCORED.map(c => [c.id, weightOf(c)]))} : {}),
+    ...(S.whatifs.length ? {whatifs:S.whatifs} : {}),
     ...(S.myNotes.length ? {notes:S.myNotes.map(cleanNote)} : {})};
 }
 function saveReview() { if (SESSION) finishReview(); else downloadReview(); }
@@ -2486,6 +2989,7 @@ document.body.classList.toggle("dots", S.dots);
 document.body.classList.toggle("nostory", !S.story);
 render();
 fit();
+fitReadable();
 hint();
 if (SESSION) { hideHint(); open("reviewstart"); }
 queueSync();

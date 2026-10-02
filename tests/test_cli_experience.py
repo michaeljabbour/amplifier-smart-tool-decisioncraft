@@ -223,7 +223,9 @@ def test_library_functions_match_the_cli(tmp_path):
     import decisioncraft as dc
 
     names = [e["id"] for e in dc.example_names()]
-    assert names == ["business", "technical", "engineering", "medical"]
+    # "car" (personal-car) is new in the library; the CLI's `example` choices pick it up
+    # in the modes branch (see docs/notes/personal-decisions.md).
+    assert names[:4] == ["business", "technical", "engineering", "medical"] and "car" in names
     ex = dc.example("business")
     assert ex["material"] and ex["reviews"] and dc.summary(ex["model"])["notes"] > 0
     files = dc.starter("customer-journey", "", "How do we cut missed pickups?", roles=["voice"])

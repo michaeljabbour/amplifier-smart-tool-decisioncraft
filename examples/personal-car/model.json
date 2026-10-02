@@ -1,0 +1,1453 @@
+{
+  "format": "decisioncraft/1",
+  "title": "Renew, keep or buy: Dana's next car",
+  "question": "When the lease ends in March, should Dana's family keep and repair the car, renew the lease, buy new, buy used, or go car-free?",
+  "summary": "Car share is cheapest but fails the school run. Keeping the old car costs least over five years, unless repairs run high. Buying used is the sturdier choice: about $2,500 more than keeping, $11,000 less than leasing, with long warranty cover. The scores are a close call between buying new and buying used.",
+  "reading": "Start with the list on the left. The scoring table checks the must-haves first, then weighs what matters; try your own weights with Change the weights. The cost view shows what each option really costs month by month; switch the what-ifs on to see how the answer moves. The journey shows what changes in day-to-day life. The notes are from different points of view, each ending in a question.",
+  "checked": {
+    "date": "2026-09-30",
+    "note": "Checked against the lease letter, the garage visit, two dealer offers, insurance quotes, car share prices, a family talk and published figures from AAA, Kelley Blue Book, Edmunds and the EIA."
+  },
+  "dots": 5,
+  "roles": [
+    {
+      "id": "money",
+      "label": "Money",
+      "color": "#2f7d4f",
+      "asks": "What does it really cost over the years, and what does the monthly number hide?"
+    },
+    {
+      "id": "practical",
+      "label": "Practical expert",
+      "color": "#4f7fd8",
+      "asks": "What tends to go wrong with this choice, and what does it take to keep it working?"
+    },
+    {
+      "id": "safety",
+      "label": "Safety",
+      "color": "#d1543f",
+      "asks": "Is anyone put at risk, and is the safest option out of reach for a good reason?"
+    },
+    {
+      "id": "people",
+      "label": "People affected",
+      "color": "#d99a1e",
+      "asks": "Who else lives with this choice every day, and what do they need?"
+    },
+    {
+      "id": "future",
+      "label": "Future you",
+      "color": "#8a5cd6",
+      "asks": "Will this still suit you in a few years, and how easy is it to change course?"
+    },
+    {
+      "id": "environment",
+      "label": "Environment",
+      "color": "#1f9aa6",
+      "asks": "What does each option use up, and is there a lighter way to get the same result?"
+    },
+    {
+      "id": "market",
+      "label": "Market and resale",
+      "color": "#7a7a72",
+      "asks": "What is it worth later, and is now a good or bad time to buy or sell?"
+    },
+    {
+      "id": "devil",
+      "label": "Devil's advocate",
+      "color": "#b5568c",
+      "asks": "What if the question itself is wrong? Is there an option nobody has named?"
+    }
+  ],
+  "glossary": {
+    "real cost": "Money spent so far, plus any loan still owed, minus what the car could be sold for.",
+    "buyout": "Buying the car you have been leasing, at the price set when the lease began.",
+    "residual": "What the leasing company expects the car to be worth at the end of the lease.",
+    "certified": "A used car checked by the maker's dealer and sold with extra warranty cover.",
+    "must-have": "Something an option has to meet. If it fails, it is out, whatever its score.",
+    "what-if": "A change to one assumption, such as petrol prices, to see how the answer moves.",
+    "pre-mortem": "Imagining the decision has already gone badly and listing why, before deciding."
+  },
+  "sources": [
+    {
+      "id": "S1",
+      "title": "Lease-end letter",
+      "kind": "document",
+      "date": "2026-09-02",
+      "ref": "material/lease-end-letter.md"
+    },
+    {
+      "id": "S2",
+      "title": "Service history and garage advice",
+      "kind": "document",
+      "date": "2026-09-18",
+      "ref": "material/service-history.md"
+    },
+    {
+      "id": "S3",
+      "title": "Dealer quote, new 2027 model",
+      "kind": "document",
+      "date": "2026-09-22",
+      "ref": "material/dealer-quote-new.md"
+    },
+    {
+      "id": "S4",
+      "title": "Used listing, 2024 model",
+      "kind": "document",
+      "date": "2026-09-24",
+      "ref": "material/used-listing.md"
+    },
+    {
+      "id": "S5",
+      "title": "Insurance quotes",
+      "kind": "document",
+      "date": "2026-09-25",
+      "ref": "material/insurance-quotes.md"
+    },
+    {
+      "id": "S6",
+      "title": "Car share and other ways to get around",
+      "kind": "data",
+      "date": "2026-09-26",
+      "ref": "material/car-share-prices.md"
+    },
+    {
+      "id": "S7",
+      "title": "Kitchen-table talk about what the family needs",
+      "kind": "interview",
+      "date": "2026-09-27",
+      "ref": "material/family-needs.md"
+    },
+    {
+      "id": "S8",
+      "title": "Published figures (AAA, Kelley Blue Book, Edmunds, EIA)",
+      "kind": "data",
+      "date": "2026-09-28",
+      "ref": "material/research-notes.md"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "E1",
+      "source": "S1",
+      "kind": "quote",
+      "text": "Buyout price at the end of the lease: $21,400, plus a $350 purchase fee and sales tax.",
+      "where": "Lease-end letter"
+    },
+    {
+      "id": "E2",
+      "source": "S1",
+      "kind": "quote",
+      "text": "Our current offer on a new lease of the 2027 model: $520 a month for 36 months, $2,500 due at signing.",
+      "where": "Lease-end letter"
+    },
+    {
+      "id": "E3",
+      "source": "S1",
+      "kind": "data",
+      "text": "Current payment $485 a month; lease ends 15 March 2027.",
+      "where": "Lease-end letter"
+    },
+    {
+      "id": "E4",
+      "source": "S2",
+      "kind": "quote",
+      "text": "After five years these start needing suspension parts and a battery. Budget more each year from here, not less.",
+      "where": "Garage, 18 September",
+      "voice": true
+    },
+    {
+      "id": "E5",
+      "source": "S2",
+      "kind": "data",
+      "text": "Brakes $780 and tyres $520 due within three months; about $2,100 in year one if kept.",
+      "where": "Garage quote"
+    },
+    {
+      "id": "E6",
+      "source": "S3",
+      "kind": "data",
+      "text": "$38,230 all in; $33,000 over 60 months at 6.7% with $5,230 down, about $649 a month.",
+      "where": "Dealer quote"
+    },
+    {
+      "id": "E7",
+      "source": "S3",
+      "kind": "quote",
+      "text": "Comes with the latest driver aids (automatic braking at junctions, lane centring).",
+      "where": "Dealer quote"
+    },
+    {
+      "id": "E8",
+      "source": "S4",
+      "kind": "data",
+      "text": "2024, 21,000 miles, $28,914 all in; $25,000 over 60 months at 9.5%, about $525 a month.",
+      "where": "Used listing"
+    },
+    {
+      "id": "E9",
+      "source": "S4",
+      "kind": "quote",
+      "text": "Certified cover to 7 years or 100,000 miles on the engine and gearbox.",
+      "where": "Used listing"
+    },
+    {
+      "id": "E10",
+      "source": "S5",
+      "kind": "data",
+      "text": "Insurance a year: keep $1,450; new $1,750; used $1,600.",
+      "where": "Insurance quotes"
+    },
+    {
+      "id": "E11",
+      "source": "S6",
+      "kind": "quote",
+      "text": "The car share spot is often empty at 8 a.m., and two child seats would have to be carried there and back every day.",
+      "where": "Dana's notes"
+    },
+    {
+      "id": "E12",
+      "source": "S6",
+      "kind": "data",
+      "text": "Car-free estimate: about $6,400 a year for car share, hires, taxis and a bus pass.",
+      "where": "Dana's estimate"
+    },
+    {
+      "id": "E13",
+      "source": "S7",
+      "kind": "quote",
+      "text": "I don't want another three-year lease cycle. I want to stop paying for something we never own.",
+      "where": "Partner",
+      "voice": true
+    },
+    {
+      "id": "E14",
+      "source": "S7",
+      "kind": "quote",
+      "text": "I don't want to be stuck at the roadside with the kids. Reliability matters more than a new-car smell.",
+      "where": "Dana",
+      "voice": true
+    },
+    {
+      "id": "E15",
+      "source": "S7",
+      "kind": "data",
+      "text": "School run every weekday with two child seats; budget no more than $650 a month; commute may double next year.",
+      "where": "Kitchen-table talk"
+    },
+    {
+      "id": "E16",
+      "source": "S8",
+      "kind": "data",
+      "text": "Cars lose about 20% of their value in the first year and about 60% over five years.",
+      "where": "Kelley Blue Book"
+    },
+    {
+      "id": "E17",
+      "source": "S8",
+      "kind": "data",
+      "text": "A new car costs $11,577 a year to own and run on average; depreciation is the largest part at $4,334 a year.",
+      "where": "AAA, Your Driving Costs 2025"
+    },
+    {
+      "id": "E18",
+      "source": "S8",
+      "kind": "data",
+      "text": "Average new-car loan rate 6.7% (Q4 2025); regular petrol averaged $3.10 a gallon in 2025.",
+      "where": "Edmunds; EIA"
+    }
+  ],
+  "maps": [
+    {
+      "id": "m-scores",
+      "template": "scoring-table",
+      "title": "Score the options",
+      "intro": "Must-haves first: an option that fails one is out. Then each option is scored 1 to 5 on what matters, weighted by how much it matters to Dana's family."
+    },
+    {
+      "id": "m-costs",
+      "template": "cost-over-time",
+      "title": "Cost over time",
+      "intro": "What each option really costs so far: money spent, plus any loan still owed, minus what the car could be sold for. Where the lines cross, the cheaper option changes."
+    },
+    {
+      "id": "m-journey",
+      "template": "customer-journey",
+      "title": "Living with it: today and after buying used",
+      "intro": "Day-to-day life on the lease now, and what changes if Dana buys the certified 2024 model.",
+      "lanes": [
+        {
+          "id": "decide",
+          "label": "Decide",
+          "sub": "Finding out and choosing"
+        },
+        {
+          "id": "switch",
+          "label": "Switch over",
+          "sub": "Paperwork and handover"
+        },
+        {
+          "id": "live",
+          "label": "Day to day",
+          "sub": "Living with it"
+        },
+        {
+          "id": "later",
+          "label": "Later",
+          "sub": "Selling, renewing, ending"
+        }
+      ],
+      "journeys": [
+        {
+          "id": "j1",
+          "title": "The lease runs out",
+          "summary": "From the letter to life with the next car.",
+          "steps": [
+            {
+              "id": "p1",
+              "lane": "decide",
+              "text": "The lease-end letter arrives with three choices",
+              "status": "works",
+              "evidence": [
+                "E3"
+              ]
+            },
+            {
+              "id": "p2",
+              "lane": "decide",
+              "text": "Arrange a loan with the credit union before visiting dealers",
+              "when": "planned",
+              "status": "planned",
+              "pain": "Dealer finance at 9.5% may be beaten by shopping around."
+            },
+            {
+              "id": "p3",
+              "lane": "switch",
+              "text": "Hand the car back and pay any wear charges",
+              "when": "today",
+              "status": "works",
+              "pain": "A $395 return fee plus unknown wear charges."
+            },
+            {
+              "id": "p3b",
+              "lane": "switch",
+              "text": "Hand the car back, then collect the certified 2024 model the same day",
+              "when": "planned",
+              "replaces": "p3",
+              "status": "planned",
+              "moment": true
+            },
+            {
+              "id": "p4",
+              "lane": "live",
+              "text": "Pay $485 a month to the leasing company",
+              "when": "today",
+              "status": "works",
+              "evidence": [
+                "E3"
+              ]
+            },
+            {
+              "id": "p4b",
+              "lane": "live",
+              "text": "Pay about $525 a month on the loan, ending in five years",
+              "when": "planned",
+              "replaces": "p4",
+              "status": "planned",
+              "evidence": [
+                "E8"
+              ]
+            },
+            {
+              "id": "p5",
+              "lane": "live",
+              "text": "School run every weekday with two child seats",
+              "status": "works",
+              "feeling": "ok",
+              "evidence": [
+                "E15"
+              ]
+            },
+            {
+              "id": "p6",
+              "lane": "live",
+              "text": "Servicing paid as part of the lease deal",
+              "when": "today",
+              "status": "works"
+            },
+            {
+              "id": "p6b",
+              "lane": "live",
+              "text": "Pay for servicing; set aside $75 a month",
+              "when": "planned",
+              "replaces": "p6",
+              "status": "partial",
+              "status_reason": "The amount is a guess until the first year's bills come in.",
+              "feeling": "ok"
+            },
+            {
+              "id": "p7",
+              "lane": "later",
+              "text": "Lease ends again in three years; start over",
+              "when": "today",
+              "status": "works",
+              "feeling": "bad",
+              "evidence": [
+                "E13"
+              ]
+            },
+            {
+              "id": "p8",
+              "lane": "later",
+              "text": "Loan paid off after five years; the car is still worth about $14,000",
+              "when": "planned",
+              "status": "planned",
+              "feeling": "good",
+              "moment": true
+            },
+            {
+              "id": "p9",
+              "lane": "later",
+              "text": "Check the real cost after six months",
+              "when": "planned",
+              "status": "planned"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m-chain",
+      "template": "decision-chain",
+      "title": "From what Dana knows to what Dana decides",
+      "intro": "Each stage is one step from what Dana found out to the choice and whether it worked.",
+      "stages": [
+        {
+          "id": "st-source",
+          "label": "Source",
+          "verb": "backs up",
+          "sub": "Letters, quotes and talks",
+          "items": [
+            {
+              "id": "c1",
+              "title": "Lease-end letter",
+              "text": "Buy it, return it or lease again by 15 March.",
+              "status": "works",
+              "evidence": [
+                "E1",
+                "E3"
+              ],
+              "kind": "Letter"
+            },
+            {
+              "id": "c2",
+              "title": "Garage visit",
+              "text": "Brakes and tyres due; repairs will rise with age.",
+              "status": "works",
+              "evidence": [
+                "E4",
+                "E5"
+              ],
+              "kind": "Visit"
+            },
+            {
+              "id": "c3",
+              "title": "Two dealer offers",
+              "text": "A new 2027 model and a certified 2024 model.",
+              "status": "works",
+              "evidence": [
+                "E6",
+                "E8"
+              ],
+              "kind": "Quotes"
+            },
+            {
+              "id": "c4",
+              "title": "Kitchen-table talk",
+              "text": "School run, budget, and no more lease cycles.",
+              "status": "works",
+              "evidence": [
+                "E13",
+                "E15"
+              ],
+              "kind": "Talk"
+            }
+          ]
+        },
+        {
+          "id": "st-evidence",
+          "label": "Evidence",
+          "verb": "informs",
+          "sub": "The numbers and words that matter",
+          "items": [
+            {
+              "id": "c5",
+              "title": "Five-year cost of each option",
+              "text": "Money spent, loan owed, minus what the car is worth.",
+              "status": "works",
+              "evidence": [
+                "E16",
+                "E17"
+              ]
+            },
+            {
+              "id": "c6",
+              "title": "Must-haves",
+              "text": "School run every weekday, two child seats, top crash rating.",
+              "status": "works",
+              "evidence": [
+                "E15",
+                "E11"
+              ]
+            },
+            {
+              "id": "c7",
+              "title": "What could go wrong",
+              "text": "A pre-mortem and a 10-10-10 check, below.",
+              "status": "partial",
+              "status_reason": "Partner has not done the pre-mortem yet."
+            }
+          ]
+        },
+        {
+          "id": "st-decision",
+          "label": "Decision",
+          "verb": "leads to",
+          "sub": "What Dana chooses, and why",
+          "items": [
+            {
+              "id": "c8",
+              "title": "Choose by 1 February",
+              "text": "Six weeks before the lease ends, so a used car can be found without rushing.",
+              "status": "planned"
+            }
+          ]
+        },
+        {
+          "id": "st-outcome",
+          "label": "Outcome",
+          "verb": "",
+          "sub": "Did it work? Checked, not guessed",
+          "items": [
+            {
+              "id": "c9",
+              "title": "Check the real cost after six months",
+              "text": "Compare money spent with the plan, and note any surprises.",
+              "status": "planned"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "options": [
+    {
+      "id": "keep",
+      "name": "Keep and repair",
+      "summary": "Buy out the 2022 car for $21,400 and fix the brakes and tyres."
+    },
+    {
+      "id": "lease",
+      "name": "Renew the lease",
+      "summary": "Lease the 2027 model: $520 a month, $2,500 due at signing."
+    },
+    {
+      "id": "new",
+      "name": "Buy new",
+      "summary": "The 2027 model for $38,230 all in, financed over five years."
+    },
+    {
+      "id": "used",
+      "name": "Buy used",
+      "summary": "A certified 2024 model with 21,000 miles, $28,914 all in."
+    },
+    {
+      "id": "share",
+      "name": "Car share",
+      "summary": "Go car-free: car share, day hires, taxis and a bus pass.",
+      "status": "unsure",
+      "status_reason": "Would only work if the school run can be solved another way."
+    }
+  ],
+  "criteria": [
+    {
+      "id": "m-school",
+      "name": "Ready for the school run every weekday",
+      "kind": "must",
+      "measure": "A car at the door at 8 a.m., with two child seats fitted."
+    },
+    {
+      "id": "m-seats",
+      "name": "Five seats with room for two child seats",
+      "kind": "must",
+      "measure": "Both seats fit with a passenger in front."
+    },
+    {
+      "id": "m-crash",
+      "name": "Top crash rating",
+      "kind": "must",
+      "measure": "Top marks from the national crash tests for that model year."
+    },
+    {
+      "id": "cost",
+      "name": "Five-year cost",
+      "kind": "scored",
+      "weight": 5,
+      "measure": "From the cost view: 5 is the cheapest, 1 the dearest."
+    },
+    {
+      "id": "safety",
+      "name": "Safety features",
+      "kind": "scored",
+      "weight": 4,
+      "measure": "Driver aids beyond the crash rating."
+    },
+    {
+      "id": "reliable",
+      "name": "Reliability",
+      "kind": "scored",
+      "weight": 4,
+      "measure": "Chance of a breakdown with the children in the car."
+    },
+    {
+      "id": "space",
+      "name": "Space for family trips",
+      "kind": "scored",
+      "weight": 3,
+      "measure": "Boot space and comfort on the 180-mile trip."
+    },
+    {
+      "id": "hassle",
+      "name": "Little hassle",
+      "kind": "scored",
+      "weight": 2,
+      "measure": "Garage visits, paperwork and surprises."
+    },
+    {
+      "id": "enjoy",
+      "name": "Nice to drive",
+      "kind": "scored",
+      "weight": 2,
+      "measure": "How it feels day to day."
+    },
+    {
+      "id": "flex",
+      "name": "Easy to change course",
+      "kind": "scored",
+      "weight": 2,
+      "measure": "How easily the family can switch if life changes."
+    }
+  ],
+  "scores": [
+    {
+      "option": "keep",
+      "criterion": "m-school",
+      "meets": true
+    },
+    {
+      "option": "keep",
+      "criterion": "m-seats",
+      "meets": true
+    },
+    {
+      "option": "keep",
+      "criterion": "m-crash",
+      "meets": true
+    },
+    {
+      "option": "lease",
+      "criterion": "m-school",
+      "meets": true
+    },
+    {
+      "option": "lease",
+      "criterion": "m-seats",
+      "meets": true
+    },
+    {
+      "option": "lease",
+      "criterion": "m-crash",
+      "meets": true
+    },
+    {
+      "option": "new",
+      "criterion": "m-school",
+      "meets": true
+    },
+    {
+      "option": "new",
+      "criterion": "m-seats",
+      "meets": true
+    },
+    {
+      "option": "new",
+      "criterion": "m-crash",
+      "meets": true
+    },
+    {
+      "option": "used",
+      "criterion": "m-school",
+      "meets": true
+    },
+    {
+      "option": "used",
+      "criterion": "m-seats",
+      "meets": true
+    },
+    {
+      "option": "used",
+      "criterion": "m-crash",
+      "meets": true
+    },
+    {
+      "option": "share",
+      "criterion": "m-school",
+      "meets": false,
+      "note": "The car share spot is often empty at 8 a.m., and the child seats would be carried there daily.",
+      "evidence": [
+        "E11"
+      ]
+    },
+    {
+      "option": "share",
+      "criterion": "m-seats",
+      "meets": true,
+      "note": "Most car share cars have five seats; the child seats come along."
+    },
+    {
+      "option": "share",
+      "criterion": "m-crash",
+      "meets": true,
+      "note": "The car share fleet is recent models."
+    },
+    {
+      "option": "keep",
+      "criterion": "cost",
+      "value": 5,
+      "note": "Cheapest over five years, unless repairs run high.",
+      "evidence": [
+        "E5"
+      ]
+    },
+    {
+      "option": "lease",
+      "criterion": "cost",
+      "value": 2,
+      "note": "Dearest of the car options over five years.",
+      "evidence": [
+        "E2"
+      ]
+    },
+    {
+      "option": "new",
+      "criterion": "cost",
+      "value": 3,
+      "evidence": [
+        "E6"
+      ]
+    },
+    {
+      "option": "used",
+      "criterion": "cost",
+      "value": 4,
+      "note": "About $2,500 more than keeping over five years.",
+      "evidence": [
+        "E8"
+      ]
+    },
+    {
+      "option": "share",
+      "criterion": "cost",
+      "value": 5,
+      "note": "Cheapest of all, but it fails the school run."
+    },
+    {
+      "option": "keep",
+      "criterion": "safety",
+      "value": 3,
+      "note": "Crash rating fine; lacks the newer driver aids."
+    },
+    {
+      "option": "lease",
+      "criterion": "safety",
+      "value": 5,
+      "evidence": [
+        "E7"
+      ]
+    },
+    {
+      "option": "new",
+      "criterion": "safety",
+      "value": 5,
+      "evidence": [
+        "E7"
+      ]
+    },
+    {
+      "option": "used",
+      "criterion": "safety",
+      "value": 4,
+      "note": "Same crash rating; no junction braking.",
+      "evidence": [
+        "E8"
+      ]
+    },
+    {
+      "option": "share",
+      "criterion": "safety",
+      "value": 4
+    },
+    {
+      "option": "keep",
+      "criterion": "reliable",
+      "value": 3,
+      "note": "Fine so far; the garage expects more repairs from year five.",
+      "evidence": [
+        "E4"
+      ]
+    },
+    {
+      "option": "lease",
+      "criterion": "reliable",
+      "value": 5
+    },
+    {
+      "option": "new",
+      "criterion": "reliable",
+      "value": 5
+    },
+    {
+      "option": "used",
+      "criterion": "reliable",
+      "value": 4,
+      "note": "Certified, with long engine and gearbox cover.",
+      "evidence": [
+        "E9"
+      ]
+    },
+    {
+      "option": "share",
+      "criterion": "reliable",
+      "value": 3,
+      "note": "The car is reliable; getting one when needed is not."
+    },
+    {
+      "option": "keep",
+      "criterion": "space",
+      "value": 4
+    },
+    {
+      "option": "lease",
+      "criterion": "space",
+      "value": 4
+    },
+    {
+      "option": "new",
+      "criterion": "space",
+      "value": 4
+    },
+    {
+      "option": "used",
+      "criterion": "space",
+      "value": 4
+    },
+    {
+      "option": "share",
+      "criterion": "space",
+      "value": 3
+    },
+    {
+      "option": "keep",
+      "criterion": "hassle",
+      "value": 2,
+      "note": "Brakes, tyres and growing repair bills."
+    },
+    {
+      "option": "lease",
+      "criterion": "hassle",
+      "value": 5
+    },
+    {
+      "option": "new",
+      "criterion": "hassle",
+      "value": 4
+    },
+    {
+      "option": "used",
+      "criterion": "hassle",
+      "value": 4,
+      "note": "Certified, with a long warranty; fewer surprises than the old car.",
+      "evidence": [
+        "E9"
+      ]
+    },
+    {
+      "option": "share",
+      "criterion": "hassle",
+      "value": 2,
+      "note": "Booking every trip; carrying child seats."
+    },
+    {
+      "option": "keep",
+      "criterion": "enjoy",
+      "value": 3
+    },
+    {
+      "option": "lease",
+      "criterion": "enjoy",
+      "value": 4
+    },
+    {
+      "option": "new",
+      "criterion": "enjoy",
+      "value": 5
+    },
+    {
+      "option": "used",
+      "criterion": "enjoy",
+      "value": 4
+    },
+    {
+      "option": "share",
+      "criterion": "enjoy",
+      "value": 2
+    },
+    {
+      "option": "keep",
+      "criterion": "flex",
+      "value": 4,
+      "note": "Owned outright after four years; easy to sell."
+    },
+    {
+      "option": "lease",
+      "criterion": "flex",
+      "value": 2,
+      "note": "Ending a lease early is expensive.",
+      "evidence": [
+        "E13"
+      ]
+    },
+    {
+      "option": "new",
+      "criterion": "flex",
+      "value": 2,
+      "note": "Biggest loss in value if sold early.",
+      "evidence": [
+        "E16"
+      ]
+    },
+    {
+      "option": "used",
+      "criterion": "flex",
+      "value": 3
+    },
+    {
+      "option": "share",
+      "criterion": "flex",
+      "value": 5
+    }
+  ],
+  "costs": {
+    "horizon_years": 5,
+    "currency": "USD",
+    "cash_return": 0.04,
+    "assumptions": "12,000 miles a year; petrol at $3.10 a gallon (EIA 2025 average); 6% sales tax; cash put down could earn 4% a year in savings.",
+    "options": {
+      "keep": {
+        "upfront": [
+          {
+            "label": "Down payment on the buyout",
+            "amount": 3034,
+            "kind": "purchase"
+          }
+        ],
+        "loan": {
+          "amount": 20000,
+          "apr": 0.079,
+          "months": 48
+        },
+        "value": [
+          20500,
+          18000,
+          15900,
+          14000,
+          12300,
+          10800
+        ],
+        "items": [
+          {
+            "label": "Insurance",
+            "kind": "insurance",
+            "yearly": 1450
+          },
+          {
+            "label": "Petrol (29 miles a gallon)",
+            "kind": "energy",
+            "yearly": 1283,
+            "tags": [
+              "miles"
+            ]
+          },
+          {
+            "label": "Servicing and repairs",
+            "kind": "maintenance",
+            "yearly": [
+              2100,
+              1200,
+              1700,
+              2100,
+              2500
+            ],
+            "tags": [
+              "miles",
+              "older-car"
+            ]
+          },
+          {
+            "label": "Registration",
+            "kind": "tax",
+            "yearly": 380
+          }
+        ]
+      },
+      "lease": {
+        "upfront": [
+          {
+            "label": "Due at signing",
+            "amount": 2500,
+            "kind": "lease"
+          }
+        ],
+        "items": [
+          {
+            "label": "Lease payments (a new lease and signing again in year 4)",
+            "kind": "lease",
+            "yearly": [
+              6240,
+              6240,
+              6240,
+              8980,
+              6480
+            ]
+          },
+          {
+            "label": "Insurance",
+            "kind": "insurance",
+            "yearly": 1750
+          },
+          {
+            "label": "Petrol (31 miles a gallon)",
+            "kind": "energy",
+            "yearly": 1200,
+            "tags": [
+              "miles"
+            ]
+          },
+          {
+            "label": "Servicing",
+            "kind": "maintenance",
+            "yearly": 150
+          },
+          {
+            "label": "Registration",
+            "kind": "tax",
+            "yearly": 450
+          }
+        ]
+      },
+      "new": {
+        "upfront": [
+          {
+            "label": "Down payment",
+            "amount": 5230,
+            "kind": "purchase"
+          }
+        ],
+        "loan": {
+          "amount": 33000,
+          "apr": 0.067,
+          "months": 60
+        },
+        "value": [
+          32000,
+          28400,
+          24900,
+          21700,
+          18200,
+          14600
+        ],
+        "items": [
+          {
+            "label": "Insurance",
+            "kind": "insurance",
+            "yearly": 1750
+          },
+          {
+            "label": "Petrol (31 miles a gallon)",
+            "kind": "energy",
+            "yearly": 1200,
+            "tags": [
+              "miles"
+            ]
+          },
+          {
+            "label": "Servicing and repairs",
+            "kind": "maintenance",
+            "yearly": [
+              150,
+              250,
+              450,
+              700,
+              900
+            ],
+            "tags": [
+              "miles"
+            ]
+          },
+          {
+            "label": "Registration",
+            "kind": "tax",
+            "yearly": 450
+          }
+        ]
+      },
+      "used": {
+        "upfront": [
+          {
+            "label": "Down payment",
+            "amount": 3914,
+            "kind": "purchase"
+          }
+        ],
+        "loan": {
+          "amount": 25000,
+          "apr": 0.095,
+          "months": 60
+        },
+        "value": [
+          26000,
+          22600,
+          20100,
+          17900,
+          15900,
+          14000
+        ],
+        "items": [
+          {
+            "label": "Insurance",
+            "kind": "insurance",
+            "yearly": 1600
+          },
+          {
+            "label": "Petrol (30 miles a gallon)",
+            "kind": "energy",
+            "yearly": 1240,
+            "tags": [
+              "miles"
+            ]
+          },
+          {
+            "label": "Servicing and repairs",
+            "kind": "maintenance",
+            "yearly": [
+              700,
+              900,
+              1100,
+              1300,
+              1500
+            ],
+            "tags": [
+              "miles"
+            ]
+          },
+          {
+            "label": "Registration",
+            "kind": "tax",
+            "yearly": 400
+          }
+        ]
+      },
+      "share": {
+        "upfront": [
+          {
+            "label": "Joining fee",
+            "amount": 25,
+            "kind": "membership"
+          }
+        ],
+        "items": [
+          {
+            "label": "Car share membership, hours and day hires",
+            "kind": "membership",
+            "yearly": 3460,
+            "tags": [
+              "miles"
+            ]
+          },
+          {
+            "label": "Taxis, ride hire and a bus pass",
+            "kind": "other",
+            "yearly": 3000,
+            "tags": [
+              "miles"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "whatifs": [
+    {
+      "id": "w-fuel",
+      "label": "Petrol 30% dearer",
+      "multiply": {
+        "energy": 1.3
+      }
+    },
+    {
+      "id": "w-miles",
+      "label": "Commute doubles (twice the miles)",
+      "multiply": {
+        "miles": 2
+      }
+    },
+    {
+      "id": "w-resale",
+      "label": "Used car prices fall 15%",
+      "multiply": {
+        "value": 0.85
+      }
+    },
+    {
+      "id": "w-repairs",
+      "label": "Repairs on the older car run high",
+      "multiply": {
+        "older-car": 1.8
+      }
+    }
+  ],
+  "framing": {
+    "premortem": [
+      "The old car needed a $3,000 repair in year two and we kept pouring money in.",
+      "The used car had a fault the dealer did not mention.",
+      "The new job doubled the miles and the lease charged for every extra mile.",
+      "We stretched to a new car and the payment squeezed the family budget."
+    ],
+    "regret": {
+      "10 minutes": "A new car would feel best; buying used feels sensible; keeping feels flat.",
+      "10 months": "The monthly payment and any repair bills are what Dana will notice.",
+      "10 years": "The money kept and the children's safety are what will matter."
+    }
+  },
+  "gaps": [],
+  "notes": [
+    {
+      "id": "N1",
+      "role": "money",
+      "anchor": "lease",
+      "title": "The monthly number hides the five-year cost",
+      "body": "At $520 a month the lease looks close to the loan payments, but after five years Dana owns nothing, and signing again in year four costs another $2,500.",
+      "recommend": "Compare five-year real cost, not monthly payments.",
+      "question": "Is a lower monthly payment worth about $13,500 more over five years than keeping the car?",
+      "urgency": "must",
+      "evidence": [
+        "E2",
+        "E13"
+      ]
+    },
+    {
+      "id": "N2",
+      "role": "money",
+      "anchor": "used",
+      "title": "The used car's loan rate is the soft spot",
+      "body": "Dealer finance at 9.5% adds about $6,500 of interest over five years. A credit union loan at 7% would save around $1,700.",
+      "recommend": "Get a loan offer before visiting the dealer.",
+      "question": "Will Dana get a credit union quote before 1 February?",
+      "urgency": "should",
+      "evidence": [
+        "E8",
+        "E18"
+      ]
+    },
+    {
+      "id": "N3",
+      "role": "practical",
+      "anchor": "keep",
+      "title": "Repairs on a five-year-old car rise",
+      "body": "The garage expects suspension parts and a battery soon, and bills that grow each year.",
+      "recommend": "Treat the repair budget as a range, and check the 'repairs run high' what-if.",
+      "question": "What repair bill in one year would make Dana sell the old car?",
+      "urgency": "must",
+      "evidence": [
+        "E4",
+        "E5"
+      ]
+    },
+    {
+      "id": "N4",
+      "role": "practical",
+      "anchor": "used",
+      "title": "Certified cover takes the worst risk away",
+      "body": "The certified warranty covers engine and gearbox to 7 years or 100,000 miles, which is where big bills come from.",
+      "recommend": "Read what the certified cover excludes before signing.",
+      "question": "Does the certified cover include the gearbox electronics, or only the mechanical parts?",
+      "urgency": "should",
+      "evidence": [
+        "E9"
+      ]
+    },
+    {
+      "id": "N5",
+      "role": "safety",
+      "anchor": "keep",
+      "title": "The old car lacks the newer driver aids",
+      "body": "The 2022 car passed its crash tests, but has no automatic braking at junctions. The 2024 model has most aids; the 2027 has all of them.",
+      "question": "Is junction braking worth about $6,000 more over five years (new against used)?",
+      "urgency": "should",
+      "evidence": [
+        "E7",
+        "E8"
+      ]
+    },
+    {
+      "id": "N6",
+      "role": "people",
+      "anchor": "m-school",
+      "title": "The school run decides the car share question",
+      "body": "The car share spot is often empty at 8 a.m., and carrying two child seats each day is not realistic.",
+      "recommend": "Treat car share as out unless a school bus or a lift share appears.",
+      "question": "Is there any other way to do the school run that would make car-free possible?",
+      "urgency": "info",
+      "evidence": [
+        "E11",
+        "E15"
+      ]
+    },
+    {
+      "id": "N7",
+      "role": "people",
+      "anchor": "flex",
+      "title": "Dana's partner wants out of the lease cycle",
+      "body": "\"I want to stop paying for something we never own.\" Renewing the lease would go against this.",
+      "question": "Has the partner seen the five-year numbers for leasing against owning?",
+      "urgency": "must",
+      "evidence": [
+        "E13"
+      ]
+    },
+    {
+      "id": "N8",
+      "role": "future",
+      "anchor": "w-miles",
+      "title": "A job change could double the miles",
+      "body": "If the commute doubles, the lease's 12,000-mile limit would be broken and extra miles charged; owning has no limit, and keeping the old car gets dearer faster.",
+      "recommend": "Look at the cost view with 'Commute doubles' switched on.",
+      "question": "How likely is the job change in the next year?",
+      "urgency": "should",
+      "evidence": [
+        "E15"
+      ]
+    },
+    {
+      "id": "N9",
+      "role": "future",
+      "anchor": "c7",
+      "title": "10 minutes, 10 months, 10 years",
+      "body": "In 10 minutes, a new car feels best. In 10 months, the payment is what Dana notices. In 10 years, only the money saved and the family's safety matter.",
+      "question": "Which of the three views should carry the most weight for this family?",
+      "urgency": "info"
+    },
+    {
+      "id": "N10",
+      "role": "environment",
+      "anchor": "share",
+      "title": "Keeping a car longer is often the lighter choice",
+      "body": "Building a new car uses a lot of energy and materials; driving an existing car for longer usually uses less overall. Car share would be lighter still if it worked for the school run.",
+      "question": "Does the environmental view change the ranking for Dana, or only break a tie?",
+      "urgency": "info",
+      "evidence": [
+        "E17"
+      ]
+    },
+    {
+      "id": "N11",
+      "role": "market",
+      "anchor": "new",
+      "title": "A new car loses the most value early",
+      "body": "Cars lose about 20% of their value in the first year and about 60% over five. Buying a three-year-old car skips the steepest drop.",
+      "question": "If Dana might sell within three years, is buying new still sensible?",
+      "urgency": "should",
+      "evidence": [
+        "E16"
+      ]
+    },
+    {
+      "id": "N12",
+      "role": "market",
+      "anchor": "used",
+      "title": "Used prices could fall",
+      "body": "If used prices fall 15%, the used car is worth less when sold, adding about $2,100 to its five-year cost.",
+      "question": "Does a $2,100 swing change the choice between keeping and buying used?",
+      "urgency": "info",
+      "evidence": [
+        "E16"
+      ]
+    },
+    {
+      "id": "N13",
+      "role": "devil",
+      "anchor": "c7",
+      "title": "A year later this went badly. Why?",
+      "body": "Imagine it is March 2028 and the choice was a mistake. Likely reasons: the old car needed a $3,000 repair; the used car had a hidden fault; the job change doubled the miles; we stretched the budget for a new car and felt squeezed.",
+      "recommend": "Guard against each: a repair limit for the old car, an independent inspection of the used one, and the doubled-miles what-if.",
+      "question": "Which of these failure reasons worries Dana most, and what would prevent it?",
+      "urgency": "must",
+      "evidence": [
+        "E4",
+        "E15"
+      ]
+    },
+    {
+      "id": "N14",
+      "role": "devil",
+      "anchor": "keep",
+      "title": "Keeping wins on cost, so why not keep?",
+      "body": "Keeping is cheapest over five years. The reasons not to are safety aids, hassle and the repair risk, which are real but worth naming plainly.",
+      "question": "Would Dana keep the car if the garage gave a fixed price for the next two years of repairs?",
+      "urgency": "should",
+      "evidence": [
+        "E5"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D1",
+      "question": "Which car does the family run from March?",
+      "options": [
+        "Keep and repair",
+        "Renew the lease",
+        "Buy new",
+        "Buy used",
+        "Car share"
+      ],
+      "owner": "Dana and partner",
+      "status": "open",
+      "due": "2027-02-01",
+      "notes": [
+        "N1",
+        "N3",
+        "N7",
+        "N13"
+      ]
+    }
+  ],
+  "outcomes": [
+    {
+      "id": "O1",
+      "measure": "Real monthly cost after six months (payments, insurance, fuel, repairs)",
+      "baseline": "Lease today: about $750 a month all in",
+      "target": "Within $50 of the plan"
+    }
+  ]
+}

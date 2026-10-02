@@ -141,7 +141,7 @@ Planned:
   Question: Which matters more to the committee: lowest cost or shortest closure?
   > “It's the only step-free way to the school. A long closure means a 20-minute walk round by the main road.” — Public drop-in session, Parent with a pram [E7]
   > “Last time it shut for a month, my takings dropped by a third.” — Public drop-in session, Shop owner, south side [E9]
-- **Resident voice note (For information): Could the old bridge stay open?.** Several people asked if the old bridge could stay open while a new one is built.
+- **Resident voice note (For information): Could the old bridge stay open?** Several people asked if the old bridge could stay open while a new one is built.
   We suggest: Ask the design team whether a new bridge beside the old one is possible.
   Question: Is building beside the old bridge worth a quick study?
   > “Several people asked whether the old bridge could stay open while a new one is built.” — Public drop-in session, Comment cards [E28]

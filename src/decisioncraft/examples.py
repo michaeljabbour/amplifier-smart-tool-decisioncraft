@@ -17,10 +17,15 @@ EXAMPLES = {
     "engineering": "A town deciding whether to repair or replace a footbridge.",
     "medical": "A hospital ward changing its discharge process to cut readmissions "
     "(about how the ward works; not medical advice, no patient data).",
+    "car": "A family choosing whether to keep, lease, buy new, buy used or go car-free "
+    "(scoring table, cost over time, what-ifs).",
 }
+# An example's folder, where it differs from its name.
+FOLDERS = {"car": "personal-car"}
 
 
 def _root(name: str):
+    name = FOLDERS.get(name, name)
     packaged = files("decisioncraft").joinpath("examples", name)
     if packaged.joinpath("model.json").is_file():
         return packaged

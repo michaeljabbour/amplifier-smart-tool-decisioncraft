@@ -1,0 +1,132 @@
+{
+  "format": "decisioncraft-merged/1",
+  "reviewers": [
+    "Dana",
+    "Sam (partner)"
+  ],
+  "stale_reviews": [],
+  "questions": {
+    "N1": {
+      "agree": 2,
+      "change": 0,
+      "unsure": 0,
+      "dots": 0,
+      "comments": [
+        {
+          "who": "Dana",
+          "text": "Seeing $13,500 in one number settles it for me: no new lease.",
+          "choice": "agree"
+        }
+      ],
+      "answers": [],
+      "split": false
+    },
+    "N3": {
+      "agree": 1,
+      "change": 0,
+      "unsure": 0,
+      "dots": 1,
+      "comments": [],
+      "answers": [
+        {
+          "who": "Dana",
+          "text": "If one repair bill goes over $1,500, we sell the old car."
+        }
+      ],
+      "split": false
+    },
+    "N13": {
+      "agree": 1,
+      "change": 0,
+      "unsure": 0,
+      "dots": 2,
+      "comments": [],
+      "answers": [
+        {
+          "who": "Dana",
+          "text": "The hidden fault worries me most. Pay for an independent inspection."
+        }
+      ],
+      "split": false
+    },
+    "N7": {
+      "agree": 1,
+      "change": 0,
+      "unsure": 0,
+      "dots": 2,
+      "comments": [],
+      "answers": [
+        {
+          "who": "Sam (partner)",
+          "text": "Yes, and I would rather own something, even if it is older."
+        }
+      ],
+      "split": false
+    },
+    "N5": {
+      "agree": 0,
+      "change": 1,
+      "unsure": 0,
+      "dots": 2,
+      "comments": [
+        {
+          "who": "Sam (partner)",
+          "text": "Safety aids matter more to me than to Dana; I would pay more for them.",
+          "choice": "change"
+        }
+      ],
+      "answers": [],
+      "split": false
+    }
+  },
+  "decisions": {},
+  "notes": [],
+  "weights": {
+    "cost": [
+      {
+        "who": "Dana",
+        "weight": 5
+      },
+      {
+        "who": "Sam (partner)",
+        "weight": 4
+      }
+    ],
+    "safety": [
+      {
+        "who": "Dana",
+        "weight": 4
+      },
+      {
+        "who": "Sam (partner)",
+        "weight": 5
+      }
+    ],
+    "reliable": [
+      {
+        "who": "Dana",
+        "weight": 5
+      },
+      {
+        "who": "Sam (partner)",
+        "weight": 4
+      }
+    ],
+    "enjoy": [
+      {
+        "who": "Dana",
+        "weight": 1
+      },
+      {
+        "who": "Sam (partner)",
+        "weight": 3
+      }
+    ]
+  },
+  "weight_split": [
+    "enjoy",
+    "cost",
+    "safety",
+    "reliable"
+  ]
+}

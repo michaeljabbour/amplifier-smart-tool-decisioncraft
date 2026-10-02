@@ -39,6 +39,9 @@ packages = ["src/decisioncraft"]
 "examples/engineering/material" = "decisioncraft/examples/engineering/material"
 "examples/medical/model.json" = "decisioncraft/examples/medical/model.json"
 "examples/medical/material" = "decisioncraft/examples/medical/material"
+"examples/personal-car/model.json" = "decisioncraft/examples/personal-car/model.json"
+"examples/personal-car/material" = "decisioncraft/examples/personal-car/material"
+"examples/personal-car/reviews" = "decisioncraft/examples/personal-car/reviews"
 
 [dependency-groups]
 dev = ["pytest>=8,<10"]

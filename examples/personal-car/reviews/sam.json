@@ -1,0 +1,30 @@
+{
+  "format": "decisioncraft-review/1",
+  "model": "Renew, keep or buy: Dana's next car",
+  "model_fingerprint": "50d117eef62b",
+  "reviewer": "Sam (partner)",
+  "saved_at": "2026-10-01T21:40:00Z",
+  "answers": {
+    "N1": {
+      "choice": "agree"
+    },
+    "N7": {
+      "answer": "Yes, and I would rather own something, even if it is older.",
+      "choice": "agree"
+    },
+    "N5": {
+      "choice": "change",
+      "comment": "Safety aids matter more to me than to Dana; I would pay more for them."
+    }
+  },
+  "dots": {
+    "N7": 2,
+    "N5": 2
+  },
+  "weights": {
+    "cost": 4,
+    "safety": 5,
+    "reliable": 4,
+    "enjoy": 3
+  }
+}
