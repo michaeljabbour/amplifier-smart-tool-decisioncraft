@@ -312,12 +312,30 @@ def plan_map(target: str, *, roles: list[str] | None = None, budget: int = 120_0
     }
 
 
+def _display_name(target: str, kind: str) -> str:
+    """A repo or folder's own name: the README's first heading if it has one, else the folder name."""
+    root = Path(target).expanduser().resolve()
+    if kind in ("repo", "folder") and root.is_dir():
+        for name in ("README.md", "readme.md", "README.markdown", "README.txt", "README"):
+            f = root / name
+            if f.is_file():
+                try:
+                    for line in f.read_text(encoding="utf-8", errors="replace").splitlines()[:40]:
+                        m = re.match(r"#\s+(.{2,80})$", line.strip())
+                        if m:
+                            return m.group(1).strip().strip("#").strip()
+                except OSError:
+                    pass
+                break
+    return root.name
+
+
 def _question_for(target: str, kind: str) -> str:
     if kind == "topic":
         t = re.sub(r"^(show me |tell me |explain |map )?(how )?", "", target.strip().rstrip("?."), flags=re.I)
         t = re.sub(r"\s+(works?|is done|happens)$", "", t, flags=re.I).strip() or "this"
         return f"How does {t[0].lower() + t[1:]} work today, and how could it work better?"
-    name = Path(target).expanduser().resolve().name if kind != "url" else target
+    name = _display_name(target, kind) if kind != "url" else target
     return f"How does {name} work today, and what is missing?"
 
 
@@ -353,7 +371,7 @@ def map_starter(target: str, *, roles: list[str] | None = None, question: str = 
     template = _template_for(kind)
     template = "system-journeys" if template == "auto" and kind in ("repo", "folder") else (
         "decision-chain" if template == "auto" else template)
-    name = Path(target).expanduser().resolve().name if kind not in ("url", "topic") else target
+    name = _display_name(target, kind) if kind not in ("url", "topic") else target
     model = new_model(template, f"How {name} works, and what is missing", q, date=g["checked"]["date"])
     model["roles"] = map_roles(roles)
     model["checked"] = g["checked"]
