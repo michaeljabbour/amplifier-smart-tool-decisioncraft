@@ -37,8 +37,8 @@ codex mcp add decisioncraft -- decisioncraft mcp
 The Codex CLI and the Codex app read the same `~/.codex` folder, so these lines set up both:
 the skill in `~/.codex/skills/` and the MCP server in `~/.codex/config.toml`. Codex has a
 terminal, so you can also paste the install prompt from the README and let it do this. Inside
-Codex, `map` lets Codex's own model fill in the map (no API key is billed) unless you choose a
-provider. Tested with Codex CLI 0.160; see docs/HARNESS-TESTS.md.
+Codex, Codex does the thinking: `map` hands Codex a starter to fill in, and the other model steps
+point Codex at `decisioncraft guide`. No API key is needed or billed unless you choose a provider. Tested with Codex CLI 0.160; see docs/HARNESS-TESTS.md.
 
 Older Codex versions without skills: paste the body of `skills/decisioncraft/SKILL.md` into
 your `AGENTS.md`, or point `AGENTS.md` at it.
@@ -59,8 +59,9 @@ mkdir -p ~/.amplifier/skills/decisioncraft && curl -fsSL https://raw.githubuserc
 **One click:** download [decisioncraft.mcpb](https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft/releases/latest/download/decisioncraft.mcpb),
 double-click it and choose Install. The canvas then opens right in the chat when Claude maps,
 compares or draws something. Claude Desktop installs Python and the package itself (MCPB
-`uv` runtime). API keys in the extension settings are optional: without one, `decisioncraft_map`
-writes a starter and Claude fills in the map with its own model. Built from `desktop/`
+`uv` runtime). The install asks for nothing: Claude does the thinking. Decisioncraft hands Claude
+the material and the format, Claude writes the map, and `decisioncraft_render` draws it in the
+chat. No API key is asked for or used. Built from `desktop/`
 (`npx -y @anthropic-ai/mcpb pack desktop dist/decisioncraft.mcpb`).
 
 **By hand:** add this to `~/Library/Application Support/Claude/claude_desktop_config.json`
@@ -110,24 +111,22 @@ starts the server in; pass absolute paths when unsure.
 
 ## Which model answers over MCP
 
-Claude Desktop (checked with version current on 2 October 2026) offers MCP Apps but not MCP
-sampling, so without an API key in the extension settings, `decisioncraft_map` hands Claude a
-starter to fill in with its own model, and the finished map is drawn in the chat by
-`decisioncraft_render`.
+**In Claude Desktop, Claude does the thinking. In Codex, Codex does. In a plain terminal, Decisioncraft uses your API key.**
 
-`decisioncraft_map`, `decisioncraft_draft`, `decisioncraft_perspectives` and
-`decisioncraft_review_notes` need a language model. The server tries, in order:
+Over MCP the host is the model. `decisioncraft_map`, `decisioncraft_draft`,
+`decisioncraft_perspectives` and `decisioncraft_review_notes` don't call a model: each returns a
+task for the calling assistant (the material or digest with path:line evidence, a starter model,
+the model format and the writing rules). The assistant writes the model in its own turn and calls
+`decisioncraft_render`, which validates it (an empty map is refused) and shows the canvas, in the
+chat where the host supports MCP Apps. No API key is asked for or read.
 
-1. **The host's own model**, through MCP sampling, when the host offers it.
-2. **Your API key**, when the host can't sample: the same choice as the command line
-   (`ANTHROPIC_API_KEY` or `OPENAI_API_KEY`, or `DECISIONCRAFT_PROVIDER` and
-   `DECISIONCRAFT_MODEL`). The server must see these variables; with `claude mcp add`, pass
-   them with `-e NAME=value` if your host does not inherit your shell. Each result says what
-   answered in `drafted_with`.
-3. **Neither:** the tool fails and says what to do. The agent then writes the model itself:
-   `decisioncraft_map` with `dry_run` shows the material, the `decisioncraft://model-format`
-   resource and `decisioncraft_templates` give the fields, and `decisioncraft_validate` and
-   `decisioncraft_render` check and draw it.
+Two opt-ins, for people who want the server to call a model itself:
+
+- `DECISIONCRAFT_ALLOW_SAMPLING=1`: when the host offers MCP sampling, ask the host's model
+  through it. (Claude Desktop does not offer sampling.)
+- `DECISIONCRAFT_ALLOW_KEYS=1`: use your own `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` (or
+  `DECISIONCRAFT_PROVIDER` / `DECISIONCRAFT_MODEL`), billed to that key. Each result says what
+  answered in `drafted_with`.
 
 Outside MCP, `--complete-cmd 'your-command'` routes the command line through your own model:
 the command reads `{"system", "prompt"}` JSON on stdin and prints the reply.

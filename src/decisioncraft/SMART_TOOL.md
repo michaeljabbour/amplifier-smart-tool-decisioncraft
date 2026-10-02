@@ -18,16 +18,16 @@ platforms:
 requires:
   - name: ANTHROPIC_API_KEY
     purpose: >-
-      The model-backed steps (map, draft, perspectives and Ask the experts) with
-      --provider anthropic. Without it those steps fail with a clear message; every other
-      capability, and --complete-cmd or --starter, is unaffected.
+      Only for the model-backed steps (map, draft, perspectives, Ask the experts) run in
+      a plain terminal with --provider anthropic. Not needed in Claude Desktop, over MCP, in
+      Codex or other agents, or as a Skill: there the assistant is the model.
     install: https://docs.anthropic.com/en/api/getting-started
     optional: true
   - name: OPENAI_API_KEY
     purpose: >-
-      The model-backed steps (map, draft, perspectives and Ask the experts) with
-      --provider openai. Without it those steps fail with a clear message; every other
-      capability, and --complete-cmd or --starter, is unaffected.
+      Only for the model-backed steps (map, draft, perspectives, Ask the experts) run in
+      a plain terminal with --provider openai. Not needed in Claude Desktop, over MCP, in
+      Codex or other agents, or as a Skill: there the assistant is the model.
     install: https://platform.openai.com/docs/quickstart
     optional: true
 ---
@@ -226,9 +226,13 @@ command says which on stderr:
    your config folder).
 2. The agent harness it runs inside (Claude Code, Codex, Amplifier, detected from their
    environment, or declared with `DECISIONCRAFT_HOST=name`; `DECISIONCRAFT_HOST=none` turns
-   this off): `map` takes the `--starter` route so the agent draws the map with its own model
-   and **no API key is billed**. Other model steps there use the key and print a billing note.
-   Over MCP the host's model is asked through sampling first.
+   this off): the agent is the model. `map` takes the `--starter` route so the agent draws the
+   map itself, and `draft`, `perspectives` and review notes stop with `host_model` and point at
+   `decisioncraft guide`. **No API key is billed**, even if one is set. Over MCP (Claude Desktop
+   and any MCP host) the model-backed tools return a task for the calling assistant, which writes
+   the model and calls `decisioncraft_render`; the server samples only with
+   `DECISIONCRAFT_ALLOW_SAMPLING=1` and reads keys only with `DECISIONCRAFT_ALLOW_KEYS=1`.
+   In Claude Desktop, Claude does the thinking. In Codex, Codex does. In a plain terminal, Decisioncraft uses your API key.
 3. Whichever API key is set, Anthropic first. **This is billed to that key.** Defaults: Anthropic
 `claude-sonnet-5-5`, trying `claude-opus-5-5` once if a draft still has problems after a
 repair; OpenAI `gpt-5.5` (and `gpt-5.5-pro` once, if your account has it). `decisioncraft
@@ -264,10 +268,11 @@ If you are an agent, choose the first that fits:
    be found without running it.
 3. **Your host's own model, in code.** Pass a function to the library:
    `dc.draft(material, question="...", complete=lambda system, prompt: host.ask(system, prompt))`.
-4. **Your host's own model, over MCP.** `decisioncraft mcp` serves `decisioncraft_draft`
-   and `decisioncraft_perspectives`, which ask the host's model through MCP sampling. A
-   host without sampling gets a clear error and goes back to option 1, using
-   `decisioncraft_templates` and `decisioncraft_validate`.
+4. **Over MCP you are the model.** `decisioncraft mcp` serves `decisioncraft_map`,
+   `decisioncraft_draft`, `decisioncraft_perspectives` and `decisioncraft_review_notes`; each
+   returns a task (the material or digest, a starter, the model format and the writing rules).
+   Write the model in your own turn and call `decisioncraft_render` with it, which validates it
+   and shows the canvas (in the chat, where the host supports MCP Apps).
 5. **A vendor SDK.** With `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` set and the `[smart]`
    extra installed, no flags are needed. Pin one with `--provider anthropic --model
    claude-sonnet-5-5` (every command takes `--model`) or `decisioncraft config set`.
@@ -364,7 +369,8 @@ decisioncraft render model.json --reviews replies.json --open
 ```
 
 Each chosen role replies with a short view and one question; the questions join the
-questions to decide. Over MCP, use `decisioncraft_review_notes` (host sampling).
+questions to decide. Over MCP, use `decisioncraft_review_notes`: it lists the notes and roles,
+and you write the replies.
 
 **Run the review with the person on this computer.**
 

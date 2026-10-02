@@ -172,8 +172,10 @@ drew the canvas inside the host's iframe, with no console errors:
 restored byte for byte afterwards), Claude Desktop started the server, sent `initialize`,
 `tools/list`, `prompts/list` and `resources/list`, and advertised MCP Apps support in its
 `initialize` capabilities: `extensions: {"io.modelcontextprotocol/ui": {"mimeTypes":
-["text/html;profile=mcp-app"]}}`. It did not advertise MCP sampling, so in Claude Desktop the
-model-backed steps use an API key if one is set, otherwise `decisioncraft_map` hands Claude a
-starter to fill in and Claude then calls `decisioncraft_render`, which draws the canvas in the
-chat. The view itself is fetched (`resources/read`) only when a visual tool runs in a
+["text/html;profile=mcp-app"]}}`. It did not advertise MCP sampling. That fits the
+rule from 0.2.3: in Claude Desktop, Claude does the thinking. `decisioncraft_map` (and the other
+model-backed tools) return a task with the digest, a starter and the format; Claude writes the
+model and calls `decisioncraft_render`, which draws the canvas in the chat. The extension reads
+no API key. In the reference host, `decisioncraft_map` on the sample repo returned that task and
+the view said "A starter map is ready. Your agent fills it in, then draws it here." The view itself is fetched (`resources/read`) only when a visual tool runs in a
 conversation; that needs a person and was not automated.

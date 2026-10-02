@@ -1036,7 +1036,21 @@ def _complete_kwargs(run: Run, *, name_attr: str) -> tuple[dict, str]:
         from .intelligence import command_complete
 
         return {"complete": command_complete(a.complete_cmd)}, f"your command ({a.complete_cmd.split()[0]})"
-    from .intelligence import ProviderError, escalation_complete, provider_complete, resolve
+    from .intelligence import ProviderError, escalation_complete, host_first, provider_complete, resolve
+
+    host = host_first(a.provider, a.complete_cmd)
+    if host:
+        # Inside an agent (Codex, Claude Code, Amplifier) the agent's own model does the thinking.
+        # Never fall back to ANTHROPIC_API_KEY / OPENAI_API_KEY unless the user chose a provider.
+        raise ToolError(
+            "host_model",
+            f"Running inside {host}: {host}'s own model does this step, so Decisioncraft won't bill an API key.",
+            hint="Write it yourself: run `decisioncraft guide` for the model format (for a map: "
+            "`decisioncraft map TARGET --starter`), edit model.json, then `decisioncraft validate` and "
+            "`decisioncraft render`. To use your API key here on purpose: --provider anthropic (or openai), "
+            "or `decisioncraft config set provider anthropic`.",
+            exit_code=E.SETUP, field="--provider",
+        )
 
     name = getattr(a, "model" if name_attr == "model" else "model_name", None)
     try:
@@ -1049,14 +1063,6 @@ def _complete_kwargs(run: Run, *, name_attr: str) -> tuple[dict, str]:
             exit_code=E.SETUP, field="--provider",
         ) from None
     fn = provider_complete(r["provider"], r["model"])
-    from .intelligence import host_first
-
-    host = host_first(a.provider, a.complete_cmd)
-    if host:
-        env = "ANTHROPIC_API_KEY" if r["provider"] == "anthropic" else "OPENAI_API_KEY"
-        run.term.warn(f"Running inside {host}, but this step bills {env}, not {host}. To route it "
-                      f"through {host}'s model use --complete-cmd or the MCP server; to keep using "
-                      f"the key quietly: decisioncraft config set provider {r['provider']}")
     if r["escalate"]:
         run.escalate = escalation_complete(r["provider"], r["escalate"])
     more = f"; tries {r['escalate']} once if the draft still has problems" if run.escalate else ""

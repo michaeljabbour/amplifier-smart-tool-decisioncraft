@@ -4,6 +4,20 @@
 
 ### The canvas opens in the chat, the skill ZIP is the whole tool, and an empty map no longer passes
 
+- **The host is the model.** In Claude Desktop, Claude does the thinking. In Codex, Codex does.
+  In a plain terminal, Decisioncraft uses your API key. The Claude Desktop extension no longer
+  has API-key fields: its install asks for nothing, and it reads no key. Over MCP,
+  `decisioncraft_map`, `decisioncraft_draft`, `decisioncraft_perspectives` and
+  `decisioncraft_review_notes` no longer call a provider: each returns a task for the calling
+  assistant (the material or digest with path:line evidence, a starter, the model format and the
+  writing rules), and the assistant writes the model and calls `decisioncraft_render`, which
+  validates it and shows the canvas. The server samples only with `DECISIONCRAFT_ALLOW_SAMPLING=1`
+  and reads keys only with `DECISIONCRAFT_ALLOW_KEYS=1`. On the command line inside Codex (CLI
+  or app), Claude Code or Amplifier, `draft`, `perspectives` and review notes stop with
+  `host_model` and point at `decisioncraft guide` instead of billing a key; `map` hands the agent
+  a starter, as before. Codex is now detected first, from the markers both the CLI and the
+  Codex app set (`CODEX_THREAD_ID`, `CODEX_SANDBOX`, `CODEX_CI`), and `doctor` there says
+  "Codex's own model does the thinking; no keys needed."
 - **The canvas right in the chat (MCP Apps).** `decisioncraft mcp` now serves the canvas as an
   MCP App view (`ui://decisioncraft/canvas.html`, `text/html;profile=mcp-app`). `render`,
   `map`, `example` and `quick` declare it, so Claude Desktop and claude.ai, VS Code Copilot,

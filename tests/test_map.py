@@ -142,10 +142,14 @@ def test_mcp_map():
                 await client.initialize()
                 plan = await client.call_tool("decisioncraft_map", {"target": str(REPO), "dry_run": True})
                 assert plan.structuredContent["plan"]["kind"] == "repo"
-                nosample = await client.call_tool("decisioncraft_map", {"target": str(REPO)})
-                # No sampling and no key: a starter to fill in, not a dead end.
-                assert not nosample.isError and nosample.structuredContent["starter"] is True
-                assert Path(nosample.structuredContent["digest_path"]).is_file()
+                task = await client.call_tool("decisioncraft_map", {"target": str(REPO)})
+                # Over MCP the host is the model: a task for the assistant, with everything inline.
+                sc = task.structuredContent
+                assert not task.isError and sc["starter"] is True and sc["you_write"] is True
+                text = task.content[0].text
+                assert "You (the assistant) write this" in text and "## Material digest" in text
+                assert "decisioncraft_render" in text and "   1| " in text
+                assert sc["starter_model"]["display"]["notes_on_map"] is True
                 p = await client.get_prompt("map_this", {"target": "./the-repo"})
                 assert "decisioncraft_map" in p.messages[0].content.text
 

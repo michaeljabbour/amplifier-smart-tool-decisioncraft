@@ -29,8 +29,10 @@ TINY = {
 }
 
 
-async def _with_client(fn, sampling_callback=None):
-    async with stdio_client(PARAMS) as (reader, writer):
+async def _with_client(fn, sampling_callback=None, env=None):
+    params = PARAMS if env is None else StdioServerParameters(
+        command=PARAMS.command, args=PARAMS.args, env={**(PARAMS.env or {}), **env})
+    async with stdio_client(params) as (reader, writer):
         async with ClientSession(reader, writer, sampling_callback=sampling_callback) as client:
             await client.initialize()
             return await fn(client)
@@ -63,18 +65,19 @@ def test_deterministic_tools(tmp_path):
     asyncio.run(_with_client(check))
 
 
-def test_draft_without_sampling_says_what_to_do():
+def test_draft_without_opt_in_hands_the_host_a_task():
     async def check(client):
         r = await client.call_tool("decisioncraft_draft", {
             "material": [{"name": "n.md", "text": "Notes."}], "question": "Q?",
             "template": "opportunity-tree"})
-        assert r.isError and "sampling" in r.content[0].text
-        assert "decisioncraft_templates" in r.content[0].text
+        assert not r.isError and r.structuredContent["you_write"] is True
+        assert "You (the assistant) write this" in r.content[0].text
+        assert r.structuredContent["starter_model"]["maps"][0]["template"] == "opportunity-tree"
 
     asyncio.run(_with_client(check))
 
 
-def test_draft_through_the_hosts_model():
+def test_draft_samples_only_when_the_user_opted_in():
     seen = {}
 
     async def sampling(context, params: types.CreateMessageRequestParams):
@@ -88,11 +91,14 @@ def test_draft_through_the_hosts_model():
             "material": [{"name": "n.md", "text": "Notes."}], "question": "Q?",
             "template": "opportunity-tree"})
         assert not r.isError, r.content
-        assert r.structuredContent["model"]["title"] == "T"
-        assert r.structuredContent["summary"]["maps"] == 1
+        return r.structuredContent
 
-    asyncio.run(_with_client(check, sampling_callback=sampling))
-    assert seen["system"]
+    # Sampling offered but no opt-in: still a task for the host, no sampling call.
+    sc = asyncio.run(_with_client(check, sampling_callback=sampling))
+    assert sc["you_write"] is True and not seen
+    # Opted in: the server asks the host's model through sampling.
+    sc = asyncio.run(_with_client(check, sampling_callback=sampling, env={"DECISIONCRAFT_ALLOW_SAMPLING": "1"}))
+    assert sc["model"]["title"] == "T" and sc["summary"]["maps"] == 1 and seen["system"]
 
 
 def test_review_notes_tool_dry_run_and_sampling():
@@ -109,6 +115,8 @@ def test_review_notes_tool_dry_run_and_sampling():
         real = await client.call_tool("decisioncraft_review_notes", {"model": model, "review": review})
         return dry.structuredContent, real.structuredContent
 
-    dry, real = asyncio.run(_with_client(go, sampling_callback=sample))
+    dry, task = asyncio.run(_with_client(go, sampling_callback=sample))
     assert dry["asked"][0]["roles"] == ["owner"] and dry["replies_added"] == 0
+    assert task["you_write"] is True and task["replies_added"] == 0 and task["asked"][0]["note"] == "R9"
+    _, real = asyncio.run(_with_client(go, sampling_callback=sample, env={"DECISIONCRAFT_ALLOW_SAMPLING": "1"}))
     assert real["replies_added"] == 1 and real["review"]["notes"][0]["replies"][0]["id"] == "R9-owner"

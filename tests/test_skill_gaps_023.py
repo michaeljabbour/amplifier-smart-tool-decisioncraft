@@ -135,3 +135,72 @@ def test_doctor_outside_skill_mode_still_checks_providers(monkeypatch, tmp_path)
     monkeypatch.setenv("DECISIONCRAFT_HOST", "none")
     ids = {c["id"] for c in doctor_mod.doctor(directory=str(tmp_path))["checks"]}
     assert {"provider_anthropic", "provider_openai"} <= ids
+
+
+# --- the host is the model (owner's rule for 0.2.3) -------------------------------------
+
+def test_codex_markers_win_over_inherited_claude_code_markers(monkeypatch):
+    from decisioncraft.intelligence import detect_host
+
+    for k in ("DECISIONCRAFT_HOST", "CODEX_SESSION_ID", "CODEX_SANDBOX", "CODEX_SANDBOX_NETWORK_DISABLED",
+              "CODEX_CI", "AMPLIFIER_SESSION_ID", "AMPLIFIER_SESSION", "CLAUDE_CODE_ENTRYPOINT"):
+        monkeypatch.delenv(k, raising=False)
+    monkeypatch.setenv("CLAUDECODE", "1")
+    monkeypatch.setenv("CODEX_THREAD_ID", "t1")
+    assert detect_host() == "Codex"
+    monkeypatch.delenv("CODEX_THREAD_ID")
+    assert detect_host() == "Claude Code"
+
+
+def test_cli_model_steps_inside_an_agent_never_bill_a_key(tmp_path):
+    note = tmp_path / "n.md"
+    note.write_text("Some notes.")
+    env = {"DECISIONCRAFT_HOST": "Codex", "ANTHROPIC_API_KEY": "sk-not-to-be-used", "OPENAI_API_KEY": ""}
+    r = cli("draft", str(note), "--question", "Q?", "--json", env_extra=env)
+    body = json.loads(r.stdout)
+    assert r.returncode == 3 and body["error"]["code"] == "host_model"
+    assert "Codex's own model" in body["error"]["message"] and "decisioncraft guide" in body["error"]["hint"]
+    # Choosing a provider on purpose is still allowed (it then needs a real key and model).
+    r2 = cli("draft", str(note), "--question", "Q?", "--provider", "openai", "--json", env_extra=env)
+    assert json.loads(r2.stdout)["error"]["code"] != "host_model"
+
+
+def test_doctor_inside_codex_says_no_keys_needed(monkeypatch, tmp_path):
+    monkeypatch.setenv("DECISIONCRAFT_HOST", "Codex")
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    report = doctor_mod.doctor(directory=str(tmp_path))
+    assert "Codex's own model does the thinking; no keys needed" in report["summary"]
+    assert not [c for c in report["checks"] if c["status"] == "warn" and c["id"].startswith("provider_")]
+
+
+def test_mcp_routing_uses_keys_and_sampling_only_when_opted_in(monkeypatch):
+    from decisioncraft import mcp_server
+
+    class Ctx:
+        class session:
+            @staticmethod
+            def check_client_capability(_cap):
+                return True
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test")
+    for k in ("DECISIONCRAFT_ALLOW_KEYS", "DECISIONCRAFT_ALLOW_SAMPLING"):
+        monkeypatch.delenv(k, raising=False)
+    assert mcp_server._routing(Ctx, None) == (None, None)
+    monkeypatch.setattr(mcp_server, "_key_complete", lambda: (lambda s, p: "{}", "anthropic test"))
+    monkeypatch.setenv("DECISIONCRAFT_ALLOW_KEYS", "1")
+    assert mcp_server._routing(Ctx, None)[1] == "anthropic test"
+    monkeypatch.delenv("DECISIONCRAFT_ALLOW_KEYS")
+    monkeypatch.setenv("DECISIONCRAFT_ALLOW_SAMPLING", "1")
+    monkeypatch.setattr(mcp_server, "_sampling_complete", lambda ctx, loop: (lambda s, p: "{}"))
+    assert "sampling" in mcp_server._routing(Ctx, None)[1]
+
+
+def test_claude_desktop_extension_asks_for_nothing():
+    manifest = json.loads((ROOT / "desktop" / "manifest.json").read_text())
+    assert "user_config" not in manifest
+    env = manifest["server"]["mcp_config"].get("env", {})
+    assert not any("KEY" in k for k in env)
+    assert "no API key" in manifest["long_description"]
+    server_py = (ROOT / "desktop" / "src" / "server.py").read_text()
+    assert 'os.environ.pop(key, None)' in server_py and "ANTHROPIC_API_KEY" in server_py

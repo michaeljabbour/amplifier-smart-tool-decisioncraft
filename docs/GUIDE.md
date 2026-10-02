@@ -30,8 +30,9 @@ From a checkout, `cp -R skills/decisioncraft ~/.claude/skills/` does the same (u
 The skill tells the agent when to reach for Decisioncraft; the MCP server gives it the tools
 (map, triage, quick, interview, render, review notes and more), the prompts `map_this`,
 `decide`, `compare_options`, `what_could_go_wrong`, `regret_test` and `review_canvas`, and
-resources for templates, roles, the model format and the writing guide. Over MCP, model steps
-use the host's own model when it offers sampling, otherwise your API key. See
+resources for templates, roles, the model format and the writing guide. Over MCP, the host is
+the model: model steps hand the assistant a task, and it writes the model and calls
+`decisioncraft_render`. No API key is used. In Claude Desktop, Claude does the thinking. In Codex, Codex does. In a plain terminal, Decisioncraft uses your API key. See
 [docs/HOSTS.md](HOSTS.md) for every host and the full list.
 
 An agent that can't route a model to Decisioncraft writes the model itself: `decisioncraft
@@ -52,6 +53,8 @@ decisioncraft render model.json --watch     # draw again every time you save
 ```sh
 decisioncraft new --question "How do we cut missed pickups by half?" \
   --template customer-journey --roles owner,voice,finance --dir pickups
+decisioncraft validate pickups/model.json --allow-empty   # the starter has no boxes yet
+# fill in pickups/model.json (decisioncraft guide lists every field), then:
 decisioncraft validate pickups/model.json
 decisioncraft render pickups/model.json --out pickups/canvas.html
 

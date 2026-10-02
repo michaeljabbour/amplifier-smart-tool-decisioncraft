@@ -17,12 +17,13 @@ choice" or `--version` is not recognised, an older copy is first on the PATH: up
 the install line above (add `--force`), then check again.
 
 **First run: which model?** `map`, `draft`, `perspectives` and Ask the experts need a model.
-`decisioncraft doctor` says which one applies. In order: an explicit choice wins
-(`--provider`/`--model`, `DECISIONCRAFT_PROVIDER`/`DECISIONCRAFT_MODEL`, or `decisioncraft config set`);
-otherwise, **inside you (an agent harness), `map` hands the drawing to you**: it writes a digest and a
-starter map, you fill it in with your own model, so the user's API key is not billed; outside an agent,
-an `ANTHROPIC_API_KEY` (`claude-sonnet-5-5`) or `OPENAI_API_KEY` (`gpt-5.5`) answers and is billed;
-`--complete-cmd 'cmd'` routes through any model you name; `map --starter` always works with no model.
+`decisioncraft doctor` says which one applies. **In Claude Desktop, Claude does the thinking. In Codex, Codex does. In a plain terminal, Decisioncraft uses your API key.** Inside you
+(an agent harness or MCP host), **you are the model**: `map` writes a digest and a starter for you
+to fill in, `draft` and `perspectives` refuse to bill a key and point you at `decisioncraft guide`,
+and over MCP every model step returns a task for you, then `decisioncraft_render` checks and
+shows your model. An explicit choice (`--provider`/`--model`, `DECISIONCRAFT_PROVIDER`, or
+`decisioncraft config set`) still wins; in a plain terminal an `ANTHROPIC_API_KEY`
+(`claude-sonnet-5-5`) or `OPENAI_API_KEY` (`gpt-5.5`) answers and is billed.
 
 Then run `decisioncraft --help` and follow it. It is the full guide and stays correct
 when the tool changes. Each command has its own: `decisioncraft <command> --help`.

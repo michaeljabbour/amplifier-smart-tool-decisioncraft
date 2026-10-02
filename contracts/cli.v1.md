@@ -86,6 +86,7 @@ On failure:
 | `folder_not_empty`, `already_exists` | 1 | `example` or `new` would overwrite files. |
 | `file_error` | 1 | The file could not be read for another reason. |
 | `provider_not_configured` | 3 | A provider key, model name or SDK is missing. |
+| `host_model` | 3 | Running inside an agent (Codex, Claude Code, Amplifier) with no provider chosen: the agent's own model does this step, so no API key is billed. The hint says how to write the model yourself, or how to choose a provider on purpose. |
 | `no_write_access` | 3 | The output folder can't be written. |
 | `missing_prerequisite` | 3 | An optional package is needed, for example `mcp`. |
 | `missing_resource` | 3 | A file the tool ships with (the model format, an example) is missing from this installation, for example a skill folder built without it. The hint says how to rebuild or where to read it instead. |

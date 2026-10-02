@@ -66,27 +66,30 @@ def test_unwritable_folder_says_so_plainly():
     assert r.isError and "Can't write to" in r.content[0].text and "Errno" not in r.content[0].text
 
 
-def test_no_sampling_and_no_key_writes_a_starter(tmp_path):
+def test_map_hands_the_host_a_task_and_saves_files_only_when_asked(tmp_path):
     async def check(client, info):
-        auto = await client.call_tool("decisioncraft_map", {"target": str(REPO), "directory": str(tmp_path / "a")})
-        asked = await client.call_tool("decisioncraft_map", {"target": str(REPO), "directory": str(tmp_path / "b"),
+        inline = await client.call_tool("decisioncraft_map", {"target": str(REPO)})
+        saved = await client.call_tool("decisioncraft_map", {"target": str(REPO), "directory": str(tmp_path / "b"),
                                                              "starter": True})
-        return auto, asked
+        return inline, saved
 
-    auto, asked = run(check)
-    for r in (auto, asked):
+    inline, saved = run(check)
+    for r in (inline, saved):
         sc = r.structuredContent
-        assert not r.isError and sc["starter"] is True
-        assert Path(sc["model_path"]).is_file() and Path(sc["digest_path"]).is_file() and sc["next"]
-    assert "sampling" in auto.structuredContent["why"] and "API key" in auto.structuredContent["why"]
+        assert not r.isError and sc["starter"] is True and sc["you_write"] is True and sc["next"]
+        assert "## Material digest" in r.content[0].text and "## Model format" in r.content[0].text
+    assert "model_path" not in inline.structuredContent
+    assert Path(saved.structuredContent["model_path"]).is_file() and Path(saved.structuredContent["digest_path"]).is_file()
 
 
-def test_no_sampling_and_no_key_explains_both_for_draft():
+def test_draft_hands_the_host_a_task_and_never_reads_keys():
     async def check(client, info):
         return await client.call_tool("decisioncraft_draft", {"material": [{"name": "n", "text": "x"}], "question": "Q?"})
 
-    r = run(check)
-    assert r.isError and "sampling" in r.content[0].text and "API key" in r.content[0].text
+    env = {**BASE, "ANTHROPIC_API_KEY": "sk-should-not-be-used", "OPENAI_API_KEY": "sk-should-not-be-used"}
+    r = run(check, env=env)
+    assert not r.isError and r.structuredContent["you_write"] is True
+    assert "No API key is used" in r.content[0].text and "decisioncraft_render" in r.content[0].text
 
 
 def test_example_description_lists_every_id():

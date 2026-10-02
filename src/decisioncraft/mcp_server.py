@@ -5,13 +5,6 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-NO_SAMPLING = (
-    "This host does not offer MCP sampling, so Decisioncraft can't ask the host's model. "
-    "Use your own model instead: call decisioncraft_templates for the shapes and writing "
-    "guide, write the model JSON, then call decisioncraft_validate."
-)
-
-
 def _sampling_complete(ctx, loop):
     """A `complete(system, prompt)` that asks the host's own model through MCP sampling.
 
@@ -76,14 +69,30 @@ def _key_complete():
         return None, str(error)
 
 
-def _model_complete(ctx, loop, no_model_message: str):
-    """The host's model through sampling if offered, else the user's API key. Raises with both reasons."""
-    if _can_sample(ctx):
-        return _sampling_complete(ctx, loop), "this host's model (MCP sampling)"
-    complete, how = _key_complete()
-    if complete is None:
-        raise ValueError(f"{no_model_message} (Tried the server's API key too: {how})")
-    return complete, how
+def _opted_in(name: str) -> bool:
+    import os
+
+    return os.environ.get(name, "").strip().lower() in ("1", "true", "yes", "on")
+
+
+def _routing(ctx, loop):
+    """Over MCP the host is the model: the calling assistant writes models itself. The server
+    calls a model only when the user opted in: MCP sampling with DECISIONCRAFT_ALLOW_SAMPLING=1
+    (and a client that offers it), or their own API key with DECISIONCRAFT_ALLOW_KEYS=1.
+    Returns (complete, how) or (None, None)."""
+    if _opted_in("DECISIONCRAFT_ALLOW_SAMPLING") and _can_sample(ctx):
+        return _sampling_complete(ctx, loop), "this host's model (MCP sampling, opted in)"
+    if _opted_in("DECISIONCRAFT_ALLOW_KEYS"):
+        complete, how = _key_complete()
+        if complete is not None:
+            return complete, how
+    return None, None
+
+
+YOU_WRITE = (
+    "You (the assistant) write this; Decisioncraft checks and draws it. No API key is used and "
+    "no other model is called."
+)
 
 
 
@@ -124,6 +133,23 @@ def build_server():
         the canvas view as structuredContent."""
         return types.CallToolResult(content=[types.TextContent(type="text", text=text)], structuredContent=data)
 
+    def you_write(what: str, steps: list[str], sections: list[tuple[str, str]], data: dict) -> "types.CallToolResult":
+        """A task for the calling assistant: what to write, the steps, and everything it needs
+        (starter, material, model format, writing rules) in the text it reads."""
+        import json as _json
+
+        guide = lib.guide()
+        body = [YOU_WRITE, "", f"Task: {what}", "", "Steps:"]
+        body += [f"{i}. {step}" for i, step in enumerate(steps, 1)]
+        for title, text in sections + [("Model format", guide["model_format"]),
+                                        ("Writing rules", guide["writing_guide"])]:
+            if text:
+                body += ["", f"## {title}", "", text if isinstance(text, str) else _json.dumps(text, indent=2, ensure_ascii=False)]
+        return types.CallToolResult(
+            content=[types.TextContent(type="text", text="\n".join(body))],
+            structuredContent={"you_write": True, "what": what, "next": steps, **data},
+        )
+
     active = {}
     server = FastMCP(
         "Decisioncraft",
@@ -155,11 +181,13 @@ def build_server():
             "the result includes a handoff. Follow its agent_request: show stories, acceptance "
             "criteria and a proposed map, explain missing parts, and record the owner's reasoned "
             "choice. Support a quick comparison or a careful trial to suit the stakes. "
-            "Deterministic tools need no model: validate, render (writes an HTML canvas and "
-            "returns its path), words, questions, merge, diff and example. decisioncraft_draft "
-            "and decisioncraft_perspectives ask this host's model through MCP sampling; if the "
-            "host has no sampling they use the server's API key if one is set, otherwise they fail "
-            "and say so, and you draft with your own model."
+            "You are the model. decisioncraft_map, decisioncraft_draft, decisioncraft_perspectives "
+            "and decisioncraft_review_notes don't call a model themselves: they hand you a task "
+            "(the material or digest with path:line evidence, a starter model, the model format "
+            "and the writing rules). You write the model JSON in your own turn, then call "
+            "decisioncraft_render with it: render validates it and shows the canvas. No API key "
+            "is needed or used. Deterministic tools: validate, render, words, questions, merge, "
+            "diff, example, triage, quick, interview_next."
         ),
     )
     from .help import VERSION
@@ -245,9 +273,10 @@ def build_server():
         since: dict | None = None,
         allow_empty: bool = False,
     ) -> dict[str, Any]:
-        """Draw a model as one offline HTML canvas and return where it was written; in hosts with
-        MCP Apps the canvas also opens in the chat. Refuses a model with no boxes yet unless
-        allow_empty is true."""
+        """Show a decision model: you (the assistant) write the model JSON, then call this to check
+        it and draw it. In hosts with MCP Apps the canvas opens right in the chat; it is also saved
+        as one offline HTML file. Lists the problems if the model is invalid, and refuses a model
+        with no boxes yet unless allow_empty is true."""
         if "/" in filename or "\\" in filename or not filename.endswith(".html"):
             raise ValueError("filename must be a plain name ending in .html, for example canvas.html.")
         if directory:
@@ -304,10 +333,27 @@ def build_server():
         title: str = "",
         brief: dict | None = None,
     ) -> dict[str, Any]:
-        """Draft a full model from material ([{name, text}]) using this host's model via sampling
-        (or the server's API key when the host can't sample)."""
+        """Turn material ([{name, text}]) into a decision model. You (the assistant) write the
+        model: this returns a starter for the template, the model format and the writing rules;
+        then call decisioncraft_render with your model to check and show it. No API key is used."""
         loop = asyncio.get_running_loop()
-        complete, how = _model_complete(ctx, loop, NO_SAMPLING)
+        complete, how = _routing(ctx, loop)
+        if complete is None:
+            from .model import new_model
+
+            starter = new_model(template if template != "auto" else "decision-chain",
+                                title or question, question)
+            return you_write(
+                f"Write a Decisioncraft model that answers: {question}",
+                ["Read the material you were given and decide which maps fit (see the model format).",
+                 "Fill in the starter below: maps with boxes, sources and evidence quoted exactly "
+                 "from the material, gaps as user stories with 'done when' checks, and a short note "
+                 "from each role ending in one question.",
+                 "Call decisioncraft_render with model=<your JSON>. Fix any problems it lists and "
+                 "call it again; it shows the canvas when the model is valid."],
+                [("Starter model", starter)],
+                {"starter_model": starter, "question": question},
+            )
         model = await asyncio.to_thread(
             lib.draft, material, template=template, question=question, title=title,
             brief=brief, complete=complete,
@@ -321,10 +367,23 @@ def build_server():
         material: list[dict] | None = None,
         per_role: int = 3,
     ) -> dict[str, Any]:
-        """Add notes from each role to a model using this host's model via sampling
-        (or the server's API key when the host can't sample)."""
+        """Add a note from each role to a model. You (the assistant) write the notes: this
+        returns the roles and the note format; then call decisioncraft_render with the updated
+        model. No API key is used."""
         loop = asyncio.get_running_loop()
-        complete, how = _model_complete(ctx, loop, NO_SAMPLING)
+        complete, how = _routing(ctx, loop)
+        if complete is None:
+            roles = model.get("roles") or lib.roles()
+            return you_write(
+                f"Add up to {per_role} notes from each role to the model",
+                ["For each role below, add up to " + str(per_role) + " entries to the model's `notes`: "
+                 "{id, role, anchor (a box or gap id), title, body, recommend, question, urgency "
+                 "(must/should/info), evidence[], author: 'AI assistant'}. Each note ends in one "
+                 "question that could change the choice; cite evidence only from the material.",
+                 "Call decisioncraft_render with model=<the updated model> to check it and show it."],
+                [("Roles", [{"id": r["id"], "label": r.get("label", r["id"]), "asks": r.get("asks", "")} for r in roles])],
+                {"model": model, "roles": roles},
+            )
         out = await asyncio.to_thread(
             lib.perspectives, model, material=material, per_role=per_role, complete=complete,
         )
@@ -338,10 +397,10 @@ def build_server():
         roles: list[str] | None = None,
         dry_run: bool = False,
     ) -> dict[str, Any]:
-        """Get expert replies on reviewers' rough notes (a saved answers file) using this host's model.
-
-        Each chosen role replies to each note with a short view and one question. dry_run shows
-        what would be asked without a model call. Returns {asked, replies_added, review}.
+        """Expert replies to reviewers' rough notes (a saved answers file). You (the assistant)
+        write the replies: this lists each note and the roles to answer it, with the reply format;
+        then show them with decisioncraft_render(model, reviews=[review]). dry_run only lists what
+        would be asked. No API key is used.
         """
         from .review import check_review, notes_to_ask
 
@@ -353,9 +412,19 @@ def build_server():
         if dry_run or not plan:
             return {"asked": asked, "replies_added": 0, "review": review}
         loop = asyncio.get_running_loop()
-        complete, _how = _model_complete(ctx, loop, NO_SAMPLING.replace(
-            "write the model JSON, then call decisioncraft_validate",
-            "write each reply into the review's notes yourself"))
+        complete, _how = _routing(ctx, loop)
+        if complete is None:
+            return you_write(
+                f"Reply as experts to {len(asked)} reviewer note(s)",
+                ["For each note below and each of its roles, add a reply to that note's `replies` in "
+                 "the review: {id: '<note id>-<role>', role, view (a short view in that role's voice), "
+                 "question (one question that could change the choice), urgency (must/should/info), "
+                 "author: 'AI assistant'}. Keep it plain and specific to the note.",
+                 "Show the replies to the person in the chat, and call decisioncraft_render with "
+                 "model=<the model> and reviews=[<the review with replies>] to draw them as threads."],
+                [("Notes to answer", asked)],
+                {"asked": asked, "replies_added": 0, "review": review},
+            )
         out = await asyncio.to_thread(lib.review_notes, model, review, roles=roles, complete=complete)
         added = sum(len(n.get("replies", [])) for n in out.get("notes", [])) - sum(len(n.get("replies", [])) for n in review.get("notes", []))
         return {"asked": asked, "replies_added": added, "review": out}
@@ -385,10 +454,11 @@ def build_server():
         For a web address pass the page's text in page_text; for a topic pass answers
         {how_today, pain, goal} if you have them.
 
-        No model available (no sampling and no API key), or starter=True: it writes a starter
-        instead and returns starter=true with model_path, digest_path and instructions. Fill the
-        model in from the digest (cite path:line), then call decisioncraft_validate and
-        decisioncraft_render. Don't stop at a text summary when someone asked to see the map.
+        You (the assistant) draw the map: this reads the target and returns the material digest
+        (numbered lines to cite as path:line), a starter model, the model format and the writing
+        rules. Fill in the starter in your own turn, then call decisioncraft_render with it; render
+        checks it and shows the canvas. No API key is used. Don't stop at a text summary when
+        someone asked to see the map. Pass `directory` to also save the starter files.
         """
         target = _check_target(target)
         if directory:
@@ -396,34 +466,37 @@ def build_server():
         if dry_run:
             return {"plan": lib.plan_map(target, roles=roles, answers=answers)}
         loop = asyncio.get_running_loop()
-        why_starter = "asked for a starter" if starter else ""
         complete = how = None
         if not starter:
-            if _can_sample(ctx):
-                complete, how = _sampling_complete(ctx, loop), "this host's model (MCP sampling)"
-            else:
-                complete, how = _key_complete()
-                if complete is None:
-                    why_starter = ("This host does not offer MCP sampling and the server has no usable API key "
-                                   f"({how}), so you fill the map in yourself.")
+            complete, how = _routing(ctx, loop)
         if complete is None:
             import json as _json
 
             st = await asyncio.to_thread(lib.map_starter, target, roles=roles, question=question,
                                          answers=answers, page_text=page_text)
-            folder = Path(directory).expanduser() if directory else Path(tempfile.mkdtemp(prefix="decisioncraft-map-"))
-            (folder / "material").mkdir(parents=True, exist_ok=True)
-            (folder / "model.json").write_text(_json.dumps(st["model"], indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-            (folder / "material" / "digest.md").write_text(st["digest"], encoding="utf-8")
-            (folder / "FILL-IN.md").write_text(st["instructions"], encoding="utf-8")
-            return {"starter": True, "why": why_starter,
-                    "model_path": str((folder / "model.json").resolve()),
-                    "digest_path": str((folder / "material" / "digest.md").resolve()),
-                    "instructions_path": str((folder / "FILL-IN.md").resolve()),
-                    "instructions": st["instructions"], "plan": st["plan"],
-                    "next": ["Read the digest and fill in model.json (cite path:line as evidence).",
-                             "Call decisioncraft_validate until it reports no errors.",
-                             "Call decisioncraft_render and open the canvas it returns."]}
+            paths = {}
+            if directory:
+                folder = Path(directory).expanduser()
+                (folder / "material").mkdir(parents=True, exist_ok=True)
+                (folder / "model.json").write_text(_json.dumps(st["model"], indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+                (folder / "material" / "digest.md").write_text(st["digest"], encoding="utf-8")
+                (folder / "FILL-IN.md").write_text(st["instructions"], encoding="utf-8")
+                paths = {"model_path": str((folder / "model.json").resolve()),
+                         "digest_path": str((folder / "material" / "digest.md").resolve()),
+                         "instructions_path": str((folder / "FILL-IN.md").resolve())}
+            return you_write(
+                f"Draw the map of {target}: how it works today, how it could work, the gaps, and a note from each role",
+                ["Read the material digest below. Each line starts with its number: cite evidence as "
+                 "'path:line' and quote the words exactly.",
+                 "Fill in the starter model: today's steps (status works/partial/missing, with evidence), "
+                 "the planned steps (status planned, `replaces` where one replaces a today step), the gaps "
+                 "as user stories with 'done when' checks, and one note per role in `roles`, each "
+                 "pointing at a box and ending in one question.",
+                 "Call decisioncraft_render with model=<your filled-in model>. It refuses an empty map "
+                 "and lists any problems; fix them and call it again. When valid it shows the canvas."],
+                [("Starter model", st["model"]), ("Material digest", st["digest"])],
+                {"starter": True, "starter_model": st["model"], "plan": st["plan"], **paths},
+            )
         result = await asyncio.to_thread(
             lib.map_target, target, roles=roles, question=question, answers=answers, page_text=page_text,
             complete=complete)

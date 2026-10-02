@@ -173,9 +173,10 @@ def doctor(*, directory: str = ".", complete_cmd: str | None = None, live: bool 
     host = detect_host()
     agent_first = host_first()
     if agent_first:
-        add("host", "ok", f"Running inside {host}: map lets {host} fill in the map with its own model "
-            "(no API key is billed). Other model steps would bill your key and say so.",
-            "To use your API key for map too: decisioncraft config set provider anthropic (or openai)")
+        add("host", "ok", f"{host}'s own model does the thinking; no keys needed. Inside {host}, map hands "
+            f"{host} a starter to fill in, and draft and perspectives ask {host} to write the model; no "
+            "API key is billed.",
+            "To use your API key on purpose: --provider anthropic (or openai), or decisioncraft config set provider anthropic")
     elif host:
         add("host", "ok", f"Running inside {host}, but a model is chosen explicitly, so that model answers.")
 
@@ -186,6 +187,11 @@ def doctor(*, directory: str = ".", complete_cmd: str | None = None, live: bool 
         add("mcp", "warn", "The mcp package is not installed, so decisioncraft mcp will not start.",
             f"uv tool install --force '{EXTRAS}[mcp]' (only needed for MCP hosts)")
 
+    if agent_first:
+        # Inside an agent nothing here needs a key: don't suggest installing or exporting one.
+        for c in checks:
+            if c["status"] == "warn" and (c["id"].startswith("provider_") or c["id"] in ("model", "complete_cmd")):
+                c.update(status="ok", detail=f"Not needed inside {host}: {host}'s own model does the thinking.", fix="")
     failed = any(c["status"] == "fail" for c in checks)
     ready = {
         "deterministic": not any(c["status"] == "fail" for c in checks if c["id"] in ("python", "write_access", "temp_folder")),
@@ -199,11 +205,11 @@ def doctor(*, directory: str = ".", complete_cmd: str | None = None, live: bool 
     }
     if failed:
         text = "Some things need fixing before you start (marked fix)."
+    elif agent_first:
+        text = (f"Ready. {host}'s own model does the thinking; no keys needed. "
+                "Try: decisioncraft map . --open")
     elif not (answer or routing_ready):
         text = "Ready to draw, review and compare. To draft with a model, set up a provider or --complete-cmd."
-    elif agent_first:
-        text = (f"Ready. Inside {host}, map hands the drawing to {host}'s own model. "
-                "Try: decisioncraft map . --open")
     elif answer:
         text = (f"Ready, including drafting with a model: {answer['provider']} {answer['model']}. "
                 "Try: decisioncraft map ./your-repo --open")

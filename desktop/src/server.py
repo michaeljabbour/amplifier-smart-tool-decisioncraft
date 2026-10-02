@@ -1,11 +1,14 @@
-"""Entry point for the Claude Desktop extension: run the Decisioncraft MCP server over stdio."""
+"""Entry point for the Claude Desktop extension: run the Decisioncraft MCP server over stdio.
+
+In Claude Desktop, Claude does the thinking: the model-backed tools hand Claude a task and
+Claude writes the model, so the extension asks for no API key and reads none.
+"""
 
 import os
 
-# Empty optional keys from the extension settings must not look like real keys.
-for key in ("ANTHROPIC_API_KEY", "OPENAI_API_KEY"):
-    if not os.environ.get(key, "").strip() or os.environ.get(key, "").startswith("${"):
-        os.environ.pop(key, None)
+os.environ.setdefault("DECISIONCRAFT_HOST", "Claude Desktop")
+for key in ("ANTHROPIC_API_KEY", "OPENAI_API_KEY", "DECISIONCRAFT_ALLOW_KEYS"):
+    os.environ.pop(key, None)
 
 from decisioncraft.mcp_server import serve  # noqa: E402
 

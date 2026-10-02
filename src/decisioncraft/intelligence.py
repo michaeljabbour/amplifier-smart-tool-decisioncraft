@@ -85,10 +85,14 @@ def save_config(values: dict) -> str:
 
 # Environment markers that agent harnesses set for the commands they run. A host can also
 # declare itself with DECISIONCRAFT_HOST=<name>, or opt out with DECISIONCRAFT_HOST=none.
+# Codex comes first: the Codex CLI and the Codex desktop app set per-session markers
+# (CODEX_THREAD_ID, CODEX_SANDBOX, CODEX_CI) for every command, while other harnesses' markers
+# can be inherited from a parent process (for example Codex launched from Claude Code).
 HOST_MARKERS = (
-    ("Claude Code", ("CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT")),
-    ("Codex", ("CODEX_SANDBOX", "CODEX_SANDBOX_NETWORK_DISABLED", "CODEX_THREAD_ID", "CODEX_CI")),
+    ("Codex", ("CODEX_THREAD_ID", "CODEX_SESSION_ID", "CODEX_SANDBOX", "CODEX_SANDBOX_NETWORK_DISABLED",
+               "CODEX_CI")),
     ("Amplifier", ("AMPLIFIER_SESSION_ID", "AMPLIFIER_SESSION")),
+    ("Claude Code", ("CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT")),
 )
 
 

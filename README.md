@@ -45,16 +45,19 @@ All examples are fictional. Watch the [90-second trailer](https://github.com/mic
 
 ## Which model answers
 
+**In Claude Desktop, Claude does the thinking. In Codex, Codex does. In a plain terminal, Decisioncraft uses your API key.**
+
 `map` (and `draft`, `perspectives`, Ask the experts) needs a language model. Decisioncraft uses
 the first of these that applies, and says which on screen:
 
 1. **Your explicit choice.** `--provider` / `--model` for one run, `DECISIONCRAFT_PROVIDER` /
    `DECISIONCRAFT_MODEL`, or `decisioncraft config set provider openai` once.
-2. **The agent you are working in.** Inside Claude Code, Codex or Amplifier with no explicit
-   choice, `map` lets the agent draw the map with its own model (`--starter` route), so your API
-   key is not billed. MCP hosts that can sample are asked directly, and `--complete-cmd 'your-command'`
-   sends each request through any model you name. Other model steps there bill your key and say
-   so. Claude Desktop and Skills always use the host's model.
+   `--complete-cmd 'your-command'` sends each request through any model you name.
+2. **The assistant you are working in.** In Claude Desktop (the extension), over MCP, in
+   Codex (CLI or app), Claude Code, Amplifier and Skills, the assistant writes the model with its
+   own model: Decisioncraft hands it the material, a starter and the format, then checks and
+   draws the result. No API key is asked for or billed, even if one is set. (A terminal user who
+   wants the server to use a key over MCP sets `DECISIONCRAFT_ALLOW_KEYS=1`.)
 3. **An API key you already have**, when run in your own terminal: `ANTHROPIC_API_KEY` gives
    `claude-sonnet-5-5` (trying `claude-opus-5-5` once if a draft still has problems), otherwise
    `OPENAI_API_KEY` gives `gpt-5.5`. This is billed to that key.

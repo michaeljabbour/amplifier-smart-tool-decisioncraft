@@ -82,6 +82,14 @@ window.DC_HOST = {
     const r = Object.assign({}, review, {notes:[note]});
     const out = toolResult(await request("tools/call", {name:"decisioncraft_review_notes",
       arguments:{model, review:r, roles}}));
+    if (out.you_write) {
+      /* The host's own model writes the replies: ask it in the chat. */
+      const text = "Please reply as these experts (" + roles.join(", ") + ") to my note on the decision map \"" +
+        (model.title || "") + "\": " + (note.text || "") + ". Give each a short view and one question, then " +
+        "redraw the map with decisioncraft_render including my review so the replies show as threads.";
+      await request("ui/message", {role:"user", content:{type:"text", text}});
+      return {replies: [], asked_in_chat: true};
+    }
     const back = ((out.review || {}).notes || []).find(x => x.id === note.id) || {};
     return {replies: back.replies || []};
   },

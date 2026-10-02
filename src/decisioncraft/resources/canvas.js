@@ -2237,6 +2237,10 @@ async function askLive(n, roles) {
     } else {
       value = await HOST.askExperts(cleanNote(n), roles, MODEL, reviewData());
     }
+    if (value.asked_in_chat) {
+      n._waiting = false; persist(); refreshPanel();
+      return toast("Asked in the chat: the experts reply there and the map is redrawn with their replies.");
+    }
     n.replies = value.replies || [];
     n._waiting = false; persist(); refreshPanel(); toast(`${plural(n.replies.length, "reply")} arrived`.replace("replys", "replies"));
   } catch (error) {
