@@ -20,6 +20,7 @@ from pathlib import Path
 from . import errors as E
 from . import lib
 from .errors import ToolError, classify
+from .examples import example_names
 from .help import CAPABILITIES, VERSION, capability_skill, skill
 from .stats import describe, summary
 from .term import Term, interactive
@@ -215,8 +216,9 @@ def build() -> SkillParser:
 
     c = cmd("example", ("decisioncraft example business --out ~/bakery --json",))
     g = c.add_argument_group("What to copy")
-    g.add_argument("name", choices=["business", "technical", "engineering", "medical"],
-                   help="business, technical, engineering or medical.")
+    _names = [e["id"] for e in example_names()]
+    g.add_argument("name", choices=_names,
+                   help=", ".join(_names[:-1]) + " or " + _names[-1] + ".")
     g = c.add_argument_group("Where it goes")
     g.add_argument("--out", metavar="DIR", help="Folder to create (default: ./decisioncraft-example-NAME).")
     g.add_argument("--open", action="store_true", help="Open the canvas in your browser.")
@@ -1109,9 +1111,34 @@ def do_quick(run: Run) -> Out:
         model = run.load(a.from_model)
         comp = model.get("comparison") or {}
         question = question or model.get("question", "")
-        options = options or [o.get("title") for o in comp.get("options", []) if o.get("title")]
-        criteria = criteria or [{"label": c["label"], "importance": c.get("importance")}
-                                for c in comp.get("criteria", []) if c.get("label")]
+        # A personal-decision model keeps options and criteria at the top level.
+        top_opts = {o.get("id"): o.get("name") for o in model.get("options") or [] if isinstance(o, dict)}
+        top_crit = {c.get("id"): c for c in model.get("criteria") or [] if isinstance(c, dict)}
+        options = options or [n for n in top_opts.values() if n] \
+            or [o.get("title") for o in comp.get("options", []) if o.get("title")]
+        def _crit(c):
+            if c.get("kind") == "must":
+                return {"label": c.get("name"), "importance": "must"}
+            w = c.get("weight") if isinstance(c.get("weight"), (int, float)) else 2
+            # Engine weights run 0-5; keep them, but never let a weight read as a must-have.
+            return {"label": c.get("name"), "importance": "important" if w >= 3 else "nice",
+                    "weight": max(1, round(float(w)))}
+        criteria = criteria or [_crit(c) for c in top_crit.values() if c.get("name")] \
+            or [{"label": c["label"], "importance": c.get("importance")}
+                for c in comp.get("criteria", []) if c.get("label")]
+        if not scores and top_opts and top_crit:
+            scores = []
+            for s in model.get("scores") or []:
+                if not (isinstance(s, dict) and s.get("criterion") in top_crit and top_opts.get(s.get("option"))):
+                    continue
+                if isinstance(s.get("meets"), bool):  # a must-have: meets is 5, fails is 1
+                    n = 5 if s["meets"] else 1
+                elif isinstance(s.get("value"), (int, float)):
+                    n = int(s["value"])
+                else:
+                    continue
+                scores.append({"option": top_opts[s["option"]], "criterion": top_crit[s["criterion"]].get("name"),
+                               "score": n})
     if a.scores:
         loaded = run.load(a.scores)
         if isinstance(loaded, dict):

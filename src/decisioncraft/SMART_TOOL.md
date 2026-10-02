@@ -143,14 +143,43 @@ the whole interview with prompts.
 
 ## Personal decisions
 
-For one person or a household (a car, a lease, a job offer, a move, a school), the
-personal questions are: the decision, the options including doing nothing, must-haves and
-deal-breakers, what matters most first, the deadline, how easy it is to undo, the budget
-(only for purchases),
-who else is affected, what is known and unsure, and what could change the picture. The
-answers land in the model's `comparison` (options and what matters) and `personal`
-(options, criteria with weights, budget, what-ifs). Use `quick` for a lean in the chat, or
-`render` for the map.
+For one person or a household (a car, a lease, a job offer, a move, a school), even when
+nobody says "decision" ("should I renew my lease or buy?", "is it worth fixing the old
+one?"). The personal questions are: the decision, the options including doing nothing,
+must-haves and deal-breakers, what matters most first, the deadline, how easy it is to
+undo, the budget (only for purchases), who else is affected, what is known and unsure, and
+what could change the picture.
+
+The interview writes a `personal-decision` model: a light chain, a today-and-after journey,
+a scoring table and cost over time, with personal roles (Money, Practical expert, Safety,
+People affected, Future you, Environment, Market and resale, Devil's advocate). The answers
+land in the model's top-level fields:
+
+- `options`: each with an id, a name and a short summary. Doing nothing is added if missing.
+- `criteria`: must-haves (`kind: must`, pass or fail) and weighted ones (`kind: scored`,
+  `weight` 0-5 in half steps; the interview uses 4 for important and 2 for nice).
+- `scores`: whole numbers 1-5 with a note and evidence, or `meets: true|false` for a
+  must-have. Left empty by the interview: scores need facts.
+- `costs`: per option, upfront amounts, yearly items, a loan, and value by year, over
+  `horizon_years`, with `cash_return` and `assumptions`.
+- `whatifs`: named multipliers by cost kind, tag or `value` (for example petrol 30% dearer).
+- `framing`: a pre-mortem ("a year later this went badly, why?") and a 10-10-10 check.
+
+Points worth stating:
+
+- An option failing a must-have is out of the ranking. Totals show one decimal; top
+  totals within 0.25 are reported as a close call. Do not add decimals the judgments do not
+  have.
+- "What would change the winner" is computed, not drafted: the smallest single weight
+  change (half steps, within 0-5) or one-point score change that puts another option on top.
+- Real cost = money spent + loan still owed - what it is worth + what the cash put down
+  could have earned. Use dated public figures for depreciation, fuel, insurance and loan
+  rates, and cite each one as evidence.
+- Tag costs (for example `miles`, `older-car`) so a what-if touches only what it should.
+- `quick --from model.json` reads these fields for a lean in the chat; `render` draws the
+  scoring table (with live weights) and cost over time (with break-even points); `words`
+  gives both as text tables. Reviews may carry their own `weights`; `merge` reports where
+  reviewers disagree.
 
 ## Install and check
 
@@ -258,8 +287,8 @@ It reads the README, docs, manifests, schemas, routes and entry points first (re
 planned way (each replacing box marked), turns the differences into gaps with user stories
 and "done when" checks, and adds a note from each of eight roles (UX designer, Architect,
 Business analyst, Lead engineer, Product manager, Security and privacy, Customer voice,
-AI agent teammate; change with `--roles`). The canvas opens on What changes with the notes
-on the map. Other targets: a notes folder or file, `--page FILE` with a web page's text (or
+AI agent teammate; change with `--roles`). The canvas opens on the planned way with the
+notes on the map. Other targets: a notes folder or file, `--page FILE` with a web page's text (or
 `--allow-network`), or a topic in quotes with `--answers` (how_today, pain, goal; without
 answers the map is marked as unchecked). Over MCP: `decisioncraft_map`, and the `map_this`
 prompt.
@@ -352,6 +381,20 @@ for q in dc.questions(model):
 
 Or from a shell: `decisioncraft questions model.json --json`, then read `result`.
 
+**Weigh a personal choice.** A lease is ending and the person wants it worked out properly.
+
+```
+decisioncraft interview --dir car-choice --question "My lease ends in March: renew, keep or buy?" --json
+# answer one question at a time with --answer "..." until done
+# then fill scores (1-5 with a note and evidence), costs per option and what-ifs
+decisioncraft validate car-choice/model.json
+decisioncraft render car-choice/model.json --open
+decisioncraft words car-choice/model.json            # scoring table and cost summary as text
+decisioncraft quick --from car-choice/model.json --json   # a lean for the chat
+```
+
+Or start from the worked example: `decisioncraft example car --open`.
+
 ## Templates
 
 - `system-journeys`: numbered steps across the parts of a system or organisation.
@@ -362,6 +405,12 @@ Or from a shell: `decisioncraft questions model.json --json`, then read `result`
 - `decision-chain`: source, evidence, decision, intent, spec, plan, work, outcome;
   today and planned.
 - `opportunity-tree`: an outcome, the needs that could move it, ideas, and quick tests.
+- `scoring-table`: options against must-haves and weighted criteria, with "what would
+  change the winner". Usable in any model.
+- `cost-over-time`: what each option really costs, year by year, with break-even points
+  and what-ifs. Usable in any model.
+- `personal-decision`: a starting set, not one map: a light chain, today and after the
+  change, a scoring table and cost over time, with personal roles.
 
 A model can hold several maps. `draft --template auto` (the default) chooses suitable
 maps from the material.

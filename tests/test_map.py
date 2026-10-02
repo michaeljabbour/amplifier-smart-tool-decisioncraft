@@ -80,7 +80,7 @@ def test_map_target_draws_as_is_to_be_with_stories_and_notes():
     assert all(g["stories"] and g["stories"][0]["done_when"] for g in m["gaps"])
     assert {n["role"] for n in m["notes"]} >= {r["id"] for r in map_roles()}
     assert all(n["question"].strip() for n in m["notes"])
-    assert m["display"]["notes_on_map"] is True and m["display"]["start_view"] == "changes"
+    assert m["display"]["notes_on_map"] is True and m["display"]["start_view"] == "planned"
     assert m["checked"]["note"].startswith("Checked against")
     assert not [p for p in dc.validate(m) if p["level"] == "error"]
 

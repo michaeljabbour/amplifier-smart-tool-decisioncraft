@@ -40,6 +40,11 @@ checks, and a note from each role.
   `decisioncraft render NAME/model.json --open`.
 - `team`: the same with `--kind team`, then draft, render and review (see `--help`).
 
+**Personal and household choices** (a car, a home, a job offer): the interview writes a
+`personal-decision` model with must-haves, weighted scores and a computed "what would change
+the winner", cost over time with break-even points and what-ifs, a pre-mortem and a
+10-10-10 check. Fill scores and costs from evidence; see `decisioncraft example car`.
+
 **Offer, don't take over.** Never build files unasked. Use the `offer` sentence triage
 returns, or your own: "Want me to lay the options side by side?" If they say no, help in
 the conversation as usual.

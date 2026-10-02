@@ -154,8 +154,12 @@ def test_interview_car_one_question_at_a_time(tmp_path):
     assert seen[0] == "options" and "reversible" not in seen  # 'buy' and 'lease' already say hard to undo
     assert r["mode"] == "guided" and Path(r["model_path"]).is_file()
     model = json.loads(Path(r["model_path"]).read_text())
-    assert [o["title"] for o in model["comparison"]["options"]] == ["Renew it", "Buy the car outright", "Buy something used"]
-    assert model["comparison"]["criteria"][0] == {"id": "under-500-a-month", "label": "Under 500 a month", "importance": "must"}
+    # Personal decisions use the engine's personal-decision fields (options, criteria, scores, costs).
+    assert {m["template"] for m in model["maps"]} >= {"scoring-table", "cost-over-time"}
+    assert [o["name"] for o in model["options"]][:3] == ["Renew it", "Buy the car outright", "Buy something used"]
+    assert model["criteria"][0] == {"id": "under-500-a-month", "name": "Under 500 a month", "kind": "must", "measure": ""}
+    assert any(c["kind"] == "scored" and c["weight"] == 4 for c in model["criteria"])
+    assert "personal" not in model and "comparison" not in model
     assert not [p for p in dc.validate(model) if p["level"] == "error"]
     assert (tmp_path / "car" / "material" / "README.txt").is_file()
 

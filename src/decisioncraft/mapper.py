@@ -370,7 +370,7 @@ def map_target(target: str, *, roles: list[str] | None = None, question: str = "
     drafted["checked"] = g["checked"]
     drafted.setdefault("display", {})
     drafted["display"]["notes_on_map"] = True
-    drafted["display"].setdefault("start_view", "changes")
+    drafted["display"].setdefault("start_view", "planned")
     drafted["map_source"] = {"kind": kind, "target": target if kind in ("url", "topic") else Path(target).name,
                              "read": [r["path"] for r in g["read"]]}
     problems = [p for p in validate(drafted) if p["level"] == "error"]

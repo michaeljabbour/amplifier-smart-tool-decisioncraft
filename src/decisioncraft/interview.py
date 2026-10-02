@@ -314,6 +314,8 @@ def _criteria(answers: dict) -> list[dict]:
 
 
 def _template(state: dict) -> str:
+    if state["set"] == "personal":
+        return "personal-decision"
     if state["set"] == "system":
         return "system-journeys"
     if state["set"] == "team":
@@ -323,6 +325,41 @@ def _template(state: dict) -> str:
         if v.startswith("How the work"):
             return "service-blueprint"
     return "decision-chain"
+
+
+def _slug_id(text: str, used: set) -> str:
+    base = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")[:40] or "item"
+    sid, n = base, 2
+    while sid in used:
+        sid, n = f"{base}-{n}", n + 1
+    used.add(sid)
+    return sid
+
+
+def _fill_personal(model: dict, options: list, crit: list, answers: dict) -> None:
+    """Put the interview's options and what matters into the engine's personal-decision fields.
+
+    Must-haves become pass-or-fail criteria; the rest are weighted (important 4, nice 2), in
+    half steps on the 0-5 scale. Scores and costs stay empty: they need facts the interview
+    does not have yet, and the person (or an agent with evidence) fills them in.
+    """
+    used: set = set()
+    names = list(options) or []
+    if names and not any(re.search(r"\b(nothing|as they are|keep)\b", n, re.I) for n in names):
+        names.append("Keep things as they are")
+    model["options"] = [{"id": _slug_id(n, used), "name": n.strip(), "summary": ""} for n in names if n.strip()]
+    used_c: set = set()
+    out = []
+    for c in crit:
+        cid = _slug_id(c["label"], used_c)
+        if c["importance"] == "must":
+            out.append({"id": cid, "name": c["label"], "kind": "must", "measure": ""})
+        else:
+            out.append({"id": cid, "name": c["label"], "kind": "scored",
+                        "weight": 4 if c["importance"] == "important" else 2, "measure": ""})
+    model["criteria"] = out
+    if answers.get("budget"):
+        model["costs"]["assumptions"] = f"Budget: {answers['budget']}"
 
 
 def build_model(state: dict, *, date: str = "") -> dict:
@@ -337,19 +374,17 @@ def build_model(state: dict, *, date: str = "") -> dict:
     title = title_from(question)
     template = _template(state)
     model = new_model(template, title, question, date=date or _date.today().isoformat())
-    if state["set"] == "personal":
-        # TODO(merge with the personal-decision template): the personal roles and template
-        # land in a parallel branch; until then personal decisions use the default roles.
-        model["roles"] = pick_roles(None)
-    else:
-        model["roles"] = pick_roles(None)
+    if state["set"] != "personal":
+        model["roles"] = pick_roles(None)  # personal-decision brings its own personal roles
     summary = a.get("why_now") or ""
     if a.get("known"):
         summary = (summary + " " if summary else "") + f"What we know so far: {a['known']}"
     model["summary"] = summary.strip()
     crit = _criteria(a)
     options = a.get("options") or []
-    if options or crit:
+    if state["set"] == "personal":
+        _fill_personal(model, options, crit, a)
+    elif options or crit:
         q = quick(options if len(options) >= 2 else options + ["Keep things as they are"],
                   crit or None, question=question) if (len(options) >= 1) else None
         model["comparison"] = {
@@ -362,14 +397,6 @@ def build_model(state: dict, *, date: str = "") -> dict:
             "review_when": a.get("deadline", ""),
         }
     model["interview"] = {"set": state["set"], "answers": a, "inferred": state["inferred"]}
-    # TODO(merge with the personal-decision template): field names from the parallel plan.
-    model["personal"] = {
-        "options": options,
-        "criteria": crit,
-        "scores": [],
-        "costs": {"budget": a.get("budget", "")} if a.get("budget") else {},
-        "whatifs": a.get("whatifs") or [],
-    }
     return model
 
 
