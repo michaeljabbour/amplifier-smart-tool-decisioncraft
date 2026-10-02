@@ -1,0 +1,188 @@
+{
+  "manifest_version": "0.4",
+  "name": "decisioncraft",
+  "display_name": "Decisioncraft",
+  "version": "0.2.2",
+  "description": "Point it at anything and get as-is against to-be, the gaps as user stories, and a sticky note from every role.",
+  "long_description": "Point Decisioncraft at anything (a codebase, meeting notes, a process or a personal choice) and you get a map of as-is against to-be, the gaps written as user stories, and a sticky note from every role. It's rigorous decision analysis in plain language, from a quick side-by-side to a full team review. Canvases are single offline HTML files. In Claude Desktop the drawing is done by Claude itself; an Anthropic or OpenAI key is optional.",
+  "author": {
+    "name": "Decisioncraft contributors",
+    "url": "https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft"
+  },
+  "homepage": "https://michaeljabbour.github.io/amplifier-smart-tool-decisioncraft/",
+  "documentation": "https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft/blob/main/docs/HOSTS.md",
+  "support": "https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft/issues",
+  "icon": "icon.png",
+  "server": {
+    "type": "uv",
+    "entry_point": "src/server.py",
+    "mcp_config": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "${__dirname}",
+        "src/server.py"
+      ],
+      "env": {
+        "ANTHROPIC_API_KEY": "${user_config.anthropic_api_key}",
+        "OPENAI_API_KEY": "${user_config.openai_api_key}",
+        "DECISIONCRAFT_HOST": "Claude Desktop"
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "decisioncraft_discover",
+      "description": "Begin with a few questions about the choice, why it matters and a useful visual."
+    },
+    {
+      "name": "decisioncraft_templates",
+      "description": "Get supported map shapes and the writing guide for the host's own model."
+    },
+    {
+      "name": "decisioncraft_validate",
+      "description": "Check a model before opening it."
+    },
+    {
+      "name": "decisioncraft_start_review",
+      "description": "Open a browser review."
+    },
+    {
+      "name": "decisioncraft_wait_for_review",
+      "description": "Wait briefly for Finish review, then return answers and the completed handoff."
+    },
+    {
+      "name": "decisioncraft_render",
+      "description": "Draw a model as one offline HTML canvas and return where it was written."
+    },
+    {
+      "name": "decisioncraft_words",
+      "description": "The whole model as readable Markdown, for people who prefer text or for reading back."
+    },
+    {
+      "name": "decisioncraft_questions",
+      "description": "Every question to decide, most urgent first; reviewers' dots and answers change the order."
+    },
+    {
+      "name": "decisioncraft_merge",
+      "description": "Combine saved reviews: agree and disagree counts, dots, comments and conflicts."
+    },
+    {
+      "name": "decisioncraft_diff",
+      "description": "What was added, removed and changed between two versions of a model."
+    },
+    {
+      "name": "decisioncraft_example",
+      "description": "A worked example by id (map, car, business, technical, engineering or medical): model, material, reviews."
+    },
+    {
+      "name": "decisioncraft_draft",
+      "description": "Draft a full model from material using this host's model (or the server's API key)."
+    },
+    {
+      "name": "decisioncraft_perspectives",
+      "description": "Add notes from each role to a model using this host's model (or the server's API key)."
+    },
+    {
+      "name": "decisioncraft_review_notes",
+      "description": "Get expert replies on reviewers' rough notes using this host's model."
+    },
+    {
+      "name": "decisioncraft_map",
+      "description": "Point it at anything: a repo or folder path, a notes file, a web page's text, or a topic."
+    },
+    {
+      "name": "decisioncraft_triage",
+      "description": "How much help a choice needs: none (just answer), quick, guided or team."
+    },
+    {
+      "name": "decisioncraft_quick",
+      "description": "Quick mode: score options against what matters; returns a table, a lean and one check."
+    },
+    {
+      "name": "decisioncraft_interview_next",
+      "description": "Guided mode: record the answer and get the next question."
+    },
+    {
+      "name": "decisioncraft_handoff",
+      "description": "Read a completed review as answers, proposed stories, checks and a proposed map."
+    },
+    {
+      "name": "decisioncraft_close_review",
+      "description": "Close a browser review after reading its handoff."
+    }
+  ],
+  "prompts": [
+    {
+      "name": "map_this",
+      "description": "Show how something works today, what could be better, and what each role thinks.",
+      "text": "Use the Decisioncraft map_this prompt."
+    },
+    {
+      "name": "decide",
+      "description": "Help someone think a choice through, at the right depth.",
+      "text": "Use the Decisioncraft decide prompt."
+    },
+    {
+      "name": "compare_options",
+      "description": "Lay options side by side against what matters, in the conversation.",
+      "text": "Use the Decisioncraft compare_options prompt."
+    },
+    {
+      "name": "what_could_go_wrong",
+      "description": "A pre-mortem: imagine it went badly and work out why, then guard against it.",
+      "text": "Use the Decisioncraft what_could_go_wrong prompt."
+    },
+    {
+      "name": "regret_test",
+      "description": "How each option is likely to feel in 10 days, 10 months and 10 years.",
+      "text": "Use the Decisioncraft regret_test prompt."
+    },
+    {
+      "name": "review_canvas",
+      "description": "Walk someone through a Decisioncraft canvas and collect their answers.",
+      "text": "Use the Decisioncraft review_canvas prompt."
+    }
+  ],
+  "keywords": [
+    "decisions",
+    "process map",
+    "as-is to-be",
+    "user stories",
+    "review"
+  ],
+  "license": "MIT",
+  "compatibility": {
+    "platforms": [
+      "darwin",
+      "linux",
+      "win32"
+    ],
+    "runtimes": {
+      "python": ">=3.11"
+    }
+  },
+  "user_config": {
+    "anthropic_api_key": {
+      "type": "string",
+      "title": "Anthropic API key (optional)",
+      "description": "Only used if Claude Desktop can't run a step itself. Leave empty to let Claude do the drawing.",
+      "sensitive": true,
+      "required": false,
+      "default": ""
+    },
+    "openai_api_key": {
+      "type": "string",
+      "title": "OpenAI API key (optional)",
+      "description": "Optional alternative to the Anthropic key.",
+      "sensitive": true,
+      "required": false,
+      "default": ""
+    }
+  }
+}
