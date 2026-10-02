@@ -14,7 +14,8 @@ from mcp.client.stdio import stdio_client
 
 import decisioncraft as dc
 
-ENV = dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parent.parent / "src"))
+# No API keys: a host without sampling must not fall back to a paid provider in tests.
+ENV = dict({k: v for k, v in os.environ.items() if k not in ("ANTHROPIC_API_KEY", "OPENAI_API_KEY", "DECISIONCRAFT_PROVIDER", "DECISIONCRAFT_MODEL")}, PYTHONPATH=str(Path(__file__).resolve().parent.parent / "src"))
 PARAMS = StdioServerParameters(command=sys.executable, args=["-m", "decisioncraft", "mcp"], env=ENV)
 
 TINY = {
