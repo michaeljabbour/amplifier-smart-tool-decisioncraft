@@ -176,5 +176,11 @@
     "name": "Independent project",
     "description": "Decisioncraft",
     "organization": "Open source"
+  },
+  "first_use": {
+    "title": "Open a complete example without a model.",
+    "body": "Read a fictional decision map, validate its structure and render it to one local HTML file. Explore its claims, options and role notes before asking the tool to map your own work.",
+    "commands": "git clone https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft.git\ncd amplifier-smart-tool-decisioncraft\ndecisioncraft validate examples/engineering/model.json\ndecisioncraft render examples/engineering/model.json --out first-canvas.html",
+    "note": "Install the native tool first, then run these commands in a terminal. Open first-canvas.html in your browser. This is an existing fictional example; no key or provider call is needed. Validation checks structure, not the truth of its claims."
   }
 }

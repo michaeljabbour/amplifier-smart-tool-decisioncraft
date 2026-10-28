@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10-28: Public first use
+
+- Add a provider-free complete fictional example path, with exact commands to validate and render a first canvas. Clarify the complete licensed portable archive.
+
+
 ## 0.2.3 (2026-10-02)
 
 ### The canvas opens in the chat, the skill ZIP is the whole tool, and an empty map no longer passes

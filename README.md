@@ -26,6 +26,19 @@ For a local source build of that same archive and the product page, run
 `_site/downloads/decisioncraft-skill.zip`; the Pages workflow publishes that
 file with the examples and films. See [site build checks](site/README.md).
 
+## First canvas, without a provider
+
+After installing the native tool, open a complete fictional example from the public source:
+
+```sh
+git clone https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft.git
+cd amplifier-smart-tool-decisioncraft
+decisioncraft validate examples/engineering/model.json
+decisioncraft render examples/engineering/model.json --out first-canvas.html
+```
+
+Open `first-canvas.html` and explore its claims, options and role notes. Create a separate starter with `decisioncraft new` for your own evidence. These commands need no provider key. Structure validation cannot establish whether your evidence or ratings are correct. The [install guide](docs/INSTALL.md) explains both native and complete portable paths.
+
 Then point it at something:
 
 ```sh
