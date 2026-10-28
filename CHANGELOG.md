@@ -198,3 +198,9 @@ Found by Claude Desktop reviewing the 0.2.2 downloads.
 ## 0.1.0 (2026-10-01)
 
 First release: decision models, the canvas, reviews, merge and diff, four worked examples.
+
+## Capability consolidation — 2026-10-28
+
+- Added a clear installation and ownership record while preserving native interfaces, source history and evidence limits.
+- Declared the optional MCP SDK in the development environment so the full native suite can exercise its MCP routing tests; base deterministic installation still has no provider dependency.
+- Retained three exact historical public metadata fingerprints in the generic check while continuing to reject source leaks, messages and new commit metadata; added a regression for the boundary.

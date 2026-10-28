@@ -26,6 +26,7 @@ smart = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "mcp" },
     { name = "pytest" },
     { name = "pyyaml" },
 ]
@@ -40,6 +41,7 @@ provides-extras = ["smart", "mcp"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "mcp", specifier = ">=1.20,<2" },
     { name = "pytest", specifier = ">=8,<10" },
     { name = "pyyaml", specifier = ">=6" },
 ]

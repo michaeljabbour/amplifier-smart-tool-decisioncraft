@@ -1,0 +1,22 @@
+{
+  "public_base_commit": "c65d558e04e0c3d39fac623702d295fda8f542ff",
+  "verified_public_source": "https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft/commit/c65d558e04e0c3d39fac623702d295fda8f542ff",
+  "reason": "Preserve existing public commit attribution without rewriting history. Exact metadata fields only; no source or commit-message exception.",
+  "entries": [
+    {
+      "commit": "c65d558e04e0c3d39fac623702d295fda8f542ff",
+      "field": "author_email",
+      "sha256": "3280c8497ab31cff5083274e8c38311ab1bf22524aafaf34d148dff45311680e"
+    },
+    {
+      "commit": "e403b89d1cabfb38e62f9f63bbb44072aaeaba05",
+      "field": "author_email",
+      "sha256": "3280c8497ab31cff5083274e8c38311ab1bf22524aafaf34d148dff45311680e"
+    },
+    {
+      "commit": "3f8aa2eabcdad75c29339cdfaba535ea221a89bf",
+      "field": "author_email",
+      "sha256": "3280c8497ab31cff5083274e8c38311ab1bf22524aafaf34d148dff45311680e"
+    }
+  ]
+}

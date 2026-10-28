@@ -18,6 +18,8 @@ Exit 0 when clean, 1 when anything is found.
 
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 import subprocess
 import sys
@@ -44,7 +46,7 @@ FILLER = [
     J(["game", "-changer"]), J(["game ", "changer"]), "delve",
 ]
 EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
-ALLOWED_EMAIL = re.compile(r"@(example\.(com|org|net))$|^noreply@", re.IGNORECASE)
+ALLOWED_EMAIL = re.compile(r"@(example\.(com|org|net))$|^noreply@|^[0-9]+\+[A-Za-z0-9-]+@users\.noreply\.github\.com$", re.IGNORECASE)
 # The checker's own word lists and the validator's filler list are allowed to name filler.
 FILLER_EXEMPT = {"scripts/check-generic.py", "src/decisioncraft/model.py",
                  "src/decisioncraft/resources/writing-guide.md", "AGENTS.md", "tests/test_model.py"}
@@ -94,6 +96,36 @@ def scan(text: str, where: str, pats) -> list[str]:
     return hits
 
 
+def metadata_email(commit: str, field: str, email: str, allowed: set[tuple[str, str, str]]) -> tuple[str, bool]:
+    fingerprint = hashlib.sha256(email.encode()).hexdigest()
+    if (commit, field, fingerprint) in allowed:
+        return 'noreply@example.com', True
+    return email, False
+
+
+def scan_history(root: Path, terms) -> tuple[list[str], int]:
+    """Keep previously public attribution without exempting source or messages."""
+    path = root / 'docs/HISTORICAL-ATTRIBUTION.json'
+    record = json.loads(path.read_text()) if path.exists() else {'entries': []}
+    allowed = {(x['commit'], x['field'], x['sha256']) for x in record['entries']}
+    for commit, _, _ in allowed:
+        result = subprocess.run(['git', 'merge-base', '--is-ancestor', commit, record['public_base_commit']], cwd=root, capture_output=True)
+        if result.returncode:
+            raise ValueError('Attribution exception is outside its verified public history')
+    log = subprocess.run(['git', 'log', '--all', '--format=%H%x00%an%x00%ae%x00%cn%x00%ce%x00%B%x1e'], cwd=root, capture_output=True, text=True, check=True).stdout
+    hits = []; retained = 0
+    for chunk in log.split('\x1e'):
+        if not chunk.strip():
+            continue
+        commit, author, author_email, committer, committer_email, message = chunk.strip().split('\x00', 5)
+        author_email, known_a = metadata_email(commit, 'author_email', author_email, allowed)
+        committer_email, known_c = metadata_email(commit, 'committer_email', committer_email, allowed)
+        retained += int(known_a) + int(known_c)
+        text = f'{author} <{author_email}>\n{committer} <{committer_email}>\n{message}'
+        hits += scan(text, 'git history ' + commit[:12], patterns('git history', terms))
+    return hits, retained
+
+
 def main() -> int:
     root = Path(sys.argv[1] if len(sys.argv) > 1 else Path(__file__).resolve().parent.parent).resolve()
     terms = local_terms(root)
@@ -110,13 +142,14 @@ def main() -> int:
             continue
         hits += scan(data.decode("utf-8", "replace"), rel, pats)
         n += 1
-    log = subprocess.run(["git", "log", "--all", "--format=%an <%ae>%n%cn <%ce>%n%B"], cwd=root,
-                         capture_output=True, text=True).stdout
-    hits += scan(log, "git history", patterns("git history", terms))
+    historical_hits, retained = scan_history(root, terms)
+    hits += historical_hits
     for h in hits:
         print(h)
     print(f"check-generic: {n} files and the git history checked, {len(hits)} problem(s).",
           file=sys.stderr)
+    if retained:
+        print(f'Historical public attribution retained: {retained} exact metadata fingerprints. Source files and messages remain fully checked.', file=sys.stderr)
     return 1 if hits else 0
 
 

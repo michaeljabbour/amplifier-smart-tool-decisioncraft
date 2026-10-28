@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "id": "decisioncraft",
+  "display_name": "Decisioncraft",
+  "kind": "smart-tool",
+  "promise": "See the options, gaps and competing perspectives in one decision map.",
+  "audience": "People comparing options or mapping how work happens.",
+  "trigger": "Use a short comparison when that is enough; build a map when the source and consequences need one.",
+  "skill_path": "skills/decisioncraft",
+  "install_commands": [
+    "uv sync",
+    "uv run decisioncraft doctor"
+  ],
+  "runtime_install_commands": [],
+  "modes": [],
+  "examples": [],
+  "boundaries": [
+    "The existing canonical method and native interfaces remain the source of truth.",
+    "Publication, source inspection, component tests and outside-user benefit are separate claims."
+  ],
+  "evidence_summary": "On 2026-10-28, 385 native tests and 17 isolated 90-file skill-archive checks passed. Generic source/history checks passed with three exact, previously public attribution fingerprints retained. No external-user benefit is established by these checks.",
+  "verification": [
+    {
+      "name": "Native deterministic and optional MCP routing suite",
+      "status": "passed",
+      "command": "uv run pytest -q",
+      "evidence": "385 passed on 2026-10-28; base dependencies remain empty and no paid model call was made."
+    },
+    {
+      "name": "Self-contained native skill archive",
+      "status": "passed",
+      "command": "python3 scripts/test-skill-zip.py",
+      "evidence": "17/17 checks; 90 shipped files; isolated Python without network access."
+    },
+    {
+      "name": "Generic source and history",
+      "status": "passed",
+      "command": "python3 scripts/check-generic.py",
+      "evidence": "Three exact historical metadata fingerprints retained; source and new commit metadata remain scanned."
+    }
+  ],
+  "sources": [
+    {
+      "repo": "amplifier-smart-tool-decisioncraft",
+      "commit": "c65d558e04e0c3d39fac623702d295fda8f542ff",
+      "role": "Existing implementation and retained history",
+      "license": "MIT"
+    }
+  ],
+  "consolidation": [
+    {
+      "repo": "amplifier-smart-tool-decisioncraft",
+      "paths": [
+        "src/decisioncraft"
+      ],
+      "destination": "amplifier-smart-tool-decisioncraft:canonical method or implementation",
+      "role": "method",
+      "action": "keep",
+      "why": "A versioned decision-model artifact, multi-role notes, as-is/to-be structure and offline interactive map.",
+      "interface": "Versioned request/result or plain-file contract; adapters do not own the method.",
+      "revision": "c65d558e04e0c3d39fac623702d295fda8f542ff",
+      "sources": [
+        "https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft/tree/c65d558e04e0c3d39fac623702d295fda8f542ff/src/decisioncraft"
+      ],
+      "source_paths": [
+        {
+          "path": "src/decisioncraft",
+          "url": "https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft/tree/c65d558e04e0c3d39fac623702d295fda8f542ff/src/decisioncraft"
+        }
+      ]
+    },
+    {
+      "repo": "amplifier-smart-tool-decisioncraft",
+      "paths": [
+        "skills",
+        "contracts",
+        "tests",
+        "desktop"
+      ],
+      "destination": "amplifier-smart-tool-decisioncraft:method/contracts/tests/desktop adapter",
+      "role": "method/tool/adapter",
+      "action": "keep",
+      "why": "Preserve versioned map/model/review/session boundaries and saved reviewer input.",
+      "interface": "Decision model and review/journal import/export contracts; optional provider route.",
+      "revision": "c65d558e04e0c3d39fac623702d295fda8f542ff",
+      "sources": [
+        "https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft/tree/c65d558e04e0c3d39fac623702d295fda8f542ff/skills",
+        "https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft/tree/c65d558e04e0c3d39fac623702d295fda8f542ff/contracts",
+        "https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft/tree/c65d558e04e0c3d39fac623702d295fda8f542ff/tests",
+        "https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft/tree/c65d558e04e0c3d39fac623702d295fda8f542ff/desktop"
+      ],
+      "source_paths": [
+        {
+          "path": "skills",
+          "url": "https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft/tree/c65d558e04e0c3d39fac623702d295fda8f542ff/skills"
+        },
+        {
+          "path": "contracts",
+          "url": "https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft/tree/c65d558e04e0c3d39fac623702d295fda8f542ff/contracts"
+        },
+        {
+          "path": "tests",
+          "url": "https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft/tree/c65d558e04e0c3d39fac623702d295fda8f542ff/tests"
+        },
+        {
+          "path": "desktop",
+          "url": "https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft/tree/c65d558e04e0c3d39fac623702d295fda8f542ff/desktop"
+        }
+      ]
+    }
+  ],
+  "docs": [
+    "docs/INSTALL.md",
+    "docs/CONSOLIDATION.md"
+  ],
+  "publication_status": "Local consolidation candidate; existing published versions remain separate.",
+  "site_builder": "native"
+}

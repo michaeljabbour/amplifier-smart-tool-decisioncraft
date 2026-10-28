@@ -163,3 +163,10 @@ The product page lives in [site/](site/README.md).
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+
+## Portable capability and ownership
+
+See the options, gaps and competing perspectives in one decision map.
+
+Read the [installation guide](docs/INSTALL.md) for the supported local path and [consolidation record](docs/CONSOLIDATION.md) for ownership and evidence limits. Canonical catalog name: **Decisioncraft**; repository: `amplifier-smart-tool-decisioncraft`.
