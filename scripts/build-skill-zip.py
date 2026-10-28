@@ -188,7 +188,10 @@ def build(out: Path) -> Path:
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
         for f in sorted(root.rglob("*")):
             if f.is_file():
-                z.write(f, f.relative_to(stage).as_posix())
+                info = zipfile.ZipInfo(f.relative_to(stage).as_posix(), (2026, 1, 1, 0, 0, 0))
+                info.external_attr = 0o100644 << 16
+                info.compress_type = zipfile.ZIP_DEFLATED
+                z.writestr(info, f.read_bytes())
     shutil.rmtree(stage)
     return out
 

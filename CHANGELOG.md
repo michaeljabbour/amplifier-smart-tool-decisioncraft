@@ -2,6 +2,7 @@
 
 ## 2026-10-28: Public first use
 
+- Normalize ZIP timestamps and modes so the unchanged 91-file download can be verified against an independent build.
 - Add a provider-free complete fictional example path, with exact commands to validate and render a first canvas. Clarify the complete licensed portable archive.
 
 
