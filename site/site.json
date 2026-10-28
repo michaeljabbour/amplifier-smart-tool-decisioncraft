@@ -7,7 +7,7 @@
   "promise": "Point it at anything. See how it works, what is missing, and what every role thinks.",
   "description": "Point Decisioncraft at anything (a codebase, meeting notes, a process or a personal choice) and you get a map of as-is against to-be, the gaps written as user stories, and a sticky note from every role. It's rigorous decision analysis in plain language, from a quick side-by-side to a full team review.",
   "image": "docs/images/hero-notes.png",
-  "video": "docs/images/bike-hire-map-demo.mp4",
+  "video": "docs/images/engineering-demo.mp4",
   "alt": "A footbridge decision in Planned view: the chain from source to outcome, each box marked, and tilted role-coloured sticky notes beside the boxes they question.",
   "caption": "The footbridge example, Planned view, notes on the map. Fictional town, people and figures.",
   "width": 1440,
@@ -165,11 +165,16 @@
       "link_text": "Download decisioncraft.mcpb"
     },
     {
-      "title": "Claude or ChatGPT: Skills upload",
-      "text": "Claude: Customize > Skills > + > upload decisioncraft-skill.zip (turn on Code execution). ChatGPT: Skills > Create, then upload it.",
-      "link": "https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft/releases/latest/download/decisioncraft-skill.zip",
+      "title": "Portable skill with code execution",
+      "text": "Download the complete archive and add its decisioncraft folder to a host that loads Agent Skills and runs Python. Skill mode needs no API key or network.",
+      "link": "downloads/decisioncraft-skill.zip",
       "link_text": "Download decisioncraft-skill.zip"
     }
   ],
-  "install_footnote": "Chat apps without Skills or local tools can't run Decisioncraft yet; use Codex or Claude Code."
+  "install_footnote": "The portable archive includes the method, Python library and references. CLI and MCP installation are separate options.",
+  "attribution": {
+    "name": "Independent project",
+    "description": "Decisioncraft",
+    "organization": "Open source"
+  }
 }

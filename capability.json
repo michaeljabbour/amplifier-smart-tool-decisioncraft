@@ -18,7 +18,7 @@
     "The existing canonical method and native interfaces remain the source of truth.",
     "Publication, source inspection, component tests and outside-user benefit are separate claims."
   ],
-  "evidence_summary": "On 2026-10-28, 385 native tests and 17 isolated 90-file skill-archive checks passed. Generic source/history checks passed with three exact, previously public attribution fingerprints retained. No external-user benefit is established by these checks.",
+  "evidence_summary": "On 2026-10-28, 385 native tests and all 17 isolated skill-archive checks passed. The complete native 90-file payload now includes its MIT notice (91 files). The static build checks nine example canvases, 15 retained media files and all local references. Generic source/history checks passed with three exact public attribution fingerprints retained. No outside-user benefit follows.",
   "verification": [
     {
       "name": "Native deterministic and optional MCP routing suite",
@@ -29,14 +29,20 @@
     {
       "name": "Self-contained native skill archive",
       "status": "passed",
-      "command": "python3 scripts/test-skill-zip.py",
-      "evidence": "17/17 checks; 90 shipped files; isolated Python without network access."
+      "command": "python3 scripts/build-site.py",
+      "evidence": "17/17 isolated checks including wheel parity; 91 files including the product MIT notice; no network or provider required in skill mode."
     },
     {
       "name": "Generic source and history",
       "status": "passed",
       "command": "python3 scripts/check-generic.py",
       "evidence": "Three exact historical metadata fingerprints retained; source and new commit metadata remain scanned."
+    },
+    {
+      "name": "Complete native static site",
+      "status": "passed",
+      "command": "python3 scripts/check-site.py",
+      "evidence": "10 HTML pages, 57 local references, 9 source-identical canvases, 15 source-identical media files and the complete archive. Known missing-example and changed-archive controls were rejected."
     }
   ],
   "sources": [
@@ -114,5 +120,7 @@
     "docs/CONSOLIDATION.md"
   ],
   "publication_status": "Local consolidation candidate; existing published versions remain separate.",
-  "site_builder": "native"
+  "site_builder": "native",
+  "site_build_command": "python3 scripts/build-site.py",
+  "site_check_command": "python3 scripts/check-site.py"
 }

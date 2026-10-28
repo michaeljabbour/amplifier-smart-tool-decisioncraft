@@ -164,6 +164,7 @@ def build(out: Path) -> Path:
     root = stage / "decisioncraft"
     (root / "scripts").mkdir(parents=True)
     (root / "references").mkdir()
+    shutil.copy2(ROOT / "LICENSE", root / "LICENSE.md")
     (root / "SKILL.md").write_text(frontmatter() + BODY.lstrip("\n"), encoding="utf-8")
     shutil.copytree(SRC, root / "scripts" / "decisioncraft",
                     ignore=lambda d, names: [n for n in names if n in SKIP or n.endswith(".pyc")])

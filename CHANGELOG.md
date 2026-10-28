@@ -201,6 +201,10 @@ First release: decision models, the canvas, reviews, merge and diff, four worked
 
 ## Capability consolidation — 2026-10-28
 
+- Added a complete static-site build: linked example canvases, existing films and the full offline skill archive now ship together, with source-byte and local-link checks.
+- The portable archive retains the library, references and MIT notice; its native isolated checks run before the site is accepted.
+- Added independent product attribution and a Pages build/deploy workflow while retaining the family theme and its MIT notice.
+
 - Added a clear installation and ownership record while preserving native interfaces, source history and evidence limits.
 - Declared the optional MCP SDK in the development environment so the full native suite can exercise its MCP routing tests; base deterministic installation still has no provider dependency.
 - Retained three exact historical public metadata fingerprints in the generic check while continuing to reject source leaks, messages and new commit metadata; added a regression for the boundary.

@@ -280,6 +280,10 @@ def document(config, body, args, asset_prefix='./assets/'):
     nav = ''.join(f'<a href="{url}"' + (' aria-current="page"' if current else '') + f'>{label}</a>' for url, label, current in destinations)
     team_identity = '<div class="team"><strong>MADE</strong><span>Math &middot; AI &middot; Design &middot; Engineering</span></div>'
     organization = '<span class="organization">Microsoft Office of the CTO</span>'
+    if config.get('attribution'):
+        attribution = config['attribution']
+        team_identity = f'<div class="team"><strong>{esc(attribution["name"])}</strong><span>{esc(attribution["description"])}</span></div>'
+        organization = f'<span class="organization">{esc(attribution["organization"])}</span>'
     title = config['title']
     description = config['description']
     accent = config.get('accent','#486b61')

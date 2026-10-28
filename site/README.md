@@ -1,51 +1,48 @@
 # Website
 
-Decisioncraft's product page uses the Amplifier Smart Tools family theme. Page content
-lives in `site.json`. `site/theme/` is a versioned copy of the family theme (version
-0.1.0, MIT licensed; see `site/theme/LICENSE`), so a build does not depend on a moving
-remote theme or an online service.
+The product page uses a versioned family theme. Content lives in `site/site.json`.
+The theme's MIT notice stays in `site/theme/LICENSE` and is copied into the
+generated assets. Independent-project attribution comes from the page config.
 
-Local changes to the copy:
+## Build and check
 
-- `site/theme/family.json` registers this page under the key `decisioncraft`, because the
-  theme looks up each page's repository there.
-- `site/theme/build.py`: a capability demo may set `link` and `link_text` to add a link
-  next to "Watch full size". The page uses it to open each example canvas, which the
-  publish step copies to `examples/<name>.html`.
-- An install band under the hero (`install_options` and `install_footnote` in `site.json`, rendered by `install_options()` in `build.py`, styled at the end of `style.css`), and a smaller product name on phones narrower than 520px.
-
-## Build and preview
-
-From the repository root, with Python 3.11 or later:
+From the repository root, with Python 3.11 or later and either `uv` or Python's
+`build` package available for wheel comparison:
 
 ```sh
-python3 -m venv .work/site-venv
-.work/site-venv/bin/python -m pip install -r site/requirements.txt
-.work/site-venv/bin/python site/theme/build.py
+python3 scripts/build-site.py
+python3 scripts/check-site.py
 python3 -m http.server 8000 --directory _site --bind 127.0.0.1
 ```
 
-Open http://127.0.0.1:8000. Output goes to `_site/`, which Git ignores. The page is
-static; visitors need no Python and no account.
+The wrapper rebuilds fictional examples without model calls, renders the theme,
+copies every actual example canvas and existing film asset, and builds
+`_site/downloads/decisioncraft-skill.zip`. It runs the native 17 isolated archive
+checks, then checks local page references, exact source bytes of examples/media,
+archive files and contents, and both MIT notices. The archive contains the full
+native payload plus the product license.
 
-`build.py` also accepts `--family-owner` (where the family overview and catalog live) and
-`--local` (link sibling pages on one preview server). Use the same settings as the rest
-of the family.
+`_site/site-release.json` records source paths and hashes. These checks establish
+packaging and offline behavior, not decision quality. The wrapper accepts
+`--output`, `--local` and `--family-owner`.
 
-## Images and video
+Open http://127.0.0.1:8000. Output is static and ignored by Git. The Pages workflow
+builds and uploads this same directory. Changing the repository's Pages source
+or publishing remains a separate remote action.
 
-`build.py` copies the media named in `site.json` from `docs/images/`. The demo videos
-and posters are screen recordings of the four examples, made headlessly:
+## Theme and media
+
+Local theme patches support demo links, install choices, configured independent
+attribution, and smaller product type on narrow phones. The theme and its
+license are retained. `site/theme/build.py` alone is the lower-level renderer;
+use the product wrapper to include examples and the archive.
+
+Existing recordings and posters stay in `docs/images/`. Regenerating them is
+optional and requires Playwright/Chromium and ffmpeg:
 
 ```sh
-python3 scripts/build-examples.py
-python3 scripts/record-demos.py      # needs Playwright with Chromium, and ffmpeg
+python3 scripts/record-demos.py
 ```
 
-All examples are fictional. The medical example is about how a ward organises its work
-and is not medical advice.
-
-## Updating the theme
-
-Copy a newer `site/theme/` from the family repository, keep the `decisioncraft` entry in
-`family.json`, review the diff, and build again. Page content stays in `site.json`.
+All examples are fictional. The care example concerns how a ward organises work,
+not medical advice.
