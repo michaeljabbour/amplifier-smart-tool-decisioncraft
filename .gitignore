@@ -8,3 +8,4 @@ build/
 .check-generic.local
 *.egg-info/
 _site/
+.research/

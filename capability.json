@@ -122,5 +122,90 @@
   "publication_status": "Local consolidation candidate; existing published versions remain separate.",
   "site_builder": "native",
   "site_build_command": "python3 scripts/build-site.py",
-  "site_check_command": "python3 scripts/check-site.py"
+  "site_check_command": "python3 scripts/check-site.py",
+  "name": "amplifier-capability-decisioncraft",
+  "legacy_names": [
+    "amplifier-smart-tool-decisioncraft",
+    "decisioncraft"
+  ],
+  "contract_version": "amplifier-capability/v1",
+  "version": "0.2.3",
+  "version_basis": "Existing release metadata",
+  "engine": "LLM",
+  "engine_components": {
+    "deterministic_core": "None",
+    "optional_draft_perspectives": "LLM",
+    "decision_model": "Not established: a decision-map artifact and weighted arithmetic are not by themselves a calibrated decision model."
+  },
+  "surfaces": [
+    "agent-skills",
+    "cli",
+    "python-library"
+  ],
+  "portable_method": {
+    "name": "decisioncraft",
+    "path": "skills/decisioncraft",
+    "include": [
+      "."
+    ],
+    "contract": "Agent Skills directory; caller applies the method; no independent execution loop is installed."
+  },
+  "interfaces": {
+    "portable": {
+      "input": "Caller task and explicitly authorized context",
+      "output": "See the options, gaps and competing perspectives in one decision map.",
+      "failure": "Report insufficient evidence, unsupported context or host limitation; never turn discovery into an execution claim."
+    },
+    "native": {
+      "distribution": "amplifier-smart-tool-decisioncraft",
+      "entrypoints": {
+        "decisioncraft": "decisioncraft.cli:main"
+      },
+      "docs": [
+        "docs/INSTALL.md",
+        "docs/CONSOLIDATION.md"
+      ],
+      "status": "Existing declared entrypoints preserved; runtime signatures, service access and installation tests remain separate evidence."
+    },
+    "host_adapters": {
+      "amplifier_bundle": null,
+      "grants_autonomy": false
+    }
+  },
+  "permissions": {
+    "installation": {
+      "network": false,
+      "executes_capability_code": false,
+      "writes": [
+        "Selected discovery folders",
+        ".capability-state transaction backups"
+      ],
+      "grants_runtime_permissions": false
+    },
+    "runtime": {
+      "status": "Host/caller authorizes each operation; installation is not a tool allowlist or standing approval.",
+      "declared_boundaries": [
+        "The existing canonical method and native interfaces remain the source of truth.",
+        "Publication, source inspection, component tests and outside-user benefit are separate claims."
+      ]
+    },
+    "secret_names": {
+      "discovery_requires": [],
+      "native_runtime_inventory": "See native documentation; no credentials are bundled or inferred."
+    }
+  },
+  "dataflow": {
+    "installation": "Read pinned tracked portable source and copy locally with SHA-256 receipts. No source text is transmitted.",
+    "method": "Caller supplies authorized context; existing promise and boundaries govern output.",
+    "native_runtime": "Provider/network/storage flows are owned by native interfaces and host authorization; these files do not enable them."
+  },
+  "source_policy": {
+    "revision": "Explicit full40-character Git commit required at installation; never infer latest.",
+    "repository_rename": "Public identity may change; skill folder, imports, entrypoints, tool IDs and schemas remain stable.",
+    "research": ".research/market remains local and ignored; AGENTS governs refresh."
+  },
+  "repository_url": "https://github.com/michaeljabbour/amplifier-capability-decisioncraft",
+  "repository_aliases": [
+    "https://github.com/michaeljabbour/amplifier-smart-tool-decisioncraft"
+  ]
 }
